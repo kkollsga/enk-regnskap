@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"sort"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -51,6 +53,7 @@ func (s *Server) routes() http.Handler {
 	r.Get("/api/exchange-rate", s.handleExchangeRate)
 
 	r.Get("/", s.handleDashboard)
+	r.Get("/set-year", s.handleSetYear)
 
 	r.Get("/income", s.handleIncomeList)
 	r.Get("/income/new", s.handleIncomeNew)
@@ -86,8 +89,35 @@ func (s *Server) view(r *http.Request, active, title string) View {
 		Active: active,
 		Title:  title,
 		Year:   s.app.ActiveYear(ctx),
-		Years:  tax.AvailableYears(),
+		Years:  selectableYears(s.app.ActiveYear(ctx)),
 	}
+}
+
+// selectableYears er registrerte skatteaar pluss aktivt aar (stigende, unikt).
+func selectableYears(active int) []int {
+	set := map[int]bool{active: true}
+	for _, y := range tax.AvailableYears() {
+		set[y] = true
+	}
+	years := make([]int, 0, len(set))
+	for y := range set {
+		years = append(years, y)
+	}
+	sort.Ints(years)
+	return years
+}
+
+// handleSetYear setter aktivt inntektsaar og gaar tilbake til forrige side.
+func (s *Server) handleSetYear(w http.ResponseWriter, r *http.Request) {
+	year := parseInt(r.URL.Query().Get("year"))
+	if year >= 2000 && year <= 2100 {
+		_ = s.app.SetConfig(r.Context(), core.ConfigActiveYear, strconv.Itoa(year))
+	}
+	dest := r.Header.Get("Referer")
+	if dest == "" {
+		dest = "/"
+	}
+	http.Redirect(w, r, dest, http.StatusSeeOther)
 }
 
 // tr returnerer en oversettelse for forespoerselens sprak.

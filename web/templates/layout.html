@@ -19,7 +19,13 @@
       <a href="/reports" class="{{if eq .Active "reports"}}active{{end}}">{{.Tr "nav_reports"}}</a>
       <a href="/changelog" class="{{if eq .Active "changelog"}}active{{end}}">{{.Tr "nav_changelog"}}</a>
     </nav>
-    <span class="year-badge" id="year-badge">{{.Year}}</span>
+    <form class="year-switch" method="GET" action="/set-year">
+      <label class="visually-hidden" for="year-select">{{.Tr "common_year"}}</label>
+      <select id="year-select" name="year" onchange="this.form.submit()">
+        {{$y := .Year}}
+        {{range .Years}}<option value="{{.}}" {{if eq . $y}}selected{{end}}>{{.}}</option>{{end}}
+      </select>
+    </form>
   </header>
   <main class="content">
     {{template "content" .}}

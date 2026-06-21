@@ -117,12 +117,27 @@ func (d *Doc) Find(selector string) []*html.Node {
 	if d.root == nil {
 		return nil
 	}
-	var tag, id, class string
+	var tag, id, class, attrKey, attrVal string
+	// Trekk ut et eventuelt [attr=val]-segment forst.
+	if i := strings.IndexByte(selector, '['); i >= 0 {
+		if j := strings.IndexByte(selector, ']'); j > i {
+			inner := selector[i+1 : j]
+			if eq := strings.IndexByte(inner, '='); eq >= 0 {
+				attrKey = strings.TrimSpace(inner[:eq])
+				attrVal = strings.Trim(strings.TrimSpace(inner[eq+1:]), `"'`)
+			} else {
+				attrKey = strings.TrimSpace(inner)
+			}
+			selector = selector[:i] + selector[j+1:]
+		}
+	}
 	switch {
 	case strings.HasPrefix(selector, "#"):
 		id = selector[1:]
 	case strings.HasPrefix(selector, "."):
 		class = selector[1:]
+	case selector == "":
+		// kun attributtselektor
 	default:
 		if i := strings.IndexByte(selector, '.'); i >= 0 {
 			tag, class = selector[:i], selector[i+1:]
@@ -133,7 +148,7 @@ func (d *Doc) Find(selector string) []*html.Node {
 	var out []*html.Node
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
-		if n.Type == html.ElementNode && nodeMatches(n, tag, id, class) {
+		if n.Type == html.ElementNode && nodeMatches(n, tag, id, class) && attrMatches(n, attrKey, attrVal) {
 			out = append(out, n)
 		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
@@ -142,6 +157,18 @@ func (d *Doc) Find(selector string) []*html.Node {
 	}
 	walk(d.root)
 	return out
+}
+
+func attrMatches(n *html.Node, key, val string) bool {
+	if key == "" {
+		return true
+	}
+	for _, a := range n.Attr {
+		if a.Key == key {
+			return val == "" || a.Val == val
+		}
+	}
+	return false
 }
 
 // First returnerer forste node som matcher selektoren, eller nil.

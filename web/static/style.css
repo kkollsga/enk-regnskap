@@ -43,13 +43,16 @@ a:hover { text-decoration: underline; }
 .mainnav a { color: var(--muted); font-weight: 500; padding: 4px 0; }
 .mainnav a:hover { color: var(--text); text-decoration: none; }
 .mainnav a.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
-.year-badge {
+.year-switch select {
   background: var(--sep);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 4px 12px;
+  padding: 6px 10px;
   font-weight: 600;
   color: var(--primary);
+  cursor: pointer;
 }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 .content { max-width: 1100px; margin: 0 auto; padding: 32px; }
 
