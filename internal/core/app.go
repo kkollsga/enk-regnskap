@@ -102,3 +102,37 @@ func (a *App) ActiveYear(ctx context.Context) int {
 func (a *App) Language(ctx context.Context) string {
 	return a.GetConfig(ctx, ConfigLanguage, "nb")
 }
+
+// IsOnboarded forteller om forstegangsoppsettet er fullfort.
+func (a *App) IsOnboarded(ctx context.Context) bool {
+	return a.GetConfig(ctx, ConfigOnboarded, "") == "1"
+}
+
+// OnboardInput er dataene fra velkomstskjermen.
+type OnboardInput struct {
+	BusinessName string
+	OrgNr        string
+	Language     string
+}
+
+// CompleteOnboarding lagrer virksomhetsinfo og markerer oppsettet som fullfort.
+func (a *App) CompleteOnboarding(ctx context.Context, in OnboardInput) error {
+	if in.Language == "" {
+		in.Language = "nb"
+	}
+	if err := a.SetConfig(ctx, ConfigBusinessName, in.BusinessName); err != nil {
+		return err
+	}
+	if err := a.SetConfig(ctx, ConfigOrgNr, in.OrgNr); err != nil {
+		return err
+	}
+	if err := a.SetConfig(ctx, ConfigLanguage, in.Language); err != nil {
+		return err
+	}
+	if a.GetConfig(ctx, ConfigActiveYear, "") == "" {
+		if err := a.SetConfig(ctx, ConfigActiveYear, fmt.Sprintf("%d", a.ActiveYear(ctx))); err != nil {
+			return err
+		}
+	}
+	return a.SetConfig(ctx, ConfigOnboarded, "1")
+}

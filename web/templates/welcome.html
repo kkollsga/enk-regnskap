@@ -1,0 +1,36 @@
+{{define "content"}}
+{{$d := .Data}}
+<section class="welcome">
+  <h1>Velkommen til ENK Regnskap</h1>
+  <p class="muted">
+    Et enkelt, lokalt regnskapsverktoy for ditt enkeltpersonforetak. All data
+    lagres lokalt paa din maskin – ingenting sendes til skyen.
+  </p>
+
+  <div class="info-card">
+    Data lagres i mappen:<br>
+    <strong>{{$d.DataDir}}</strong><br>
+    <span class="small muted">Tips: legg denne mappen i OneDrive for automatisk sikkerhetskopi. Du kan endre plassering ved oppstart med valget <code>-data</code>.</span>
+  </div>
+
+  <form method="POST" action="/onboard" class="form">
+    <div class="field">
+      <label for="business_name">Navn paa virksomheten (valgfritt)</label>
+      <input type="text" id="business_name" name="business_name" placeholder="Mitt foretak">
+    </div>
+    <div class="field">
+      <label for="org_nr">Organisasjonsnummer (valgfritt)</label>
+      <input type="text" id="org_nr" name="org_nr" inputmode="numeric" placeholder="000 000 000">
+    </div>
+    <div class="field">
+      <label for="language">{{.Tr "language"}}</label>
+      <select id="language" name="language">
+        <option value="nb" selected>Norsk bokmaal</option>
+        <option value="pt">Portugues</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Kom i gang</button>
+  </form>
+</section>
+{{end}}

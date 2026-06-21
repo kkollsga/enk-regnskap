@@ -162,3 +162,8 @@ label.inline { display: inline-block; margin-right: 18px; font-weight: 400; }
 .badge-ok { background: #e6f4ea; color: #1e7a3a; }
 .badge-warn { background: #fdf1f1; color: var(--red); }
 h3 { font-size: 15px; font-weight: 600; margin: 18px 0 8px; }
+
+.welcome { max-width: 560px; margin: 40px auto; }
+.welcome h1 { margin-bottom: 12px; }
+.download-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.country-block { margin-bottom: 24px; }

@@ -9,6 +9,7 @@
 <body>
   <header class="topbar">
     <a class="brand" href="/">{{.Tr "app_name"}}</a>
+    {{if ne .Active "welcome"}}
     <nav class="mainnav">
       <a href="/" class="{{if eq .Active "dashboard"}}active{{end}}">{{.Tr "nav_dashboard"}}</a>
       <a href="/income" class="{{if eq .Active "income"}}active{{end}}">{{.Tr "nav_income"}}</a>
@@ -26,6 +27,7 @@
         {{range .Years}}<option value="{{.}}" {{if eq . $y}}selected{{end}}>{{.}}</option>{{end}}
       </select>
     </form>
+    {{end}}
   </header>
   <main class="content">
     {{template "content" .}}

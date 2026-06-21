@@ -43,10 +43,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *Server) routes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
+	r.Use(s.onboardingGate)
 
 	// Statiske filer fra embeddet web/static.
 	staticFS, _ := fs.Sub(web.Static, "static")
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
+
+	r.Get("/welcome", s.handleWelcome)
+	r.Post("/onboard", s.handleOnboard)
 
 	r.Get("/health", s.handleHealth)
 	r.Get("/events", s.handleEvents)

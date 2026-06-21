@@ -26,9 +26,18 @@ type Harness struct {
 	t       *testing.T
 }
 
-// Start starter appen med en flyktig datamappe og mock-valutatjeneste, og
-// venter til /health svarer. Rydder opp automatisk ved testslutt.
+// Start starter appen ferdig onboardet (vanlig tilfelle for de fleste tester).
 func Start(t *testing.T) *Harness {
+	t.Helper()
+	h := StartRaw(t)
+	if err := h.App.SetConfig(h.Context(), "onboarded", "1"); err != nil {
+		t.Fatalf("kunne ikke markere onboardet: %v", err)
+	}
+	return h
+}
+
+// StartRaw starter appen UTEN aa fullfore onboarding (for onboarding-tester).
+func StartRaw(t *testing.T) *Harness {
 	t.Helper()
 	dir := t.TempDir()
 	mock := mocks.NewNorgesBankMock()
