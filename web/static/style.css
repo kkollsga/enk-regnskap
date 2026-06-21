@@ -146,3 +146,11 @@ form input:focus, form select:focus, form textarea:focus { outline: 2px solid va
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 .empty { color: var(--muted); padding: 40px; text-align: center; }
+
+label.inline { display: inline-block; margin-right: 18px; font-weight: 400; }
+
+.receipt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.receipt-card { padding: 0; overflow: hidden; }
+.receipt-preview { height: 160px; display: flex; align-items: center; justify-content: center; background: var(--sep); }
+.receipt-preview img { max-width: 100%; max-height: 160px; object-fit: contain; }
+.receipt-meta { padding: 10px 12px; }

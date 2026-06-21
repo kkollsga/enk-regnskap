@@ -1,0 +1,91 @@
+{{define "content"}}
+{{$d := .Data}}
+<section class="page-head">
+  <h1>{{.Tr "action_add_expense"}}</h1>
+  <a class="btn" href="/expenses">{{.Tr "action_back"}}</a>
+</section>
+
+<form method="POST" action="/expenses" id="expense-form" class="form" enctype="multipart/form-data" novalidate>
+  <div class="field {{if index $d.Errors "date"}}has-error{{end}}">
+    <label for="date">{{.Tr "common_date"}}</label>
+    <input type="date" id="date" name="date" value="{{index $d.Values "date"}}">
+    {{with index $d.Errors "date"}}<div class="field-error">{{.}}</div>{{end}}
+  </div>
+
+  <div class="field {{if index $d.Errors "description"}}has-error{{end}}">
+    <label for="description">{{.Tr "common_description"}}</label>
+    <input type="text" id="description" name="description" value="{{index $d.Values "description"}}" autocomplete="off">
+    {{with index $d.Errors "description"}}<div class="field-error">{{.}}</div>{{end}}
+  </div>
+
+  <div class="field {{if index $d.Errors "amount_nok"}}has-error{{end}}">
+    <label for="amount_nok">{{.Tr "common_amount"}} (NOK)</label>
+    <input type="text" id="amount_nok" name="amount_nok" inputmode="decimal" value="{{index $d.Values "amount_nok"}}" placeholder="0,00">
+    {{with index $d.Errors "amount_nok"}}<div class="field-error">{{.}}</div>{{end}}
+  </div>
+
+  <div class="field {{if index $d.Errors "category"}}has-error{{end}}">
+    <label for="category">{{.Tr "common_category"}}</label>
+    <select id="category" name="category">
+      <option value="">– velg –</option>
+      {{$cat := index $d.Values "category"}}
+      {{range $d.Categories}}
+        <option value="{{.Key}}" data-pct="{{.DefaultPct}}" {{if eq .Key $cat}}selected{{end}}>{{.Name}} ({{pct .DefaultPct}} fradrag)</option>
+      {{end}}
+    </select>
+    {{with index $d.Errors "category"}}<div class="field-error">{{.}}</div>{{end}}
+    <div class="rate-info" id="cat-note" hidden></div>
+  </div>
+
+  <div class="field">
+    <label for="deductible_pct">Fradragsprosent</label>
+    <input type="text" id="deductible_pct" name="deductible_pct" inputmode="decimal" value="{{index $d.Values "deductible_pct"}}" placeholder="100">
+    <div class="rate-info" id="deductible-info" hidden></div>
+  </div>
+
+  <div class="field">
+    <label for="receipt">{{.Tr "common_receipt"}} (valgfritt)</label>
+    <input type="file" id="receipt" name="receipt" accept="image/*,application/pdf">
+    {{with index $d.Errors "file"}}<div class="field-error">{{.}}</div>{{end}}
+  </div>
+
+  <div class="field">
+    <label for="notes">{{.Tr "common_notes"}}</label>
+    <textarea id="notes" name="notes" rows="2">{{index $d.Values "notes"}}</textarea>
+  </div>
+
+  <button type="submit" class="btn btn-primary">{{.Tr "action_save"}}</button>
+</form>
+
+<script>
+(function () {
+  var category = document.getElementById("category");
+  var pct = document.getElementById("deductible_pct");
+  var amount = document.getElementById("amount_nok");
+  var info = document.getElementById("deductible-info");
+  var catNote = document.getElementById("cat-note");
+  var userSetPct = false;
+
+  function fmt(n) { return n.toLocaleString("nb-NO", {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+
+  function applyCategoryDefault() {
+    var opt = category.options[category.selectedIndex];
+    if (opt && opt.dataset.pct && !userSetPct) {
+      pct.value = opt.dataset.pct;
+    }
+    update();
+  }
+  function update() {
+    var amt = parseFloat((amount.value || "0").replace(/\s/g, "").replace(",", ".")) || 0;
+    var p = parseFloat((pct.value || "100").replace(",", ".")) || 0;
+    var d = amt * p / 100;
+    info.innerHTML = "Fradragsberettiget: <strong>" + fmt(d) + " kr</strong>";
+    info.hidden = false;
+  }
+  category.addEventListener("change", applyCategoryDefault);
+  pct.addEventListener("input", function () { userSetPct = true; update(); });
+  amount.addEventListener("input", update);
+  if (category.value) applyCategoryDefault();
+})();
+</script>
+{{end}}

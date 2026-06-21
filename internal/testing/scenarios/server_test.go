@@ -50,15 +50,6 @@ func TestDashboardShowsEmptyTotals(t *testing.T) {
 	apptest.AssertHTMLContains(t, doc, ".card-value", "0")
 }
 
-func TestStubsReturn501(t *testing.T) {
-	h := apptest.Start(t)
-	b := h.Browser()
-	for _, path := range []string{"/expenses", "/receipts", "/reports"} {
-		status, _, _ := b.GetRaw(path)
-		apptest.AssertEqual(t, status, 501, "stub "+path)
-	}
-}
-
 func TestStaticAssetsServed(t *testing.T) {
 	h := apptest.Start(t)
 	status, body, hdr := h.Browser().GetRaw("/static/style.css")

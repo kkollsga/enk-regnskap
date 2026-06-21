@@ -56,11 +56,16 @@ func (s *Server) routes() http.Handler {
 	r.Get("/income/new", s.handleIncomeNew)
 	r.Post("/income", s.handleIncomeCreate)
 
+	r.Get("/expenses", s.handleExpenseList)
+	r.Get("/expenses/new", s.handleExpenseNew)
+	r.Post("/expenses", s.handleExpenseCreate)
+
+	r.Get("/receipts", s.handleReceiptsList)
+	r.Post("/receipts", s.handleReceiptUpload)
+	r.Get("/receipts/file/{id}", s.handleReceiptFile)
+	r.Post("/receipts/link", s.handleReceiptLink)
+
 	// Stubs - implementeres i senere faser (returnerer 501 inntil da).
-	r.Get("/expenses", s.stub("expenses"))
-	r.Get("/expenses/new", s.stub("expenses"))
-	r.Post("/expenses", s.stub("expenses"))
-	r.Get("/receipts", s.stub("receipts"))
 	r.Get("/foreign-tax", s.stub("foreign-tax"))
 	r.Get("/tax-info", s.stub("tax-info"))
 	r.Get("/reports", s.stub("reports"))

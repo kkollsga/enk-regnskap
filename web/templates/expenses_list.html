@@ -1,0 +1,47 @@
+{{define "content"}}
+{{$d := .Data}}
+<section class="page-head">
+  <h1>{{.Tr "nav_expenses"}} <span class="muted">{{.Year}}</span></h1>
+  <a class="btn btn-primary" href="/expenses/new">{{.Tr "action_add_expense"}}</a>
+</section>
+
+{{if $d.Expenses}}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>{{.Tr "common_date"}}</th>
+      <th>{{.Tr "common_description"}}</th>
+      <th>{{.Tr "common_category"}}</th>
+      <th class="num">{{.Tr "common_amount"}}</th>
+      <th class="num">Fradrag</th>
+      <th class="num">Fradragsberettiget</th>
+      <th>{{.Tr "common_receipt"}}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range $d.Expenses}}
+    <tr>
+      <td>{{.Date}}</td>
+      <td>{{.Description}}</td>
+      <td>{{.Category}}</td>
+      <td class="num">{{nok .AmountNok}}</td>
+      <td class="num">{{pct .DeductiblePct}}</td>
+      <td class="num">{{nok .DeductibleNok}}</td>
+      <td>{{if .ReceiptID.Valid}}<a href="/receipts/file/{{.ReceiptID.Int64}}" target="_blank">vis</a>{{else}}<span class="muted">–</span>{{end}}</td>
+    </tr>
+    {{end}}
+  </tbody>
+  <tfoot>
+    <tr class="sum">
+      <td colspan="3" class="num">{{.Tr "common_total"}}</td>
+      <td class="num">{{nok $d.TotalAmount}}</td>
+      <td></td>
+      <td class="num" data-live="expenses">{{nok $d.TotalDeduct}}</td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
+{{else}}
+<div class="empty">Ingen utgifter registrert for {{.Year}} enda. <a href="/expenses/new">Legg til den forste</a>.</div>
+{{end}}
+{{end}}

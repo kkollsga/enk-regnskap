@@ -1,0 +1,40 @@
+{{define "content"}}
+{{$d := .Data}}
+<section class="page-head">
+  <h1>{{.Tr "nav_receipts"}}</h1>
+  <div class="quick-actions">
+    <a class="btn {{if eq $d.Filter "all"}}btn-primary{{end}}" href="/receipts?filter=all">Alle</a>
+    <a class="btn {{if eq $d.Filter "unlinked"}}btn-primary{{end}}" href="/receipts?filter=unlinked">Ikke tilknyttet</a>
+  </div>
+</section>
+
+<form method="POST" action="/receipts" enctype="multipart/form-data" class="panel" style="margin-bottom:24px;">
+  <div class="field" style="margin-bottom:10px;">
+    <label for="receipt">Last opp ny kvittering</label>
+    <input type="file" id="receipt" name="receipt" accept="image/*,application/pdf" required>
+  </div>
+  <button type="submit" class="btn btn-primary">Last opp</button>
+</form>
+
+{{if $d.Receipts}}
+<div class="receipt-grid">
+  {{range $d.Receipts}}
+  <div class="card receipt-card">
+    <div class="receipt-preview">
+      {{if eq .MimeType "application/pdf"}}
+        <a href="/receipts/file/{{.ID}}" target="_blank">📄 PDF</a>
+      {{else}}
+        <a href="/receipts/file/{{.ID}}" target="_blank"><img src="/receipts/file/{{.ID}}" alt="{{.OriginalName}}" loading="lazy"></a>
+      {{end}}
+    </div>
+    <div class="receipt-meta">
+      <div class="small">{{.OriginalName}}</div>
+      <div class="muted small">{{.UploadedAt}}</div>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="empty">Ingen kvitteringer {{if eq $d.Filter "unlinked"}}uten tilknytning{{end}} enda.</div>
+{{end}}
+{{end}}
