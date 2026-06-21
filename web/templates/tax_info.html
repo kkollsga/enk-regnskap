@@ -1,0 +1,100 @@
+{{define "content"}}
+{{$d := .Data}}
+<section class="page-head">
+  <h1>{{.Tr "nav_tax_info"}} <span class="muted">{{.Year}}</span></h1>
+</section>
+
+<div class="info-card">
+  Dette er appens hjelpeseksjon. Satsene er hentet fra Skatteetaten og Lovdata.
+  Appen gir informasjon og stotteberegninger, ikke bindende skatteradgivning.
+</div>
+
+{{if $d.HasRules}}
+{{$r := $d.Rules}}
+<section class="panel">
+  <h2>Fradragskategorier {{.Year}}</h2>
+  <table class="data-table">
+    <thead><tr><th>Kategori</th><th class="num">Fradrag</th><th class="num">Sjablong</th><th class="num">Maks</th><th>Merknad</th></tr></thead>
+    <tbody>
+      {{range $r.Deductions}}
+      <tr>
+        <td>{{.Name}}</td>
+        <td class="num">{{pct .DefaultPct}}</td>
+        <td class="num">{{if gt .SjablongAmount 0.0}}{{nok .SjablongAmount}}{{else}}–{{end}}</td>
+        <td class="num">{{if gt .MaxAmount 0.0}}{{nok .MaxAmount}}{{else}}–{{end}}</td>
+        <td class="muted small">{{.Note}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Satser {{.Year}}</h2>
+  <table class="kv">
+    <tr><td>Hjemmekontor sjablong</td><td class="num">{{nok $r.HjemmekontorSjablong}}</td></tr>
+    <tr><td>Kilometgodtgjorelse (egen bil)</td><td class="num">{{nok $r.KmRate}} / km</td></tr>
+    <tr><td>Straksfradrag-grense (smaaanskaffelser)</td><td class="num">{{nok $r.SmaaanskaffelseLimit}}</td></tr>
+    <tr><td>Representasjon per person</td><td class="num">{{nok $r.RepresentasjonPerPerson}}</td></tr>
+    <tr><td>Alminnelig inntektsskatt</td><td class="num">{{pct $r.AlminneligInntektsskattPct}}</td></tr>
+    <tr><td>Trygdeavgift (naering)</td><td class="num">{{pct $r.TrygdeavgiftNaeringPct}}</td></tr>
+    <tr><td>Nedre grense trygdeavgift</td><td class="num">{{nok $r.TrygdeavgiftNedreGrense}}</td></tr>
+  </table>
+  <h3>Trinnskatt</h3>
+  <table class="data-table">
+    <thead><tr><th class="num">Innslagspunkt</th><th class="num">Sats</th></tr></thead>
+    <tbody>
+      {{range $r.TrinnskattBrackets}}<tr><td class="num">{{nok .Threshold}}</td><td class="num">{{pct .Rate}}</td></tr>{{end}}
+    </tbody>
+  </table>
+  <h3>Kilder</h3>
+  <ul class="small">
+    {{range $key, $url := $r.Sources}}<li><a href="{{$url}}" target="_blank">{{$key}}</a></li>{{end}}
+  </ul>
+</section>
+{{else}}
+<div class="info-card warn">Ingen skatteregler er registrert for {{.Year}}.</div>
+{{end}}
+
+<section class="panel">
+  <h2>Landoversikt</h2>
+  {{range $d.Countries}}
+  <div class="country-block">
+    <h3>{{.Name}} ({{.Code}})</h3>
+    <table class="data-table">
+      <thead><tr><th>Periode</th><th>Skatteavtale</th><th>Metode</th><th>I kraft</th><th>Referanse</th></tr></thead>
+      <tbody>
+        {{range .Rules}}
+        <tr>
+          <td>{{.EffectiveFrom}}{{if .EffectiveTo.Valid}}–{{.EffectiveTo.Int64}}{{else}}–{{end}}</td>
+          <td>{{if eq .HasTaxTreaty 1}}<span class="badge badge-ok">Ja</span>{{else}}<span class="badge">Nei</span>{{end}}</td>
+          <td>{{if .TreatyMethod.Valid}}{{.TreatyMethod.String}}{{else}}–{{end}}</td>
+          <td>{{if .TreatyInForceDate.Valid}}{{.TreatyInForceDate.String}}{{else}}–{{end}}</td>
+          <td class="small">{{if .TreatyReference.Valid}}{{if .TreatySourceUrl.Valid}}<a href="{{.TreatySourceUrl.String}}" target="_blank">{{.TreatyReference.String}}</a>{{else}}{{.TreatyReference.String}}{{end}}{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{if .Types}}
+    <table class="data-table">
+      <thead><tr><th>Kode</th><th>Navn</th><th>Gjelder</th><th>Krediterbar i Norge</th><th class="num">Sats</th></tr></thead>
+      <tbody>
+        {{range .Types}}
+        <tr>
+          <td>{{.TaxTypeCode}}</td>
+          <td>{{.TaxTypeName}}</td>
+          <td>{{if .AppliesTo.Valid}}{{.AppliesTo.String}}{{end}}</td>
+          <td>{{if and .IsCreditableInNorway.Valid (eq .IsCreditableInNorway.Int64 1)}}<span class="badge badge-ok">Ja</span>{{else}}<span class="badge">Normalt nei</span>{{end}}</td>
+          <td class="num">{{if .TypicalRatePct.Valid}}{{pct .TypicalRatePct.Float64}}{{else}}–{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{end}}
+  </div>
+  {{end}}
+  <p class="muted small">
+    <a href="https://www.skatteetaten.no/person/skatt/skattemelding/naringsdrivende/" target="_blank">Skatteetaten: skattemelding for naeringsdrivende →</a>
+  </p>
+</section>
+{{end}}

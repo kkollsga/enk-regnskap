@@ -71,8 +71,9 @@ func (s *Server) routes() http.Handler {
 	r.Get("/foreign-tax", s.handleForeignTax)
 	r.Post("/foreign-tax", s.handleForeignTaxUpdate)
 
+	r.Get("/tax-info", s.handleTaxInfo)
+
 	// Stubs - implementeres i senere faser (returnerer 501 inntil da).
-	r.Get("/tax-info", s.stub("tax-info"))
 	r.Get("/reports", s.stub("reports"))
 	r.Get("/changelog", s.stub("changelog"))
 
