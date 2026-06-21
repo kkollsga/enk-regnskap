@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="{{.Lang}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{if .Title}}{{.Title}} — {{end}}{{.Tr "app_name"}}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">{{.Tr "app_name"}}</a>
+    <nav class="mainnav">
+      <a href="/" class="{{if eq .Active "dashboard"}}active{{end}}">{{.Tr "nav_dashboard"}}</a>
+      <a href="/income" class="{{if eq .Active "income"}}active{{end}}">{{.Tr "nav_income"}}</a>
+      <a href="/expenses" class="{{if eq .Active "expenses"}}active{{end}}">{{.Tr "nav_expenses"}}</a>
+      <a href="/receipts" class="{{if eq .Active "receipts"}}active{{end}}">{{.Tr "nav_receipts"}}</a>
+      <a href="/foreign-tax" class="{{if eq .Active "foreign-tax"}}active{{end}}">{{.Tr "nav_foreign_tax"}}</a>
+      <a href="/tax-info" class="{{if eq .Active "tax-info"}}active{{end}}">{{.Tr "nav_tax_info"}}</a>
+      <a href="/reports" class="{{if eq .Active "reports"}}active{{end}}">{{.Tr "nav_reports"}}</a>
+      <a href="/changelog" class="{{if eq .Active "changelog"}}active{{end}}">{{.Tr "nav_changelog"}}</a>
+    </nav>
+    <span class="year-badge" id="year-badge">{{.Year}}</span>
+  </header>
+  <main class="content">
+    {{template "content" .}}
+  </main>
+  <div id="toast" class="toast" hidden></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

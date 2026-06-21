@@ -1,0 +1,164 @@
+package server
+
+import (
+	"encoding/json"
+	"fmt"
+	"io/fs"
+	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/kkollsga/enk-regnskap/internal/core"
+	"github.com/kkollsga/enk-regnskap/internal/tax"
+	"github.com/kkollsga/enk-regnskap/web"
+)
+
+// Server binder core.App til HTTP-laget.
+type Server struct {
+	app      *core.App
+	renderer *Renderer
+	mux      http.Handler
+}
+
+// New lager en Server med parsede maler og ferdig router.
+func New(app *core.App) (*Server, error) {
+	r, err := NewRenderer()
+	if err != nil {
+		return nil, err
+	}
+	s := &Server{app: app, renderer: r}
+	s.mux = s.routes()
+	return s, nil
+}
+
+// ServeHTTP gjor Server til en http.Handler.
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mux.ServeHTTP(w, r)
+}
+
+func (s *Server) routes() http.Handler {
+	r := chi.NewRouter()
+	r.Use(middleware.Recoverer)
+
+	// Statiske filer fra embeddet web/static.
+	staticFS, _ := fs.Sub(web.Static, "static")
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
+
+	r.Get("/health", s.handleHealth)
+	r.Get("/events", s.handleEvents)
+	r.Get("/api/exchange-rate", s.handleExchangeRate)
+
+	r.Get("/", s.handleDashboard)
+
+	// Stubs - implementeres i senere faser (returnerer 501 inntil da).
+	r.Get("/income", s.stub("income"))
+	r.Get("/income/new", s.stub("income"))
+	r.Post("/income", s.stub("income"))
+	r.Get("/expenses", s.stub("expenses"))
+	r.Get("/expenses/new", s.stub("expenses"))
+	r.Post("/expenses", s.stub("expenses"))
+	r.Get("/receipts", s.stub("receipts"))
+	r.Get("/foreign-tax", s.stub("foreign-tax"))
+	r.Get("/tax-info", s.stub("tax-info"))
+	r.Get("/reports", s.stub("reports"))
+	r.Get("/changelog", s.stub("changelog"))
+
+	return r
+}
+
+// view bygger en grunnleggende View med sprak, aar og oversettelser.
+func (s *Server) view(r *http.Request, active, title string) View {
+	ctx := r.Context()
+	lang := s.app.Language(ctx)
+	return View{
+		Lang:   lang,
+		T:      s.renderer.translations(lang),
+		Active: active,
+		Title:  title,
+		Year:   s.app.ActiveYear(ctx),
+		Years:  tax.AvailableYears(),
+	}
+}
+
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
+	v := s.view(r, "dashboard", "")
+	d, err := s.app.Dashboard(r.Context(), v.Year)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	v.Data = d
+	s.renderer.Render(w, "dashboard", v)
+}
+
+func (s *Server) handleExchangeRate(w http.ResponseWriter, r *http.Request) {
+	currency := r.URL.Query().Get("currency")
+	date := r.URL.Query().Get("date")
+	if currency == "" || date == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "mangler currency eller date"})
+		return
+	}
+	rate, err := s.app.Currency.Rate(r.Context(), currency, date)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, rate)
+}
+
+// handleEvents er SSE-endepunktet for live oppdatering.
+func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming stottes ikke", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	ch, unsubscribe := s.app.Events.Subscribe()
+	defer unsubscribe()
+
+	// Innledende kommentar slik at klienten vet at strommen er aapen.
+	fmt.Fprintf(w, ": connected\n\n")
+	flusher.Flush()
+
+	ping := time.NewTicker(25 * time.Second)
+	defer ping.Stop()
+
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case ev, ok := <-ch:
+			if !ok {
+				return
+			}
+			fmt.Fprintf(w, "data: %s\n\n", core.EncodeEvent(ev))
+			flusher.Flush()
+		case <-ping.C:
+			fmt.Fprintf(w, "data: {\"type\":\"ping\"}\n\n")
+			flusher.Flush()
+		}
+	}
+}
+
+// stub returnerer 501 for ruter som ikke er implementert enda.
+func (s *Server) stub(name string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, name+": ikke implementert enda", http.StatusNotImplemented)
+	}
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}

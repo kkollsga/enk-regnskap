@@ -1,0 +1,43 @@
+{{define "content"}}
+<section class="page-head">
+  <h1>{{.Tr "nav_dashboard"}}</h1>
+  <div class="quick-actions">
+    <a class="btn btn-primary" href="/income/new">{{.Tr "action_add_income"}}</a>
+    <a class="btn" href="/expenses/new">{{.Tr "action_add_expense"}}</a>
+  </div>
+</section>
+
+{{with .Data}}
+<div class="cards">
+  <div class="card">
+    <div class="card-label">{{$.Tr "dashboard_income_ytd"}}</div>
+    <div class="card-value gold" data-live="income">{{nok .IncomeYTD}}</div>
+  </div>
+  <div class="card">
+    <div class="card-label">{{$.Tr "dashboard_expenses_ytd"}}</div>
+    <div class="card-value" data-live="expenses">{{nok .DeductibleYTD}}</div>
+  </div>
+  <div class="card">
+    <div class="card-label">{{$.Tr "dashboard_result"}}</div>
+    <div class="card-value {{if lt .Result 0.0}}red{{end}}">{{nok .Result}}</div>
+  </div>
+  <div class="card">
+    <div class="card-label">{{$.Tr "dashboard_unlinked_receipts"}}</div>
+    <div class="card-value" data-live="receipts">{{.UnlinkedReceipts}}</div>
+  </div>
+</div>
+
+{{if .EstimatedTax}}
+<section class="panel">
+  <h2>Estimert skatt {{.Year}}</h2>
+  <table class="kv">
+    <tr><td>Alminnelig inntektsskatt (22 %)</td><td class="num">{{nok .EstimatedTax.AlminneligInntektsskatt}}</td></tr>
+    <tr><td>Trygdeavgift</td><td class="num">{{nok .EstimatedTax.Trygdeavgift}}</td></tr>
+    <tr><td>Trinnskatt</td><td class="num">{{nok .EstimatedTax.Trinnskatt}}</td></tr>
+    <tr class="sum"><td>Sum estimert skatt</td><td class="num">{{nok .EstimatedTax.SumSkatt}}</td></tr>
+  </table>
+  <p class="muted small">Dette er kun et estimat og ingen garanti for endelig skatteoppgjor.</p>
+</section>
+{{end}}
+{{end}}
+{{end}}
