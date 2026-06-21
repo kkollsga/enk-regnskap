@@ -85,8 +85,8 @@ func (s *Server) routes() http.Handler {
 	r.Get("/reports/naeringsspesifikasjon.xlsx", s.handleNaeringsspesifikasjonXLSX)
 	r.Get("/reports/transactions.csv", s.handleTransactionsCSV)
 
-	// Stubs - implementeres i senere faser (returnerer 501 inntil da).
-	r.Get("/changelog", s.stub("changelog"))
+	r.Get("/changelog", s.handleChangelog)
+	r.Post("/changelog/rollback", s.handleRollback)
 
 	return r
 }

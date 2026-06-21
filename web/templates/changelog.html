@@ -1,0 +1,41 @@
+{{define "content"}}
+{{$d := .Data}}
+<section class="page-head">
+  <h1>{{.Tr "nav_changelog"}}</h1>
+</section>
+
+<div class="info-card">
+  Alle endringer logges her. Du kan rulle tilbake en endring – det gjenoppretter
+  tilstanden slik den var for endringen.
+</div>
+
+{{if $d.Entries}}
+<table class="data-table">
+  <thead>
+    <tr><th>Tid</th><th>Hvem</th><th>Handling</th><th>Beskrivelse</th><th></th></tr>
+  </thead>
+  <tbody>
+    {{range $d.Entries}}
+    <tr class="{{if eq .RolledBack 1}}muted{{end}}">
+      <td class="small">{{.Ts}}</td>
+      <td>{{.Actor}}</td>
+      <td><span class="badge">{{.Operation}}</span> {{.Entity}}</td>
+      <td>{{.Description}}</td>
+      <td>
+        {{if and (ne .Operation "rollback") (ne .RolledBack 1)}}
+        <form method="POST" action="/changelog/rollback" onsubmit="return confirm('Rulle tilbake denne endringen?');">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <button class="btn" type="submit">Angre</button>
+        </form>
+        {{else if eq .RolledBack 1}}
+        <span class="muted small">rullet tilbake</span>
+        {{end}}
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{else}}
+<div class="empty">Ingen endringer logget enda.</div>
+{{end}}
+{{end}}
