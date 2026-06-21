@@ -73,8 +73,14 @@ func (s *Server) routes() http.Handler {
 
 	r.Get("/tax-info", s.handleTaxInfo)
 
+	r.Get("/reports", s.handleReports)
+	r.Get("/reports/annual.pdf", s.handleAnnualPDF)
+	r.Get("/reports/tax-summary.pdf", s.handleTaxSummaryPDF)
+	r.Get("/reports/transactions.xlsx", s.handleTransactionsXLSX)
+	r.Get("/reports/naeringsspesifikasjon.xlsx", s.handleNaeringsspesifikasjonXLSX)
+	r.Get("/reports/transactions.csv", s.handleTransactionsCSV)
+
 	// Stubs - implementeres i senere faser (returnerer 501 inntil da).
-	r.Get("/reports", s.stub("reports"))
 	r.Get("/changelog", s.stub("changelog"))
 
 	return r

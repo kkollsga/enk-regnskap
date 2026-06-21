@@ -1,0 +1,54 @@
+{{define "content"}}
+{{$d := .Data}}
+<section class="page-head">
+  <h1>{{.Tr "nav_reports"}} <span class="muted">{{.Year}}</span></h1>
+</section>
+
+<div class="cards">
+  <div class="card">
+    <div class="card-label">Sum driftsinntekter</div>
+    <div class="card-value gold">{{nok $d.TotalIncome}}</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Sum fradragsberettiget</div>
+    <div class="card-value">{{nok $d.TotalDeductible}}</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Naeringsresultat</div>
+    <div class="card-value {{if lt $d.Result 0.0}}red{{end}}">{{nok $d.Result}}</div>
+  </div>
+</div>
+
+<section class="panel">
+  <h2>Last ned</h2>
+  <ul class="download-list">
+    <li><a class="btn" href="/reports/annual.pdf">Arsrapport (PDF)</a></li>
+    <li><a class="btn" href="/reports/tax-summary.pdf">Naeringsspesifikasjon (PDF)</a></li>
+    <li><a class="btn" href="/reports/naeringsspesifikasjon.xlsx">Naeringsspesifikasjon (Excel)</a></li>
+    <li><a class="btn" href="/reports/transactions.xlsx">Transaksjonslogg (Excel)</a></li>
+    <li><a class="btn" href="/reports/transactions.csv">Transaksjonslogg (CSV)</a></li>
+  </ul>
+</section>
+
+<section class="panel">
+  <h2>Inntekter per kategori</h2>
+  <table class="data-table">
+    <thead><tr><th>Kategori</th><th class="num">Belop (NOK)</th></tr></thead>
+    <tbody>
+      {{range $d.IncomeByCategory}}<tr><td>{{.Category}}</td><td class="num">{{nok .Total}}</td></tr>{{end}}
+    </tbody>
+    <tfoot><tr class="sum"><td class="num">{{.Tr "common_total"}}</td><td class="num">{{nok $d.TotalIncome}}</td></tr></tfoot>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Utgifter per kategori</h2>
+  <table class="data-table">
+    <thead><tr><th>Kategori</th><th class="num">Kostnad</th><th class="num">Fradragsberettiget</th></tr></thead>
+    <tbody>
+      {{range $d.ExpenseByCategory}}<tr><td>{{.Category}}</td><td class="num">{{nok .Total}}</td><td class="num">{{nok .Deductible}}</td></tr>{{end}}
+    </tbody>
+    <tfoot><tr class="sum"><td class="num">{{.Tr "common_total"}}</td><td class="num">{{nok $d.TotalExpenses}}</td><td class="num">{{nok $d.TotalDeductible}}</td></tr></tfoot>
+  </table>
+</section>
+{{end}}
