@@ -1,8 +1,15 @@
-# Data og database - skal aldri i repoet
+# Data og database - skal aldri i repoet.
+# Hele data/-mappen (database, kvitteringer og nedlastede skatteregler/PDF-er
+# fra Skatteetaten) er brukerens egne data. Brukeren kopierer sin data/-mappe
+# inn i arbeidsmappen naar appen kjores. Ingenting herfra committes.
 data/
 *.db
 *.sqlite
 *.sqlite3
+# Nedlastede skatteregler og kildedokumenter (uansett plassering)
+tax_rules/
+receipts/
+*.pdf
 
 # Lokale konfigurasjonsfiler
 .env
