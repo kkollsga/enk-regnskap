@@ -52,10 +52,11 @@ func (s *Server) routes() http.Handler {
 
 	r.Get("/", s.handleDashboard)
 
+	r.Get("/income", s.handleIncomeList)
+	r.Get("/income/new", s.handleIncomeNew)
+	r.Post("/income", s.handleIncomeCreate)
+
 	// Stubs - implementeres i senere faser (returnerer 501 inntil da).
-	r.Get("/income", s.stub("income"))
-	r.Get("/income/new", s.stub("income"))
-	r.Post("/income", s.stub("income"))
 	r.Get("/expenses", s.stub("expenses"))
 	r.Get("/expenses/new", s.stub("expenses"))
 	r.Post("/expenses", s.stub("expenses"))
@@ -80,6 +81,15 @@ func (s *Server) view(r *http.Request, active, title string) View {
 		Year:   s.app.ActiveYear(ctx),
 		Years:  tax.AvailableYears(),
 	}
+}
+
+// tr returnerer en oversettelse for forespoerselens sprak.
+func (s *Server) tr(r *http.Request, key string) string {
+	m := s.renderer.translations(s.app.Language(r.Context()))
+	if v, ok := m[key]; ok {
+		return v
+	}
+	return key
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {

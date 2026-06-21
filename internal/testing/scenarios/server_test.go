@@ -53,7 +53,7 @@ func TestDashboardShowsEmptyTotals(t *testing.T) {
 func TestStubsReturn501(t *testing.T) {
 	h := apptest.Start(t)
 	b := h.Browser()
-	for _, path := range []string{"/income", "/expenses", "/receipts", "/reports"} {
+	for _, path := range []string{"/expenses", "/receipts", "/reports"} {
 		status, _, _ := b.GetRaw(path)
 		apptest.AssertEqual(t, status, 501, "stub "+path)
 	}

@@ -1,0 +1,44 @@
+{{define "content"}}
+{{$d := .Data}}
+<section class="page-head">
+  <h1>{{.Tr "nav_income"}} <span class="muted">{{.Year}}</span></h1>
+  <a class="btn btn-primary" href="/income/new">{{.Tr "action_add_income"}}</a>
+</section>
+
+{{if $d.Income}}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>{{.Tr "common_date"}}</th>
+      <th>{{.Tr "common_description"}}</th>
+      <th>{{.Tr "common_client"}}</th>
+      <th>{{.Tr "common_category"}}</th>
+      <th>Land</th>
+      <th class="num">{{.Tr "common_amount"}}</th>
+      <th class="num">NOK</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range $d.Income}}
+    <tr>
+      <td>{{.Date}}</td>
+      <td>{{.Description}}</td>
+      <td>{{if .Client.Valid}}{{.Client.String}}{{end}}</td>
+      <td>{{.Category}}</td>
+      <td>{{.CountryCode}}</td>
+      <td class="num">{{nok .AmountOrig}} {{if ne .Currency "NOK"}}<span class="muted small">{{.Currency}}</span>{{end}}</td>
+      <td class="num">{{nok .AmountNok}}</td>
+    </tr>
+    {{end}}
+  </tbody>
+  <tfoot>
+    <tr class="sum">
+      <td colspan="6" class="num">{{.Tr "common_total"}}</td>
+      <td class="num" data-live="income">{{nok $d.Total}}</td>
+    </tr>
+  </tfoot>
+</table>
+{{else}}
+<div class="empty">Ingen inntekter registrert for {{.Year}} enda. <a href="/income/new">Legg til den forste</a>.</div>
+{{end}}
+{{end}}

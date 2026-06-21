@@ -1,0 +1,142 @@
+{{define "content"}}
+{{$d := .Data}}
+<section class="page-head">
+  <h1>{{.Tr "action_add_income"}}</h1>
+  <a class="btn" href="/income">{{.Tr "action_back"}}</a>
+</section>
+
+<form method="POST" action="/income" id="income-form" class="form" novalidate>
+  <div class="field {{if index $d.Errors "date"}}has-error{{end}}">
+    <label for="date">{{.Tr "common_date"}}</label>
+    <input type="date" id="date" name="date" value="{{index $d.Values "date"}}">
+    {{with index $d.Errors "date"}}<div class="field-error">{{.}}</div>{{end}}
+  </div>
+
+  <div class="field {{if index $d.Errors "description"}}has-error{{end}}">
+    <label for="description">{{.Tr "common_description"}}</label>
+    <input type="text" id="description" name="description" value="{{index $d.Values "description"}}" autocomplete="off">
+    {{with index $d.Errors "description"}}<div class="field-error">{{.}}</div>{{end}}
+  </div>
+
+  <div class="field">
+    <label for="client">{{.Tr "common_client"}}</label>
+    <input type="text" id="client" name="client" list="client-list" value="{{index $d.Values "client"}}" autocomplete="off">
+    <datalist id="client-list">
+      {{range $d.Clients}}<option value="{{.}}">{{end}}
+    </datalist>
+  </div>
+
+  <div class="field">
+    <label for="country_code">Kildeland</label>
+    <select id="country_code" name="country_code">
+      {{$cc := index $d.Values "country_code"}}
+      {{range $d.Countries}}<option value="{{.Code}}" {{if eq .Code $cc}}selected{{end}}>{{.Name}}</option>{{end}}
+    </select>
+  </div>
+
+  <div class="field {{if index $d.Errors "amount_orig"}}has-error{{end}}">
+    <label for="amount_orig">{{.Tr "common_amount"}}</label>
+    <div style="display:flex; gap:10px;">
+      <select id="currency" name="currency" style="max-width:120px;">
+        {{$cur := index $d.Values "currency"}}
+        {{range $d.Currencies}}<option value="{{.}}" {{if eq . $cur}}selected{{end}}>{{.}}</option>{{end}}
+      </select>
+      <input type="text" id="amount_orig" name="amount_orig" inputmode="decimal" value="{{index $d.Values "amount_orig"}}" placeholder="0,00">
+    </div>
+    {{with index $d.Errors "amount_orig"}}<div class="field-error">{{.}}</div>{{end}}
+    <div class="rate-info" id="rate-info" hidden></div>
+  </div>
+
+  <div class="field {{if index $d.Errors "category"}}has-error{{end}}">
+    <label for="category">{{.Tr "common_category"}}</label>
+    <select id="category" name="category">
+      <option value="">– velg –</option>
+      {{$cat := index $d.Values "category"}}
+      {{range $d.Categories}}<option value="{{.Key}}" {{if eq .Key $cat}}selected{{end}}>{{.Name}}</option>{{end}}
+    </select>
+    {{with index $d.Errors "category"}}<div class="field-error">{{.}}</div>{{end}}
+  </div>
+
+  <!-- Utenlandsk skatt: vises dynamisk for ikke-norsk kildeland -->
+  <div id="foreign-tax-block" hidden>
+    <div class="info-card" id="foreign-warn">
+      Inntekt fra utlandet er skattepliktig i Norge. For aa kreve kreditfradrag
+      trenger du dokumentasjon paa betalt utenlandsk skatt.
+    </div>
+    <div class="field">
+      <label>Er det trukket skatt paa denne inntekten i kildelandet?</label>
+      <div>
+        <label class="inline"><input type="radio" name="foreign_tax_paid" value="1" {{if eq (index $d.Values "foreign_tax_paid") "1"}}checked{{end}}> Ja, med beloep</label>
+        <label class="inline"><input type="radio" name="foreign_tax_paid" value="0" {{if eq (index $d.Values "foreign_tax_paid") "0"}}checked{{end}}> Nei</label>
+        <label class="inline"><input type="radio" name="foreign_tax_paid" value="2" {{if eq (index $d.Values "foreign_tax_paid") "2"}}checked{{end}}> Vet ikke enna</label>
+      </div>
+    </div>
+    <div id="foreign-amount" hidden>
+      <div class="field {{if index $d.Errors "foreign_tax_orig"}}has-error{{end}}">
+        <label for="foreign_tax_orig">Betalt utenlandsk skatt (i utenlandsk valuta)</label>
+        <input type="text" id="foreign_tax_orig" name="foreign_tax_orig" inputmode="decimal" value="{{index $d.Values "foreign_tax_orig"}}" placeholder="0,00">
+        {{with index $d.Errors "foreign_tax_orig"}}<div class="field-error">{{.}}</div>{{end}}
+      </div>
+      <div class="field">
+        <label for="foreign_tax_type">Skattetype</label>
+        <input type="text" id="foreign_tax_type" name="foreign_tax_type" value="{{index $d.Values "foreign_tax_type"}}" placeholder="f.eks. IRRF">
+      </div>
+      <input type="hidden" id="foreign_tax_currency" name="foreign_tax_currency" value="{{index $d.Values "foreign_tax_currency"}}">
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="notes">{{.Tr "common_notes"}}</label>
+    <textarea id="notes" name="notes" rows="2">{{index $d.Values "notes"}}</textarea>
+  </div>
+
+  <button type="submit" class="btn btn-primary">{{.Tr "action_save"}}</button>
+</form>
+
+<script>
+(function () {
+  var currency = document.getElementById("currency");
+  var amount = document.getElementById("amount_orig");
+  var date = document.getElementById("date");
+  var rateInfo = document.getElementById("rate-info");
+  var country = document.getElementById("country_code");
+  var ftBlock = document.getElementById("foreign-tax-block");
+  var ftAmount = document.getElementById("foreign-amount");
+  var ftCurrency = document.getElementById("foreign_tax_currency");
+
+  function fmt(n) { return n.toLocaleString("nb-NO", {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+
+  async function updateRate() {
+    var cur = currency.value;
+    if (cur === "NOK" || !date.value) { rateInfo.hidden = true; return; }
+    try {
+      var res = await fetch("/api/exchange-rate?currency=" + encodeURIComponent(cur) + "&date=" + encodeURIComponent(date.value));
+      var data = await res.json();
+      if (data.error) { rateInfo.textContent = "Kunne ikke hente kurs: " + data.error; rateInfo.hidden = false; return; }
+      var amt = parseFloat((amount.value || "0").replace(/\s/g, "").replace(",", ".")) || 0;
+      var nok = amt * data.rate_nok;
+      rateInfo.innerHTML = "Kurs " + fmt(data.rate_nok) + " (per " + data.date + ") &rarr; <strong>" + fmt(nok) + " kr</strong>";
+      rateInfo.hidden = false;
+    } catch (e) { rateInfo.hidden = true; }
+  }
+
+  function updateForeign() {
+    var foreign = country.value !== "NO";
+    ftBlock.hidden = !foreign;
+    if (ftCurrency && currency.value !== "NOK") ftCurrency.value = currency.value;
+    var yes = document.querySelector('input[name="foreign_tax_paid"]:checked');
+    ftAmount.hidden = !(foreign && yes && yes.value === "1");
+  }
+
+  currency.addEventListener("change", function () { updateRate(); updateForeign(); });
+  amount.addEventListener("input", updateRate);
+  date.addEventListener("change", updateRate);
+  country.addEventListener("change", updateForeign);
+  document.querySelectorAll('input[name="foreign_tax_paid"]').forEach(function (el) {
+    el.addEventListener("change", updateForeign);
+  });
+  updateRate();
+  updateForeign();
+})();
+</script>
+{{end}}
