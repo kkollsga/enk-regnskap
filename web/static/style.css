@@ -154,3 +154,8 @@ label.inline { display: inline-block; margin-right: 18px; font-weight: 400; }
 .receipt-preview { height: 160px; display: flex; align-items: center; justify-content: center; background: var(--sep); }
 .receipt-preview img { max-width: 100%; max-height: 160px; object-fit: contain; }
 .receipt-meta { padding: 10px 12px; }
+
+.badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 12px; background: var(--sep); color: var(--muted); vertical-align: middle; }
+.badge-ok { background: #e6f4ea; color: #1e7a3a; }
+.badge-warn { background: #fdf1f1; color: var(--red); }
+h3 { font-size: 15px; font-weight: 600; margin: 18px 0 8px; }

@@ -125,6 +125,70 @@ func (a *App) ForeignTaxForYear(ctx context.Context, year int) ([]ForeignTaxOver
 	return out, nil
 }
 
+// CountryTaxTypes henter skattetypene for et land og inntektsaar (sjekkliste).
+func (a *App) CountryTaxTypes(ctx context.Context, country string, year int) ([]db.CountryTaxType, error) {
+	return a.Q.ListCountryTaxTypes(ctx, db.ListCountryTaxTypesParams{
+		CountryCode:   country,
+		EffectiveFrom: int64(year),
+		EffectiveTo:   sql.NullInt64{Int64: int64(year), Valid: true},
+	})
+}
+
+// ForeignTaxStatusInput er brukerens oppdatering av dokumentasjonsstatus.
+type ForeignTaxStatusInput struct {
+	Year              int
+	Country           string
+	DocumentationType string
+	TaxFinalized      bool
+	RF1147Ready       bool
+	Notes             string
+}
+
+// UpdateForeignTaxStatus oppdaterer brukerstyrte felter paa et kreditfradrag
+// (dokumentasjon, status, notater) uten aa roere de aggregerte tallene.
+// Endringen revisjonslogges.
+func (a *App) UpdateForeignTaxStatus(ctx context.Context, actor string, in ForeignTaxStatusInput) error {
+	existing, err := a.Q.GetForeignTaxCredit(ctx, db.GetForeignTaxCreditParams{
+		TaxYear: int64(in.Year), CountryCode: in.Country,
+	})
+	if err != nil {
+		return fmt.Errorf("fant ikke kreditfradrag for %s %d: %w", in.Country, in.Year, err)
+	}
+	before, _ := a.snapshotRow(ctx, "foreign_tax_credits", existing.ID)
+
+	finalized := int64(0)
+	if in.TaxFinalized {
+		finalized = 1
+	}
+	rf := int64(0)
+	if in.RF1147Ready {
+		rf = 1
+	}
+	_, err = a.Q.UpsertForeignTaxCredit(ctx, db.UpsertForeignTaxCreditParams{
+		TaxYear:            existing.TaxYear,
+		CountryCode:        existing.CountryCode,
+		CountryName:        existing.CountryName,
+		IncomeNok:          existing.IncomeNok,
+		ForeignTaxOrig:     existing.ForeignTaxOrig,
+		ForeignCurrency:    existing.ForeignCurrency,
+		ForeignTaxNok:      existing.ForeignTaxNok,
+		MaxCreditNok:       existing.MaxCreditNok,
+		UtilizedNok:        existing.UtilizedNok,
+		CarryforwardNok:    existing.CarryforwardNok,
+		TaxFinalizedAbroad: sql.NullInt64{Int64: finalized, Valid: true},
+		DocumentationType:  nullString(in.DocumentationType),
+		LegalBasis:         existing.LegalBasis,
+		Rf1147Ready:        sql.NullInt64{Int64: rf, Valid: true},
+		Notes:              nullString(in.Notes),
+	})
+	if err != nil {
+		return fmt.Errorf("oppdater status: %w", err)
+	}
+	after, _ := a.snapshotRow(ctx, "foreign_tax_credits", existing.ID)
+	return a.logChange(ctx, actor, "update", "foreign_tax_credits", existing.ID, before, after, in.Year,
+		fmt.Sprintf("Oppdaterte dokumentasjonsstatus for %s %d", in.Country, in.Year))
+}
+
 // CountryOption er et land i en nedtrekksmeny.
 type CountryOption struct {
 	Code string
