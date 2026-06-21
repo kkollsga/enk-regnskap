@@ -1,0 +1,30 @@
+# Data og database - skal aldri i repoet
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Lokale konfigurasjonsfiler
+.env
+*.env
+config.local.*
+enk-regnskap.config.json
+
+# Bygg-output
+dist/
+bin/
+tmp/
+
+# OS-filer
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+
+# Test-output
+testdata/snapshots/*.actual.html
+coverage.out
