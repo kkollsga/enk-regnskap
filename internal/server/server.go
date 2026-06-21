@@ -58,6 +58,7 @@ func (s *Server) routes() http.Handler {
 
 	r.Get("/", s.handleDashboard)
 	r.Get("/set-year", s.handleSetYear)
+	r.Get("/set-lang", s.handleSetLang)
 
 	r.Get("/income", s.handleIncomeList)
 	r.Get("/income/new", s.handleIncomeNew)
@@ -116,6 +117,19 @@ func selectableYears(active int) []int {
 	}
 	sort.Ints(years)
 	return years
+}
+
+// handleSetLang bytter sprak (uten omstart) og gaar tilbake til forrige side.
+func (s *Server) handleSetLang(w http.ResponseWriter, r *http.Request) {
+	lang := r.URL.Query().Get("lang")
+	if lang == "nb" || lang == "pt" || lang == "en" {
+		_ = s.app.SetConfig(r.Context(), core.ConfigLanguage, lang)
+	}
+	dest := r.Header.Get("Referer")
+	if dest == "" {
+		dest = "/"
+	}
+	http.Redirect(w, r, dest, http.StatusSeeOther)
 }
 
 // handleSetYear setter aktivt inntektsaar og gaar tilbake til forrige side.

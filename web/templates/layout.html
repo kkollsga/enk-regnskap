@@ -27,6 +27,14 @@
         {{range .Years}}<option value="{{.}}" {{if eq . $y}}selected{{end}}>{{.}}</option>{{end}}
       </select>
     </form>
+    <form class="year-switch" method="GET" action="/set-lang">
+      <label class="visually-hidden" for="lang-select">{{.Tr "language"}}</label>
+      <select id="lang-select" name="lang" onchange="this.form.submit()">
+        <option value="nb" {{if eq .Lang "nb"}}selected{{end}}>NB</option>
+        <option value="pt" {{if eq .Lang "pt"}}selected{{end}}>PT</option>
+        <option value="en" {{if eq .Lang "en"}}selected{{end}}>EN</option>
+      </select>
+    </form>
     {{end}}
   </header>
   <main class="content">
