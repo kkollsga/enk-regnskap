@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/kkollsga/enk-regnskap/internal/core"
+	"github.com/kkollsga/enk-regnskap/internal/mcp"
 	"github.com/kkollsga/enk-regnskap/internal/tax"
 	"github.com/kkollsga/enk-regnskap/web"
 )
@@ -55,6 +56,9 @@ func (s *Server) routes() http.Handler {
 	r.Get("/health", s.handleHealth)
 	r.Get("/events", s.handleEvents)
 	r.Get("/api/exchange-rate", s.handleExchangeRate)
+
+	// MCP-endepunkt (in-process => agentens endringer oppdaterer UI-et live).
+	r.Post("/mcp", mcp.New(s.app).HTTPHandler())
 
 	r.Get("/", s.handleDashboard)
 	r.Get("/set-year", s.handleSetYear)

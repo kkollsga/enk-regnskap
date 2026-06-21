@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/kkollsga/enk-regnskap/internal/core"
+	"github.com/kkollsga/enk-regnskap/internal/mcp"
 	"github.com/kkollsga/enk-regnskap/internal/server"
 )
 
@@ -24,6 +25,7 @@ func main() {
 		dataDir = flag.String("data", defaultDataDir(), "mappe for database og kvitteringer (synkroniseres gjerne via OneDrive)")
 		port    = flag.Int("port", 7331, "HTTP-port")
 		noOpen  = flag.Bool("no-open", false, "ikke apne nettleseren automatisk")
+		mcpMode = flag.Bool("mcp", false, "kjor som MCP-server over stdio (for AI-agenter)")
 	)
 	flag.Parse()
 
@@ -32,6 +34,15 @@ func main() {
 		log.Fatalf("kunne ikke starte: %v", err)
 	}
 	defer app.Close()
+
+	// MCP stdio-modus: ingen web-server, snakk JSON-RPC over stdin/stdout.
+	if *mcpMode {
+		log.SetOutput(os.Stderr)
+		if err := mcp.New(app).ServeStdio(context.Background(), os.Stdin, os.Stdout); err != nil {
+			log.Fatalf("mcp stdio: %v", err)
+		}
+		return
+	}
 
 	srv, err := server.New(app)
 	if err != nil {

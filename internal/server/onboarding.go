@@ -13,7 +13,7 @@ func (s *Server) onboardingGate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Path
 		exempt := p == "/welcome" || p == "/onboard" || p == "/health" ||
-			p == "/events" || strings.HasPrefix(p, "/static/")
+			p == "/events" || p == "/mcp" || strings.HasPrefix(p, "/static/")
 		if !exempt && !s.app.IsOnboarded(r.Context()) {
 			http.Redirect(w, r, "/welcome", http.StatusSeeOther)
 			return
