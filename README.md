@@ -25,6 +25,10 @@ regnskapssystem.
   og skatteavtalen Norge–Brasil).
 - Årsrapport og næringsspesifikasjon som PDF og Excel.
 - Flerspråklig grensesnitt (norsk, portugisisk, engelsk).
+- Full endringslogg med angre-funksjon (rollback) – alle endringer kan reverseres.
+- **AI-native:** appen eksponerer et MCP-grensesnitt slik at en AI-agent kan
+  betjene regnskapet mens appen kjører. Endringer agenten gjør vises umiddelbart
+  i nettleseren via live oppdatering (Server-Sent Events).
 
 ## Teknisk stack
 
@@ -59,7 +63,43 @@ go test ./...
 
 Appen starter en HTTP-server på `http://localhost:7331` og åpner den i
 standard nettleser. Ved første oppstart spør den hvor `data/`-mappen skal
-ligge (gjerne i OneDrive).
+ligge (gjerne i OneDrive). Velg datamappe med `-data <sti>` (eller miljø-
+variabelen `ENK_DATA_DIR`).
+
+Vanlige `make`-mål: `make build`, `make run`, `make dev` (hot reload via
+`air`), `make test`, `make dist` (krysskompilering).
+
+### AI-agent (MCP)
+
+Appen kan styres av en AI-agent over Model Context Protocol:
+
+- **Mens appen kjører:** agenten snakker JSON-RPC mot `POST /mcp`. Endringer
+  går gjennom samme kjerne som nettgrensesnittet, logges i endringsloggen, og
+  oppdaterer åpne nettlesere live.
+- **Som subprosess (stdio):** `enk-regnskap --mcp` – for klienter som Claude
+  Code / Claude Desktop. Eksempel på konfig:
+
+  ```json
+  {
+    "mcpServers": {
+      "enk-regnskap": {
+        "command": "/sti/til/enk-regnskap",
+        "args": ["--mcp", "-data", "/sti/til/data"]
+      }
+    }
+  }
+  ```
+
+  Tilgjengelige verktøy: `add_income`, `add_expense`, `list_income`,
+  `list_expenses`, `dashboard`, `foreign_tax_overview`, `generate_report`,
+  `tax_info`, `list_changes`, `rollback`, `set_active_year`.
+
+## Data og sikkerhetskopi
+
+All data ligger i `data/`-mappen (database, kvitteringer og eventuelle
+nedlastede skatteregler). Denne mappen committes **aldri** til Git – du
+kopierer din egen `data/`-mappe inn i arbeidsmappen når du kjører appen, og
+kan trygt la den ligge i OneDrive for automatisk sikkerhetskopi.
 
 ### Krysskompilering
 
