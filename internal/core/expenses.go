@@ -132,6 +132,58 @@ func (a *App) AddExpense(ctx context.Context, actor string, in ExpenseInput) (*d
 	return &created, nil
 }
 
+// expenseDeductiblePct beregner endelig fradragsprosent.
+func (a *App) expenseDeductiblePct(in ExpenseInput) float64 {
+	pct := in.DeductiblePct
+	if !in.HasDeductiblePct {
+		if cat, ok := a.expenseCategory(in.TaxYear, in.Category); ok {
+			pct = cat.DefaultPct
+		} else {
+			pct = 100
+		}
+	}
+	if pct < 0 {
+		pct = 0
+	}
+	if pct > 100 {
+		pct = 100
+	}
+	return pct
+}
+
+// UpdateExpense oppdaterer en eksisterende utgift (revisjonslogges).
+func (a *App) UpdateExpense(ctx context.Context, actor string, id int64, in ExpenseInput) (*db.Expense, error) {
+	in.normalize()
+	if err := in.validate(); err != nil {
+		return nil, err
+	}
+	before, err := a.snapshotRow(ctx, "expenses", id)
+	if err != nil || before == nil {
+		return nil, fmt.Errorf("utgift %d finnes ikke", id)
+	}
+	pct := a.expenseDeductiblePct(in)
+	deductible := tax.Round2(in.AmountNOK * pct / 100.0)
+	updated, err := a.Q.UpdateExpense(ctx, db.UpdateExpenseParams{
+		ID: id, Date: in.Date, Description: in.Description, AmountNok: in.AmountNOK,
+		Category: in.Category, DeductiblePct: pct, DeductibleNok: deductible,
+		TaxYear: int64(in.TaxYear), Notes: nullString(in.Notes),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("oppdater utgift: %w", err)
+	}
+	after, _ := a.snapshotRow(ctx, "expenses", id)
+	desc := fmt.Sprintf("Endret utgift #%d: %s", id, in.Description)
+	if err := a.logChange(ctx, actor, "update", "expenses", id, before, after, in.TaxYear, desc); err != nil {
+		return nil, err
+	}
+	return &updated, nil
+}
+
+// GetExpense henter en utgift.
+func (a *App) GetExpense(ctx context.Context, id int64) (db.Expense, error) {
+	return a.Q.GetExpense(ctx, id)
+}
+
 // DeleteExpense sletter en utgift med revisjonsspor.
 func (a *App) DeleteExpense(ctx context.Context, actor string, id int64) error {
 	before, err := a.snapshotRow(ctx, "expenses", id)

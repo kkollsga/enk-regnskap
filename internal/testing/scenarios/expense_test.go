@@ -51,15 +51,16 @@ func TestExpenseViaFormWithReceipt(t *testing.T) {
 			"amount_nok":  "750",
 			"category":    "kurs_faglitteratur",
 		},
-		"receipt", "kvittering.png", "image/png", png)
+		"attachment", "kvittering.png", "image/png", png)
 	apptest.AssertStatus(t, res, 200)
 
 	exps, _ := h.App.ListExpenses(h.Context(), 2025)
 	if len(exps) != 1 {
 		t.Fatalf("forventet 1 utgift, fikk %d", len(exps))
 	}
-	if !exps[0].ReceiptID.Valid {
-		t.Fatal("utgiften mangler tilknyttet kvittering")
+	att, _ := h.App.ReceiptsFor(h.Context(), "expense", exps[0].ID)
+	if len(att) != 1 {
+		t.Fatal("utgiften mangler tilknyttet vedlegg")
 	}
 	// Filen skal ligge under data/receipts/2025/.
 	recs, _ := h.App.ListReceipts(h.Context())
@@ -105,26 +106,39 @@ func TestReceiptServedInline(t *testing.T) {
 	}
 }
 
-func TestLinkReceiptToIncome(t *testing.T) {
+func TestReceiptLinkedToParentAndEdited(t *testing.T) {
 	h := apptest.Start(t)
 	inc, _ := h.App.AddIncome(h.Context(), core.ActorWeb, core.IncomeInput{
 		Date: "2025-01-15", Description: "Tjeneste", Currency: "NOK",
 		CountryCode: "NO", AmountOrig: 5000, Category: "tjenesteinntekt",
 	})
-	rec, _ := h.App.SaveReceipt(h.Context(), core.ActorWeb, core.ReceiptInput{
-		OriginalName: "k.png", MimeType: "image/png", Data: onePixelPNG(), TaxYear: 2025,
+	rec, err := h.App.SaveReceipt(h.Context(), core.ActorWeb, core.ReceiptInput{
+		OriginalName: "k.png", MimeType: "image/png", Data: onePixelPNG(),
+		ParentKind: "income", ParentID: inc.Income.ID, TaxYear: 2025,
 	})
-	if err := h.App.LinkReceipt(h.Context(), core.ActorWeb, "income", inc.Income.ID, rec.ID); err != nil {
+	if err != nil {
 		t.Fatal(err)
 	}
-	got, _ := h.App.Q.GetIncome(h.Context(), inc.Income.ID)
-	if !got.ReceiptID.Valid || got.ReceiptID.Int64 != rec.ID {
-		t.Errorf("kvittering ikke knyttet: %+v", got.ReceiptID)
+	// Vedlegget skal være knyttet til inntekten.
+	att, _ := h.App.ReceiptsFor(h.Context(), "income", inc.Income.ID)
+	if len(att) != 1 || att[0].ID != rec.ID {
+		t.Fatalf("vedlegg ikke knyttet til inntekt: %+v", att)
 	}
-	// Etter tilknytning skal kvitteringen ikke lenger telles som ubehandlet.
-	unlinked, _ := h.App.ListUnlinkedReceipts(h.Context())
-	if len(unlinked) != 0 {
-		t.Errorf("forventet 0 ubehandlede kvitteringer, fikk %d", len(unlinked))
+	// Rediger tittel + beskrivelse.
+	if err := h.App.UpdateReceiptMeta(h.Context(), core.ActorWeb, rec.ID, "Faktura mars", "Konsulenttjeneste"); err != nil {
+		t.Fatal(err)
+	}
+	updated, _ := h.App.GetReceipt(h.Context(), rec.ID)
+	if updated.Title.String != "Faktura mars" || updated.Description.String != "Konsulenttjeneste" {
+		t.Errorf("tittel/beskrivelse ikke lagret: %+v", updated)
+	}
+	// Slett vedlegget.
+	if err := h.App.DeleteReceipt(h.Context(), core.ActorWeb, rec.ID); err != nil {
+		t.Fatal(err)
+	}
+	att, _ = h.App.ReceiptsFor(h.Context(), "income", inc.Income.ID)
+	if len(att) != 0 {
+		t.Errorf("vedlegg ble ikke slettet, fikk %d", len(att))
 	}
 }
 

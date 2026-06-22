@@ -8,9 +8,14 @@ CREATE TABLE IF NOT EXISTS receipts (
   filename      TEXT NOT NULL,          -- relativ sti fra data/receipts/
   original_name TEXT NOT NULL,
   mime_type     TEXT NOT NULL,
+  title         TEXT,                   -- valgfri tittel på vedlegget
+  description   TEXT,                   -- valgfri beskrivelse
+  parent_kind   TEXT,                   -- 'income' | 'expense' (hvilken post)
+  parent_id     INTEGER,                -- id i income/expenses
   tax_year      INTEGER,                -- året kvitteringen ble lastet opp for
   uploaded_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE INDEX IF NOT EXISTS idx_receipts_parent ON receipts(parent_kind, parent_id);
 
 -- Inntekter
 CREATE TABLE IF NOT EXISTS income (

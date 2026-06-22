@@ -11,6 +11,7 @@ type taxInfoData struct {
 	Rules     tax.Rules
 	HasRules  bool
 	Countries []core.CountryInfo
+	Dash      core.Dashboard // foreløpig skatteberegning
 }
 
 func (s *Server) handleTaxInfo(w http.ResponseWriter, r *http.Request) {
@@ -26,6 +27,7 @@ func (s *Server) handleTaxInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data.Countries = countries
+	data.Dash, _ = s.app().Dashboard(r.Context(), v.Year)
 	v.Data = data
 	s.renderer.Render(w, "tax_info", v)
 }

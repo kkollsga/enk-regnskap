@@ -1,11 +1,11 @@
 {{define "content"}}
 {{$d := .Data}}
 <section class="page-head">
-  <h1>{{.Tr "action_add_income"}}</h1>
+  <h1>{{if $d.EditID}}Endre inntekt{{else}}{{.Tr "action_add_income"}}{{end}}</h1>
   <a class="btn" href="/income">{{.Tr "action_back"}}</a>
 </section>
 
-<form method="POST" action="/income" id="income-form" class="form" enctype="multipart/form-data" novalidate>
+<form method="POST" action="{{$d.Action}}" id="entry-form" class="form" enctype="multipart/form-data" novalidate>
   <div class="field {{if index $d.Errors "date"}}has-error{{end}}">
     <label for="date">{{.Tr "common_date"}}</label>
     <input type="date" id="date" name="date" value="{{index $d.Values "date"}}">
@@ -57,7 +57,6 @@
     {{with index $d.Errors "category"}}<div class="field-error">{{.}}</div>{{end}}
   </div>
 
-  <!-- Utenlandsk skatt: vises dynamisk for ikke-norsk kildeland -->
   <div id="foreign-tax-block" hidden>
     <div class="info-card" id="foreign-warn">
       Inntekt fra utlandet er skattepliktig i Norge. For å kreve kreditfradrag
@@ -68,7 +67,7 @@
       <div>
         <label class="inline"><input type="radio" name="foreign_tax_paid" value="1" {{if eq (index $d.Values "foreign_tax_paid") "1"}}checked{{end}}> Ja, med beløp</label>
         <label class="inline"><input type="radio" name="foreign_tax_paid" value="0" {{if eq (index $d.Values "foreign_tax_paid") "0"}}checked{{end}}> Nei</label>
-        <label class="inline"><input type="radio" name="foreign_tax_paid" value="2" {{if eq (index $d.Values "foreign_tax_paid") "2"}}checked{{end}}> Vet ikke enna</label>
+        <label class="inline"><input type="radio" name="foreign_tax_paid" value="2" {{if eq (index $d.Values "foreign_tax_paid") "2"}}checked{{end}}> Vet ikke ennå</label>
       </div>
     </div>
     <div id="foreign-amount" hidden>
@@ -86,8 +85,12 @@
   </div>
 
   <div class="field">
-    <label for="receipt">{{.Tr "common_receipt"}} (valgfritt)</label>
-    <input type="file" id="receipt" name="receipt" accept="image/*,application/pdf">
+    <label>Legg til vedlegg</label>
+    <div class="dropzone" id="dropzone" tabindex="0">
+      <input type="file" id="file-input" name="attachment" accept="image/*,application/pdf" multiple hidden>
+      <span class="dropzone-text">Dra og slipp filer her, eller <strong>klikk for å velge</strong> (bilde eller PDF)</span>
+    </div>
+    <div class="attach-list" id="attach-list"></div>
     {{with index $d.Errors "file"}}<div class="field-error">{{.}}</div>{{end}}
   </div>
 
@@ -99,6 +102,8 @@
   <button type="submit" class="btn btn-primary">{{.Tr "action_save"}}</button>
 </form>
 
+{{template "existing_attachments" $d}}
+
 <script>
 (function () {
   var currency = document.getElementById("currency");
@@ -109,9 +114,7 @@
   var ftBlock = document.getElementById("foreign-tax-block");
   var ftAmount = document.getElementById("foreign-amount");
   var ftCurrency = document.getElementById("foreign_tax_currency");
-
   function fmt(n) { return n.toLocaleString("nb-NO", {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
-
   async function updateRate() {
     var cur = currency.value;
     if (cur === "NOK" || !date.value) { rateInfo.hidden = true; return; }
@@ -120,12 +123,10 @@
       var data = await res.json();
       if (data.error) { rateInfo.textContent = "Kunne ikke hente kurs: " + data.error; rateInfo.hidden = false; return; }
       var amt = parseFloat((amount.value || "0").replace(/\s/g, "").replace(",", ".")) || 0;
-      var nok = amt * data.rate_nok;
-      rateInfo.innerHTML = "Kurs " + fmt(data.rate_nok) + " (per " + data.date + ") &rarr; <strong>" + fmt(nok) + " kr</strong>";
+      rateInfo.innerHTML = "Kurs " + fmt(data.rate_nok) + " (per " + data.date + ") &rarr; <strong>" + fmt(amt * data.rate_nok) + " kr</strong>";
       rateInfo.hidden = false;
     } catch (e) { rateInfo.hidden = true; }
   }
-
   function updateForeign() {
     var foreign = country.value !== "NO";
     ftBlock.hidden = !foreign;
@@ -133,16 +134,43 @@
     var yes = document.querySelector('input[name="foreign_tax_paid"]:checked');
     ftAmount.hidden = !(foreign && yes && yes.value === "1");
   }
-
   currency.addEventListener("change", function () { updateRate(); updateForeign(); });
   amount.addEventListener("input", updateRate);
   date.addEventListener("change", updateRate);
   country.addEventListener("change", updateForeign);
-  document.querySelectorAll('input[name="foreign_tax_paid"]').forEach(function (el) {
-    el.addEventListener("change", updateForeign);
-  });
-  updateRate();
-  updateForeign();
+  document.querySelectorAll('input[name="foreign_tax_paid"]').forEach(function (el) { el.addEventListener("change", updateForeign); });
+  updateRate(); updateForeign();
+  if (window.ENK && window.ENK.initAttachments) window.ENK.initAttachments();
 })();
 </script>
+{{end}}
+
+{{define "existing_attachments"}}
+{{if .Receipts}}
+<section class="panel">
+  <h3>Vedlegg på denne posten</h3>
+  <div class="existing-attachments">
+    {{range .Receipts}}
+    <div class="attach-item existing">
+      <a class="attach-name" href="/receipts/file/{{.ID}}" target="_blank">
+        <span class="attachment-icon">{{if eq .MimeType "application/pdf"}}📄{{else}}🖼{{end}}</span>
+        <span>{{if .Title.Valid}}{{.Title.String}}{{else}}{{.OriginalName}}{{end}}</span>
+      </a>
+      <button type="button" class="icon-btn js-edit-existing" title="Rediger vedlegg">✎</button>
+      <button type="button" class="icon-btn js-del-existing" title="Slett vedlegg">🗑</button>
+      <form class="attach-edit" method="POST" action="/receipts/{{.ID}}/meta" hidden>
+        <input type="text" name="title" value="{{if .Title.Valid}}{{.Title.String}}{{end}}" placeholder="Tittel">
+        <input type="text" name="description" value="{{if .Description.Valid}}{{.Description.String}}{{end}}" placeholder="Beskrivelse">
+        <button class="btn btn-small" type="submit">Lagre</button>
+      </form>
+      <form class="attach-confirm" method="POST" action="/receipts/{{.ID}}/delete" hidden>
+        <span>Slette vedlegget?</span>
+        <button class="btn btn-small btn-danger" type="submit">Ja, slett</button>
+        <button type="button" class="btn btn-small js-cancel-del">Avbryt</button>
+      </form>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
 {{end}}

@@ -10,30 +10,37 @@ import (
 	"database/sql"
 )
 
-const countUnlinkedReceipts = `-- name: CountUnlinkedReceipts :one
-SELECT COUNT(*) AS cnt FROM receipts
-WHERE id NOT IN (SELECT receipt_id FROM income WHERE receipt_id IS NOT NULL)
-  AND id NOT IN (SELECT receipt_id FROM expenses WHERE receipt_id IS NOT NULL)
+const countReceiptsByParent = `-- name: CountReceiptsByParent :one
+SELECT COUNT(*) AS cnt FROM receipts WHERE parent_kind = ? AND parent_id = ?
 `
 
-func (q *Queries) CountUnlinkedReceipts(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countUnlinkedReceipts)
+type CountReceiptsByParentParams struct {
+	ParentKind sql.NullString `json:"parent_kind"`
+	ParentID   sql.NullInt64  `json:"parent_id"`
+}
+
+func (q *Queries) CountReceiptsByParent(ctx context.Context, arg CountReceiptsByParentParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countReceiptsByParent, arg.ParentKind, arg.ParentID)
 	var cnt int64
 	err := row.Scan(&cnt)
 	return cnt, err
 }
 
 const createReceipt = `-- name: CreateReceipt :one
-INSERT INTO receipts (filename, original_name, mime_type, tax_year)
-VALUES (?, ?, ?, ?)
-RETURNING id, filename, original_name, mime_type, tax_year, uploaded_at
+INSERT INTO receipts (filename, original_name, mime_type, title, description, parent_kind, parent_id, tax_year)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, filename, original_name, mime_type, title, description, parent_kind, parent_id, tax_year, uploaded_at
 `
 
 type CreateReceiptParams struct {
-	Filename     string        `json:"filename"`
-	OriginalName string        `json:"original_name"`
-	MimeType     string        `json:"mime_type"`
-	TaxYear      sql.NullInt64 `json:"tax_year"`
+	Filename     string         `json:"filename"`
+	OriginalName string         `json:"original_name"`
+	MimeType     string         `json:"mime_type"`
+	Title        sql.NullString `json:"title"`
+	Description  sql.NullString `json:"description"`
+	ParentKind   sql.NullString `json:"parent_kind"`
+	ParentID     sql.NullInt64  `json:"parent_id"`
+	TaxYear      sql.NullInt64  `json:"tax_year"`
 }
 
 func (q *Queries) CreateReceipt(ctx context.Context, arg CreateReceiptParams) (Receipt, error) {
@@ -41,6 +48,10 @@ func (q *Queries) CreateReceipt(ctx context.Context, arg CreateReceiptParams) (R
 		arg.Filename,
 		arg.OriginalName,
 		arg.MimeType,
+		arg.Title,
+		arg.Description,
+		arg.ParentKind,
+		arg.ParentID,
 		arg.TaxYear,
 	)
 	var i Receipt
@@ -49,6 +60,10 @@ func (q *Queries) CreateReceipt(ctx context.Context, arg CreateReceiptParams) (R
 		&i.Filename,
 		&i.OriginalName,
 		&i.MimeType,
+		&i.Title,
+		&i.Description,
+		&i.ParentKind,
+		&i.ParentID,
 		&i.TaxYear,
 		&i.UploadedAt,
 	)
@@ -65,7 +80,7 @@ func (q *Queries) DeleteReceipt(ctx context.Context, id int64) error {
 }
 
 const getReceipt = `-- name: GetReceipt :one
-SELECT id, filename, original_name, mime_type, tax_year, uploaded_at FROM receipts WHERE id = ?
+SELECT id, filename, original_name, mime_type, title, description, parent_kind, parent_id, tax_year, uploaded_at FROM receipts WHERE id = ?
 `
 
 func (q *Queries) GetReceipt(ctx context.Context, id int64) (Receipt, error) {
@@ -76,6 +91,10 @@ func (q *Queries) GetReceipt(ctx context.Context, id int64) (Receipt, error) {
 		&i.Filename,
 		&i.OriginalName,
 		&i.MimeType,
+		&i.Title,
+		&i.Description,
+		&i.ParentKind,
+		&i.ParentID,
 		&i.TaxYear,
 		&i.UploadedAt,
 	)
@@ -83,7 +102,7 @@ func (q *Queries) GetReceipt(ctx context.Context, id int64) (Receipt, error) {
 }
 
 const listReceipts = `-- name: ListReceipts :many
-SELECT id, filename, original_name, mime_type, tax_year, uploaded_at FROM receipts ORDER BY uploaded_at DESC, id DESC
+SELECT id, filename, original_name, mime_type, title, description, parent_kind, parent_id, tax_year, uploaded_at FROM receipts ORDER BY uploaded_at DESC, id DESC
 `
 
 func (q *Queries) ListReceipts(ctx context.Context) ([]Receipt, error) {
@@ -100,6 +119,10 @@ func (q *Queries) ListReceipts(ctx context.Context) ([]Receipt, error) {
 			&i.Filename,
 			&i.OriginalName,
 			&i.MimeType,
+			&i.Title,
+			&i.Description,
+			&i.ParentKind,
+			&i.ParentID,
 			&i.TaxYear,
 			&i.UploadedAt,
 		); err != nil {
@@ -116,15 +139,17 @@ func (q *Queries) ListReceipts(ctx context.Context) ([]Receipt, error) {
 	return items, nil
 }
 
-const listUnlinkedReceipts = `-- name: ListUnlinkedReceipts :many
-SELECT id, filename, original_name, mime_type, tax_year, uploaded_at FROM receipts
-WHERE id NOT IN (SELECT receipt_id FROM income WHERE receipt_id IS NOT NULL)
-  AND id NOT IN (SELECT receipt_id FROM expenses WHERE receipt_id IS NOT NULL)
-ORDER BY uploaded_at DESC, id DESC
+const listReceiptsByParent = `-- name: ListReceiptsByParent :many
+SELECT id, filename, original_name, mime_type, title, description, parent_kind, parent_id, tax_year, uploaded_at FROM receipts WHERE parent_kind = ? AND parent_id = ? ORDER BY id
 `
 
-func (q *Queries) ListUnlinkedReceipts(ctx context.Context) ([]Receipt, error) {
-	rows, err := q.db.QueryContext(ctx, listUnlinkedReceipts)
+type ListReceiptsByParentParams struct {
+	ParentKind sql.NullString `json:"parent_kind"`
+	ParentID   sql.NullInt64  `json:"parent_id"`
+}
+
+func (q *Queries) ListReceiptsByParent(ctx context.Context, arg ListReceiptsByParentParams) ([]Receipt, error) {
+	rows, err := q.db.QueryContext(ctx, listReceiptsByParent, arg.ParentKind, arg.ParentID)
 	if err != nil {
 		return nil, err
 	}
@@ -137,6 +162,10 @@ func (q *Queries) ListUnlinkedReceipts(ctx context.Context) ([]Receipt, error) {
 			&i.Filename,
 			&i.OriginalName,
 			&i.MimeType,
+			&i.Title,
+			&i.Description,
+			&i.ParentKind,
+			&i.ParentID,
 			&i.TaxYear,
 			&i.UploadedAt,
 		); err != nil {
@@ -151,4 +180,34 @@ func (q *Queries) ListUnlinkedReceipts(ctx context.Context) ([]Receipt, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateReceiptMeta = `-- name: UpdateReceiptMeta :exec
+UPDATE receipts SET title = ?, description = ? WHERE id = ?
+`
+
+type UpdateReceiptMetaParams struct {
+	Title       sql.NullString `json:"title"`
+	Description sql.NullString `json:"description"`
+	ID          int64          `json:"id"`
+}
+
+func (q *Queries) UpdateReceiptMeta(ctx context.Context, arg UpdateReceiptMetaParams) error {
+	_, err := q.db.ExecContext(ctx, updateReceiptMeta, arg.Title, arg.Description, arg.ID)
+	return err
+}
+
+const updateReceiptParentLink = `-- name: UpdateReceiptParentLink :exec
+UPDATE receipts SET parent_kind = ?, parent_id = ? WHERE id = ?
+`
+
+type UpdateReceiptParentLinkParams struct {
+	ParentKind sql.NullString `json:"parent_kind"`
+	ParentID   sql.NullInt64  `json:"parent_id"`
+	ID         int64          `json:"id"`
+}
+
+func (q *Queries) UpdateReceiptParentLink(ctx context.Context, arg UpdateReceiptParentLinkParams) error {
+	_, err := q.db.ExecContext(ctx, updateReceiptParentLink, arg.ParentKind, arg.ParentID, arg.ID)
+	return err
 }

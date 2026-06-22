@@ -242,6 +242,96 @@ form input:focus, form select:focus, form textarea:focus { outline: 2px solid va
 
 .empty { color: var(--muted); padding: 40px; text-align: center; }
 
+/* Utvidbare poster (inntekter/utgifter) */
+.entry-list { display: flex; flex-direction: column; }
+.entry { border-bottom: 1px solid var(--sep); }
+.entry > summary { list-style: none; cursor: pointer; }
+.entry > summary::-webkit-details-marker { display: none; }
+.entry-row {
+  display: grid;
+  grid-template-columns: 100px 1fr auto auto 130px;
+  gap: 14px; align-items: center; padding: 13px 8px;
+}
+.entry-row:hover { background: var(--sep); }
+.entry[open] > summary .entry-row { background: #f8f9fb; }
+.entry-date { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 14px; }
+.entry-desc { font-weight: 600; }
+.entry-meta { color: var(--muted); font-size: 13px; }
+.entry-clip { color: var(--muted); font-size: 13px; }
+.entry-amount { font-weight: 600; font-variant-numeric: tabular-nums; }
+.entry-detail { padding: 6px 8px 20px 8px; }
+.entry-detail .kv { max-width: 640px; }
+.entry-actions { margin-top: 14px; }
+.entry-total {
+  display: flex; justify-content: space-between; padding: 16px 8px; margin-top: 4px;
+  font-weight: 700; border-top: 2px solid var(--border);
+}
+
+/* Vedlegg-lenker i utvidet visning */
+.attachments { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.attachment {
+  display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: #fff; font-size: 14px;
+}
+.attachment:hover { background: var(--sep); text-decoration: none; }
+.attachment-icon { font-size: 16px; }
+
+/* Drag-and-drop sone */
+.dropzone {
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 26px; text-align: center; color: var(--muted); cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.dropzone:hover, .dropzone:focus { border-color: var(--primary); outline: none; }
+.dropzone.dragover { border-color: var(--primary); background: #eef1f6; color: var(--primary); }
+
+/* Vedleggsliste (nye + eksisterende) */
+.attach-list, .existing-attachments { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.attach-item {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: #fff;
+}
+.attach-name { flex: 1; display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; }
+.attach-name span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon-btn {
+  width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 7px; background: #fff;
+  cursor: pointer; font-size: 14px; line-height: 1; flex: 0 0 auto;
+}
+.icon-btn:hover { background: var(--sep); }
+.attach-edit, .attach-confirm {
+  flex-basis: 100%; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--sep);
+}
+.attach-edit input { flex: 1; min-width: 140px; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); font: inherit; }
+.attach-edit form, .attach-confirm form { margin: 0; }
+.btn-danger { background: var(--red); color: #fff; border-color: var(--red); }
+.btn-danger:hover { background: #b71e1e; }
+
+/* Skatteberegning-hero + sammenleggbare seksjoner */
+.estimate-hero {
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--card-shadow);
+  padding: 24px; margin-bottom: 24px;
+}
+.estimate-label { color: var(--muted); font-size: 14px; }
+.estimate-sum { font-size: 38px; font-weight: 800; color: var(--primary); margin: 6px 0 4px; }
+.estimate-details { margin-top: 14px; }
+.estimate-details > summary { cursor: pointer; color: var(--primary); font-weight: 600; font-size: 14px; list-style: none; }
+.estimate-details > summary::-webkit-details-marker { display: none; }
+.estimate-details > summary::before { content: "▸ "; }
+.estimate-details[open] > summary::before { content: "▾ "; }
+.estimate-details .kv { margin-top: 12px; max-width: 520px; }
+
+.info-section { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; padding: 0 18px; }
+.info-section > summary { cursor: pointer; list-style: none; padding: 4px 0; }
+.info-section > summary::-webkit-details-marker { display: none; }
+.info-section > summary h2 { display: inline; font-size: 17px; }
+.info-section > summary::before { content: "▸ "; color: var(--muted); }
+.info-section[open] > summary::before { content: "▾ "; }
+.info-section[open] { padding-bottom: 18px; }
+
+.ftax-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.country-block { margin-bottom: 22px; }
+
 label.inline { display: inline-block; margin-right: 18px; font-weight: 400; }
 
 .receipt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }

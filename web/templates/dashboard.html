@@ -17,10 +17,6 @@
     <div class="card-label">{{$.Tr "dashboard_result"}}</div>
     <div class="card-value {{if lt .Result 0.0}}red{{end}}">{{nok .Result}}</div>
   </div>
-  <div class="card">
-    <div class="card-label">{{$.Tr "dashboard_unlinked_receipts"}}</div>
-    <div class="card-value" data-live="receipts">{{.UnlinkedReceipts}}</div>
-  </div>
 </div>
 
 {{if .EstimatedTax}}

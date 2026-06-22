@@ -399,6 +399,84 @@ func (q *Queries) SumIncomeNOKByYear(ctx context.Context, taxYear int64) (interf
 	return total, err
 }
 
+const updateIncome = `-- name: UpdateIncome :one
+UPDATE income SET
+  date = ?, description = ?, amount_orig = ?, currency = ?, exchange_rate = ?,
+  rate_date = ?, amount_nok = ?, category = ?, client = ?, country_code = ?,
+  foreign_tax_paid = ?, foreign_tax_orig = ?, foreign_tax_currency = ?,
+  foreign_tax_nok = ?, foreign_tax_type = ?, tax_year = ?, notes = ?
+WHERE id = ?
+RETURNING id, date, description, amount_orig, currency, exchange_rate, rate_date, amount_nok, category, client, country_code, foreign_tax_paid, foreign_tax_orig, foreign_tax_currency, foreign_tax_nok, foreign_tax_type, receipt_id, tax_year, notes, created_at
+`
+
+type UpdateIncomeParams struct {
+	Date               string          `json:"date"`
+	Description        string          `json:"description"`
+	AmountOrig         float64         `json:"amount_orig"`
+	Currency           string          `json:"currency"`
+	ExchangeRate       sql.NullFloat64 `json:"exchange_rate"`
+	RateDate           sql.NullString  `json:"rate_date"`
+	AmountNok          float64         `json:"amount_nok"`
+	Category           string          `json:"category"`
+	Client             sql.NullString  `json:"client"`
+	CountryCode        string          `json:"country_code"`
+	ForeignTaxPaid     int64           `json:"foreign_tax_paid"`
+	ForeignTaxOrig     sql.NullFloat64 `json:"foreign_tax_orig"`
+	ForeignTaxCurrency sql.NullString  `json:"foreign_tax_currency"`
+	ForeignTaxNok      sql.NullFloat64 `json:"foreign_tax_nok"`
+	ForeignTaxType     sql.NullString  `json:"foreign_tax_type"`
+	TaxYear            int64           `json:"tax_year"`
+	Notes              sql.NullString  `json:"notes"`
+	ID                 int64           `json:"id"`
+}
+
+func (q *Queries) UpdateIncome(ctx context.Context, arg UpdateIncomeParams) (Income, error) {
+	row := q.db.QueryRowContext(ctx, updateIncome,
+		arg.Date,
+		arg.Description,
+		arg.AmountOrig,
+		arg.Currency,
+		arg.ExchangeRate,
+		arg.RateDate,
+		arg.AmountNok,
+		arg.Category,
+		arg.Client,
+		arg.CountryCode,
+		arg.ForeignTaxPaid,
+		arg.ForeignTaxOrig,
+		arg.ForeignTaxCurrency,
+		arg.ForeignTaxNok,
+		arg.ForeignTaxType,
+		arg.TaxYear,
+		arg.Notes,
+		arg.ID,
+	)
+	var i Income
+	err := row.Scan(
+		&i.ID,
+		&i.Date,
+		&i.Description,
+		&i.AmountOrig,
+		&i.Currency,
+		&i.ExchangeRate,
+		&i.RateDate,
+		&i.AmountNok,
+		&i.Category,
+		&i.Client,
+		&i.CountryCode,
+		&i.ForeignTaxPaid,
+		&i.ForeignTaxOrig,
+		&i.ForeignTaxCurrency,
+		&i.ForeignTaxNok,
+		&i.ForeignTaxType,
+		&i.ReceiptID,
+		&i.TaxYear,
+		&i.Notes,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const updateIncomeReceipt = `-- name: UpdateIncomeReceipt :exec
 UPDATE income SET receipt_id = ? WHERE id = ?
 `

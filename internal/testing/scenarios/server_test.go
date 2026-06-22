@@ -25,7 +25,7 @@ func TestFrontPageHasNav(t *testing.T) {
 	apptest.AssertHas(t, doc, "nav")
 
 	// Alle planlagte sider skal være lenket i navigasjonen.
-	wantLinks := []string{"/", "/income", "/expenses", "/receipts",
+	wantLinks := []string{"/", "/income", "/expenses",
 		"/foreign-tax", "/tax-info", "/reports", "/changelog"}
 	for _, href := range wantLinks {
 		found := false

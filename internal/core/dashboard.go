@@ -9,12 +9,11 @@ import (
 
 // Dashboard er nøkkeltallene på forsiden for et inntektsår.
 type Dashboard struct {
-	Year             int
-	IncomeYTD        float64
-	DeductibleYTD    float64
-	Result           float64 // inntekt - fradragsberettigede utgifter
-	UnlinkedReceipts int64
-	EstimatedTax     *tax.TaxEstimate
+	Year          int
+	IncomeYTD     float64
+	DeductibleYTD float64
+	Result        float64 // inntekt - fradragsberettigede utgifter
+	EstimatedTax  *tax.TaxEstimate
 }
 
 // Dashboard beregner nøkkeltall for et gitt inntektsår.
@@ -27,21 +26,16 @@ func (a *App) Dashboard(ctx context.Context, year int) (Dashboard, error) {
 	if err != nil {
 		return Dashboard{}, fmt.Errorf("sum fradrag: %w", err)
 	}
-	unlinked, err := a.Q.CountUnlinkedReceipts(ctx)
-	if err != nil {
-		return Dashboard{}, fmt.Errorf("tell kvitteringer: %w", err)
-	}
 
 	incomeF := toFloat(income)
 	deductibleF := toFloat(deductible)
 	result := tax.Round2(incomeF - deductibleF)
 
 	d := Dashboard{
-		Year:             year,
-		IncomeYTD:        incomeF,
-		DeductibleYTD:    deductibleF,
-		Result:           result,
-		UnlinkedReceipts: unlinked,
+		Year:          year,
+		IncomeYTD:     incomeF,
+		DeductibleYTD: deductibleF,
+		Result:        result,
 	}
 	// Skatteestimat hvis vi har regler for året og positivt resultat.
 	if rules, err := tax.Load(year); err == nil {

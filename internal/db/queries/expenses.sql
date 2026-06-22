@@ -31,3 +31,10 @@ SELECT category,
        COALESCE(SUM(deductible_nok), 0) AS deductible
 FROM expenses WHERE tax_year = ?
 GROUP BY category ORDER BY deductible DESC;
+
+-- name: UpdateExpense :one
+UPDATE expenses SET
+  date = ?, description = ?, amount_nok = ?, category = ?, deductible_pct = ?,
+  deductible_nok = ?, tax_year = ?, notes = ?
+WHERE id = ?
+RETURNING *;

@@ -102,15 +102,19 @@ func (s *Server) routes() http.Handler {
 	r.Get("/income", s.handleIncomeList)
 	r.Get("/income/new", s.handleIncomeNew)
 	r.Post("/income", s.handleIncomeCreate)
+	r.Get("/income/{id}/edit", s.handleIncomeEdit)
+	r.Post("/income/{id}", s.handleIncomeUpdate)
 
 	r.Get("/expenses", s.handleExpenseList)
 	r.Get("/expenses/new", s.handleExpenseNew)
 	r.Post("/expenses", s.handleExpenseCreate)
+	r.Get("/expenses/{id}/edit", s.handleExpenseEdit)
+	r.Post("/expenses/{id}", s.handleExpenseUpdate)
 
-	r.Get("/receipts", s.handleReceiptsList)
-	r.Post("/receipts", s.handleReceiptUpload)
+	// Vedlegg: vis, rediger metadata, slett (kvitteringsside er fjernet).
 	r.Get("/receipts/file/{id}", s.handleReceiptFile)
-	r.Post("/receipts/link", s.handleReceiptLink)
+	r.Post("/receipts/{id}/meta", s.handleReceiptMeta)
+	r.Post("/receipts/{id}/delete", s.handleReceiptDelete)
 
 	r.Get("/foreign-tax", s.handleForeignTax)
 	r.Post("/foreign-tax", s.handleForeignTaxUpdate)

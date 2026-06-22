@@ -74,12 +74,16 @@ type mirrorExpense struct {
 }
 
 type mirrorReceipt struct {
-	ID           int64  `json:"id"`
-	Filename     string `json:"filename"`
-	OriginalName string `json:"original_name"`
-	MimeType     string `json:"mime_type"`
-	TaxYear      *int64 `json:"tax_year"`
-	UploadedAt   string `json:"uploaded_at"`
+	ID           int64   `json:"id"`
+	Filename     string  `json:"filename"`
+	OriginalName string  `json:"original_name"`
+	MimeType     string  `json:"mime_type"`
+	Title        *string `json:"title"`
+	Description  *string `json:"description"`
+	ParentKind   *string `json:"parent_kind"`
+	ParentID     *int64  `json:"parent_id"`
+	TaxYear      *int64  `json:"tax_year"`
+	UploadedAt   string  `json:"uploaded_at"`
 }
 
 // SyncMirror skriver en fersk, fullstendig mirror fra databasen.
@@ -139,7 +143,9 @@ func (a *App) SyncMirror(ctx context.Context) error {
 	for _, rc := range receipts {
 		mr = append(mr, mirrorReceipt{
 			ID: rc.ID, Filename: rc.Filename, OriginalName: rc.OriginalName,
-			MimeType: rc.MimeType, TaxYear: niPtr(rc.TaxYear), UploadedAt: rc.UploadedAt,
+			MimeType: rc.MimeType, Title: nsPtr(rc.Title), Description: nsPtr(rc.Description),
+			ParentKind: nsPtr(rc.ParentKind), ParentID: niPtr(rc.ParentID),
+			TaxYear: niPtr(rc.TaxYear), UploadedAt: rc.UploadedAt,
 		})
 		// Kopier kvitteringsfilen til mirror hvis den ikke alt finnes.
 		src := filepath.Join(a.DataDir, "receipts", filepath.FromSlash(rc.Filename))
@@ -214,9 +220,10 @@ func (a *App) ImportMirror(ctx context.Context, dir string) error {
 	}
 	for _, rc := range receipts {
 		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO receipts (id, filename, original_name, mime_type, tax_year, uploaded_at)
-			 VALUES (?, ?, ?, ?, ?, ?)`,
-			rc.ID, rc.Filename, rc.OriginalName, rc.MimeType, ptrArg(rc.TaxYear), rc.UploadedAt); err != nil {
+			`INSERT INTO receipts (id, filename, original_name, mime_type, title, description, parent_kind, parent_id, tax_year, uploaded_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			rc.ID, rc.Filename, rc.OriginalName, rc.MimeType, ptrArg(rc.Title), ptrArg(rc.Description),
+			ptrArg(rc.ParentKind), ptrArg(rc.ParentID), ptrArg(rc.TaxYear), rc.UploadedAt); err != nil {
 			return fmt.Errorf("importer kvittering: %w", err)
 		}
 	}

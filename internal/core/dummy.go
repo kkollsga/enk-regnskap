@@ -73,14 +73,6 @@ func (a *App) GenerateDummyData(ctx context.Context, actor string) (int, error) 
 		count++
 	}
 
-	// En eksempelkvittering, knyttet til PC-kjøpet.
-	var receiptID *int64
-	if rec, err := a.SaveReceipt(ctx, actor, ReceiptInput{
-		OriginalName: "kvittering-pc.png", MimeType: "image/png", Data: dummyPNG, TaxYear: year,
-	}); err == nil {
-		receiptID = &rec.ID
-	}
-
 	type exp struct {
 		mmdd, desc, cat string
 		amount, pct     float64
@@ -104,13 +96,17 @@ func (a *App) GenerateDummyData(ctx context.Context, actor string) (int, error) 
 			input.DeductiblePct = ex.pct
 			input.HasDeductiblePct = true
 		}
-		if ex.withReceipt {
-			input.ReceiptID = receiptID
-		}
-		if _, err := a.AddExpense(ctx, actor, input); err != nil {
+		created, err := a.AddExpense(ctx, actor, input)
+		if err != nil {
 			return count, fmt.Errorf("testutgift %q: %w", ex.desc, err)
 		}
 		count++
+		if ex.withReceipt {
+			_, _ = a.SaveReceipt(ctx, actor, ReceiptInput{
+				OriginalName: "kvittering-pc.png", MimeType: "image/png", Data: dummyPNG,
+				Title: "Kvittering PC", ParentKind: "expense", ParentID: created.ID, TaxYear: year,
+			})
+		}
 	}
 	return count, nil
 }

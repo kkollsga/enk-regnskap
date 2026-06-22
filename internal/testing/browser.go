@@ -99,6 +99,45 @@ func (b *Browser) PostMultipart(path string, fields map[string]string, fileField
 	return b.readDoc(resp)
 }
 
+// UploadFile er en fil i et multipart-opplastingstest.
+type UploadFile struct {
+	Name        string
+	ContentType string
+	Data        []byte
+}
+
+// PostMultipartFiles sender flere filer under samme felt, pluss ekstra
+// parallelle verdier (f.eks. attachment_title/attachment_desc).
+func (b *Browser) PostMultipartFiles(path string, fields map[string]string, fileField string, files []UploadFile, extra map[string][]string) *Doc {
+	b.t.Helper()
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	for k, v := range fields {
+		_ = mw.WriteField(k, v)
+	}
+	for k, vals := range extra {
+		for _, v := range vals {
+			_ = mw.WriteField(k, v)
+		}
+	}
+	for _, f := range files {
+		h := make(textproto.MIMEHeader)
+		h.Set("Content-Disposition", `form-data; name="`+fileField+`"; filename="`+f.Name+`"`)
+		h.Set("Content-Type", f.ContentType)
+		part, err := mw.CreatePart(h)
+		if err != nil {
+			b.t.Fatalf("multipart part: %v", err)
+		}
+		_, _ = part.Write(f.Data)
+	}
+	mw.Close()
+	resp, err := b.client.Post(b.base+path, mw.FormDataContentType(), &buf)
+	if err != nil {
+		b.t.Fatalf("POST multipart %s: %v", path, err)
+	}
+	return b.readDoc(resp)
+}
+
 func (b *Browser) readDoc(resp *http.Response) *Doc {
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)

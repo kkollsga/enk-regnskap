@@ -48,3 +48,12 @@ SELECT country_code,
 FROM income
 WHERE tax_year = ? AND country_code <> 'NO'
 GROUP BY country_code;
+
+-- name: UpdateIncome :one
+UPDATE income SET
+  date = ?, description = ?, amount_orig = ?, currency = ?, exchange_rate = ?,
+  rate_date = ?, amount_nok = ?, category = ?, client = ?, country_code = ?,
+  foreign_tax_paid = ?, foreign_tax_orig = ?, foreign_tax_currency = ?,
+  foreign_tax_nok = ?, foreign_tax_type = ?, tax_year = ?, notes = ?
+WHERE id = ?
+RETURNING *;

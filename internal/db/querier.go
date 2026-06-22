@@ -11,7 +11,7 @@ import (
 
 type Querier interface {
 	AggregateForeignIncomeByYear(ctx context.Context, taxYear int64) ([]AggregateForeignIncomeByYearRow, error)
-	CountUnlinkedReceipts(ctx context.Context) (int64, error)
+	CountReceiptsByParent(ctx context.Context, arg CountReceiptsByParentParams) (int64, error)
 	CreateChangeLog(ctx context.Context, arg CreateChangeLogParams) (ChangeLog, error)
 	CreateExpense(ctx context.Context, arg CreateExpenseParams) (Expense, error)
 	CreateIncome(ctx context.Context, arg CreateIncomeParams) (Income, error)
@@ -46,15 +46,19 @@ type Querier interface {
 	ListIncomeByCountryYear(ctx context.Context, arg ListIncomeByCountryYearParams) ([]Income, error)
 	ListIncomeByYear(ctx context.Context, taxYear int64) ([]Income, error)
 	ListReceipts(ctx context.Context) ([]Receipt, error)
-	ListUnlinkedReceipts(ctx context.Context) ([]Receipt, error)
+	ListReceiptsByParent(ctx context.Context, arg ListReceiptsByParentParams) ([]Receipt, error)
 	MarkChangeRolledBack(ctx context.Context, id int64) error
 	SetConfig(ctx context.Context, arg SetConfigParams) error
 	SumDeductibleByYear(ctx context.Context, taxYear int64) (interface{}, error)
 	SumExpensesByCategory(ctx context.Context, taxYear int64) ([]SumExpensesByCategoryRow, error)
 	SumIncomeByCategory(ctx context.Context, taxYear int64) ([]SumIncomeByCategoryRow, error)
 	SumIncomeNOKByYear(ctx context.Context, taxYear int64) (interface{}, error)
+	UpdateExpense(ctx context.Context, arg UpdateExpenseParams) (Expense, error)
 	UpdateExpenseReceipt(ctx context.Context, arg UpdateExpenseReceiptParams) error
+	UpdateIncome(ctx context.Context, arg UpdateIncomeParams) (Income, error)
 	UpdateIncomeReceipt(ctx context.Context, arg UpdateIncomeReceiptParams) error
+	UpdateReceiptMeta(ctx context.Context, arg UpdateReceiptMetaParams) error
+	UpdateReceiptParentLink(ctx context.Context, arg UpdateReceiptParentLinkParams) error
 	UpsertExchangeRate(ctx context.Context, arg UpsertExchangeRateParams) error
 	UpsertForeignTaxCredit(ctx context.Context, arg UpsertForeignTaxCreditParams) (ForeignTaxCredit, error)
 }

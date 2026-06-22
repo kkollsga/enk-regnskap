@@ -122,10 +122,14 @@ type Income struct {
 }
 
 type Receipt struct {
-	ID           int64         `json:"id"`
-	Filename     string        `json:"filename"`
-	OriginalName string        `json:"original_name"`
-	MimeType     string        `json:"mime_type"`
-	TaxYear      sql.NullInt64 `json:"tax_year"`
-	UploadedAt   string        `json:"uploaded_at"`
+	ID           int64          `json:"id"`
+	Filename     string         `json:"filename"`
+	OriginalName string         `json:"original_name"`
+	MimeType     string         `json:"mime_type"`
+	Title        sql.NullString `json:"title"`
+	Description  sql.NullString `json:"description"`
+	ParentKind   sql.NullString `json:"parent_kind"`
+	ParentID     sql.NullInt64  `json:"parent_id"`
+	TaxYear      sql.NullInt64  `json:"tax_year"`
+	UploadedAt   string         `json:"uploaded_at"`
 }

@@ -19,6 +19,54 @@ func Migrate(conn *sql.DB) error {
 	if _, err := conn.Exec(schemaSQL); err != nil {
 		return fmt.Errorf("kjor schema.sql: %w", err)
 	}
+	// Legg til nyere kolonner på eksisterende databaser (idempotent).
+	for _, c := range []struct{ table, column, def string }{
+		{"receipts", "title", "TEXT"},
+		{"receipts", "description", "TEXT"},
+		{"receipts", "parent_kind", "TEXT"},
+		{"receipts", "parent_id", "INTEGER"},
+	} {
+		if err := ensureColumn(conn, c.table, c.column, c.def); err != nil {
+			return err
+		}
+	}
+	// Migrer eksisterende enkeltkoblinger (income/expenses.receipt_id) til
+	// vedleggets parent-felter.
+	_, _ = conn.Exec(`UPDATE receipts SET parent_kind='income', parent_id=(
+		SELECT id FROM income WHERE income.receipt_id = receipts.id LIMIT 1)
+		WHERE parent_kind IS NULL AND EXISTS (SELECT 1 FROM income WHERE income.receipt_id = receipts.id)`)
+	_, _ = conn.Exec(`UPDATE receipts SET parent_kind='expense', parent_id=(
+		SELECT id FROM expenses WHERE expenses.receipt_id = receipts.id LIMIT 1)
+		WHERE parent_kind IS NULL AND EXISTS (SELECT 1 FROM expenses WHERE expenses.receipt_id = receipts.id)`)
+	return nil
+}
+
+// ensureColumn legger til en kolonne hvis den mangler (SQLite mangler
+// "ADD COLUMN IF NOT EXISTS").
+func ensureColumn(conn *sql.DB, table, column, def string) error {
+	rows, err := conn.Query("PRAGMA table_info(" + table + ")")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	exists := false
+	for rows.Next() {
+		var cid int
+		var name, ctype string
+		var notnull, pk int
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			return err
+		}
+		if name == column {
+			exists = true
+		}
+	}
+	if !exists {
+		if _, err := conn.Exec("ALTER TABLE " + table + " ADD COLUMN " + column + " " + def); err != nil {
+			return fmt.Errorf("legg til kolonne %s.%s: %w", table, column, err)
+		}
+	}
 	return nil
 }
 

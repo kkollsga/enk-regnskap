@@ -45,37 +45,35 @@ type IncomeResult struct {
 	RateDate string
 }
 
-// AddIncome validerer, henter valutakurs, beregner NOK-beløp, lagrer inntekten,
-// loggfor endringen og kringkaster en live-hendelse. actor er "web" eller "mcp".
-func (a *App) AddIncome(ctx context.Context, actor string, in IncomeInput) (*IncomeResult, error) {
-	in.normalize()
-	if err := in.validate(); err != nil {
-		return nil, err
-	}
+// resolvedIncome er ferdig beregnede DB-verdier for en inntekt.
+type resolvedIncome struct {
+	exchangeRate sql.NullFloat64
+	rateDate     sql.NullString
+	amountNOK    float64
+	ftOrig       sql.NullFloat64
+	ftNOK        sql.NullFloat64
+	ftCurrency   sql.NullString
+	ftType       sql.NullString
+	usedRate     float64
+	usedRateDate string
+}
 
-	// Valutakurs -> NOK.
-	var exchangeRate sql.NullFloat64
-	var rateDate sql.NullString
-	amountNOK := in.AmountOrig
-	usedRate := 1.0
-	usedRateDate := in.Date
+// resolveIncome henter valutakurs og beregner NOK-beløp + utenlandsk skatt.
+func (a *App) resolveIncome(ctx context.Context, in IncomeInput) (resolvedIncome, error) {
+	res := resolvedIncome{amountNOK: in.AmountOrig, usedRate: 1.0, usedRateDate: in.Date}
 	if in.Currency != "NOK" {
 		r, err := a.Currency.Rate(ctx, in.Currency, in.Date)
 		if err != nil {
 			ve := newValidation()
 			ve.add("currency", "kunne ikke hente valutakurs: "+err.Error())
-			return nil, ve
+			return res, ve
 		}
-		usedRate = r.RateNOK
-		usedRateDate = r.Date
-		amountNOK = tax.Round2(in.AmountOrig * r.RateNOK)
-		exchangeRate = sql.NullFloat64{Float64: r.RateNOK, Valid: true}
-		rateDate = sql.NullString{String: r.Date, Valid: true}
+		res.usedRate = r.RateNOK
+		res.usedRateDate = r.Date
+		res.amountNOK = tax.Round2(in.AmountOrig * r.RateNOK)
+		res.exchangeRate = sql.NullFloat64{Float64: r.RateNOK, Valid: true}
+		res.rateDate = sql.NullString{String: r.Date, Valid: true}
 	}
-
-	// Utenlandsk skatt -> NOK.
-	var ftOrig, ftNOK sql.NullFloat64
-	var ftCurrency, ftType sql.NullString
 	if in.ForeignTaxPaid == ForeignTaxYes && in.ForeignTaxOrig > 0 {
 		ftCur := in.ForeignTaxCurrency
 		if ftCur == "" {
@@ -87,56 +85,97 @@ func (a *App) AddIncome(ctx context.Context, actor string, in IncomeInput) (*Inc
 			if err != nil {
 				ve := newValidation()
 				ve.add("foreign_tax_orig", "kunne ikke hente kurs for utenlandsk skatt: "+err.Error())
-				return nil, ve
+				return res, ve
 			}
 			nok = tax.Round2(in.ForeignTaxOrig * r.RateNOK)
 		}
-		ftOrig = sql.NullFloat64{Float64: in.ForeignTaxOrig, Valid: true}
-		ftNOK = sql.NullFloat64{Float64: nok, Valid: true}
-		ftCurrency = sql.NullString{String: ftCur, Valid: true}
+		res.ftOrig = sql.NullFloat64{Float64: in.ForeignTaxOrig, Valid: true}
+		res.ftNOK = sql.NullFloat64{Float64: nok, Valid: true}
+		res.ftCurrency = sql.NullString{String: ftCur, Valid: true}
 		if in.ForeignTaxType != "" {
-			ftType = sql.NullString{String: in.ForeignTaxType, Valid: true}
+			res.ftType = sql.NullString{String: in.ForeignTaxType, Valid: true}
 		}
 	}
+	return res, nil
+}
 
+// AddIncome validerer, henter valutakurs, beregner NOK-beløp, lagrer inntekten,
+// loggfor endringen og kringkaster en live-hendelse. actor er "web" eller "mcp".
+func (a *App) AddIncome(ctx context.Context, actor string, in IncomeInput) (*IncomeResult, error) {
+	in.normalize()
+	if err := in.validate(); err != nil {
+		return nil, err
+	}
+	res, err := a.resolveIncome(ctx, in)
+	if err != nil {
+		return nil, err
+	}
 	created, err := a.Q.CreateIncome(ctx, db.CreateIncomeParams{
-		Date:               in.Date,
-		Description:        in.Description,
-		AmountOrig:         in.AmountOrig,
-		Currency:           in.Currency,
-		ExchangeRate:       exchangeRate,
-		RateDate:           rateDate,
-		AmountNok:          amountNOK,
-		Category:           in.Category,
-		Client:             nullString(in.Client),
-		CountryCode:        in.CountryCode,
-		ForeignTaxPaid:     int64(in.ForeignTaxPaid),
-		ForeignTaxOrig:     ftOrig,
-		ForeignTaxCurrency: ftCurrency,
-		ForeignTaxNok:      ftNOK,
-		ForeignTaxType:     ftType,
-		ReceiptID:          nullInt(in.ReceiptID),
-		TaxYear:            int64(in.TaxYear),
-		Notes:              nullString(in.Notes),
+		Date: in.Date, Description: in.Description, AmountOrig: in.AmountOrig,
+		Currency: in.Currency, ExchangeRate: res.exchangeRate, RateDate: res.rateDate,
+		AmountNok: res.amountNOK, Category: in.Category, Client: nullString(in.Client),
+		CountryCode: in.CountryCode, ForeignTaxPaid: int64(in.ForeignTaxPaid),
+		ForeignTaxOrig: res.ftOrig, ForeignTaxCurrency: res.ftCurrency, ForeignTaxNok: res.ftNOK,
+		ForeignTaxType: res.ftType, ReceiptID: nullInt(in.ReceiptID),
+		TaxYear: int64(in.TaxYear), Notes: nullString(in.Notes),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("lagre inntekt: %w", err)
 	}
-
 	after, _ := a.snapshotRow(ctx, "income", created.ID)
-	desc := fmt.Sprintf("La til inntekt: %s (%s)", in.Description, formatMoney(amountNOK))
+	desc := fmt.Sprintf("La til inntekt: %s (%s)", in.Description, formatMoney(res.amountNOK))
 	if err := a.logChange(ctx, actor, "insert", "income", created.ID, nil, after, in.TaxYear, desc); err != nil {
 		return nil, err
 	}
-
-	// Aggreger utenlandsinntekt for året hvis inntekten er utenlandsk.
 	if in.CountryCode != "NO" {
 		if err := a.RecomputeForeignTaxCredits(ctx, in.TaxYear); err != nil {
 			return nil, err
 		}
 	}
+	return &IncomeResult{Income: created, RateUsed: res.usedRate, RateDate: res.usedRateDate}, nil
+}
 
-	return &IncomeResult{Income: created, RateUsed: usedRate, RateDate: usedRateDate}, nil
+// UpdateIncome oppdaterer en eksisterende inntekt (revisjonslogges).
+func (a *App) UpdateIncome(ctx context.Context, actor string, id int64, in IncomeInput) (*IncomeResult, error) {
+	in.normalize()
+	if err := in.validate(); err != nil {
+		return nil, err
+	}
+	before, err := a.snapshotRow(ctx, "income", id)
+	if err != nil || before == nil {
+		return nil, fmt.Errorf("inntekt %d finnes ikke", id)
+	}
+	res, err := a.resolveIncome(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	updated, err := a.Q.UpdateIncome(ctx, db.UpdateIncomeParams{
+		ID: id, Date: in.Date, Description: in.Description, AmountOrig: in.AmountOrig,
+		Currency: in.Currency, ExchangeRate: res.exchangeRate, RateDate: res.rateDate,
+		AmountNok: res.amountNOK, Category: in.Category, Client: nullString(in.Client),
+		CountryCode: in.CountryCode, ForeignTaxPaid: int64(in.ForeignTaxPaid),
+		ForeignTaxOrig: res.ftOrig, ForeignTaxCurrency: res.ftCurrency, ForeignTaxNok: res.ftNOK,
+		ForeignTaxType: res.ftType, TaxYear: int64(in.TaxYear), Notes: nullString(in.Notes),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("oppdater inntekt: %w", err)
+	}
+	after, _ := a.snapshotRow(ctx, "income", id)
+	desc := fmt.Sprintf("Endret inntekt #%d: %s", id, in.Description)
+	if err := a.logChange(ctx, actor, "update", "income", id, before, after, in.TaxYear, desc); err != nil {
+		return nil, err
+	}
+	// Aggreger på nytt for både gammelt og nytt år/land.
+	a.RecomputeForeignTaxCredits(ctx, in.TaxYear)
+	if y := toInt(before["tax_year"]); y != in.TaxYear {
+		a.RecomputeForeignTaxCredits(ctx, y)
+	}
+	return &IncomeResult{Income: updated, RateUsed: res.usedRate, RateDate: res.usedRateDate}, nil
+}
+
+// GetIncome henter en inntekt.
+func (a *App) GetIncome(ctx context.Context, id int64) (db.Income, error) {
+	return a.Q.GetIncome(ctx, id)
 }
 
 // DeleteIncome sletter en inntekt med revisjonsspor og live-hendelse.

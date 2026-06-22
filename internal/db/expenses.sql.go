@@ -219,6 +219,55 @@ func (q *Queries) SumExpensesByCategory(ctx context.Context, taxYear int64) ([]S
 	return items, nil
 }
 
+const updateExpense = `-- name: UpdateExpense :one
+UPDATE expenses SET
+  date = ?, description = ?, amount_nok = ?, category = ?, deductible_pct = ?,
+  deductible_nok = ?, tax_year = ?, notes = ?
+WHERE id = ?
+RETURNING id, date, description, amount_nok, category, deductible_pct, deductible_nok, receipt_id, tax_year, notes, created_at
+`
+
+type UpdateExpenseParams struct {
+	Date          string         `json:"date"`
+	Description   string         `json:"description"`
+	AmountNok     float64        `json:"amount_nok"`
+	Category      string         `json:"category"`
+	DeductiblePct float64        `json:"deductible_pct"`
+	DeductibleNok float64        `json:"deductible_nok"`
+	TaxYear       int64          `json:"tax_year"`
+	Notes         sql.NullString `json:"notes"`
+	ID            int64          `json:"id"`
+}
+
+func (q *Queries) UpdateExpense(ctx context.Context, arg UpdateExpenseParams) (Expense, error) {
+	row := q.db.QueryRowContext(ctx, updateExpense,
+		arg.Date,
+		arg.Description,
+		arg.AmountNok,
+		arg.Category,
+		arg.DeductiblePct,
+		arg.DeductibleNok,
+		arg.TaxYear,
+		arg.Notes,
+		arg.ID,
+	)
+	var i Expense
+	err := row.Scan(
+		&i.ID,
+		&i.Date,
+		&i.Description,
+		&i.AmountNok,
+		&i.Category,
+		&i.DeductiblePct,
+		&i.DeductibleNok,
+		&i.ReceiptID,
+		&i.TaxYear,
+		&i.Notes,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const updateExpenseReceipt = `-- name: UpdateExpenseReceipt :exec
 UPDATE expenses SET receipt_id = ? WHERE id = ?
 `

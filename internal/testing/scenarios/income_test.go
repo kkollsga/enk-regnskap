@@ -165,19 +165,16 @@ func TestIncomeWithReceipt(t *testing.T) {
 			"currency": "NOK", "country_code": "NO", "amount_orig": "5000",
 			"category": "tjenesteinntekt", "foreign_tax_paid": "0",
 		},
-		"receipt", "faktura.png", "image/png", onePixelPNG())
+		"attachment", "faktura.png", "image/png", onePixelPNG())
 	apptest.AssertStatus(t, res, 200)
 
 	rows, _ := h.App.ListIncome(h.Context(), 2025)
 	if len(rows) != 1 {
 		t.Fatalf("forventet 1 inntekt, fikk %d", len(rows))
 	}
-	if !rows[0].ReceiptID.Valid {
-		t.Error("inntekten mangler tilknyttet kvittering")
-	}
-	recs, _ := h.App.ListReceipts(h.Context())
-	if len(recs) != 1 {
-		t.Errorf("forventet 1 kvittering, fikk %d", len(recs))
+	att, _ := h.App.ReceiptsFor(h.Context(), "income", rows[0].ID)
+	if len(att) != 1 {
+		t.Errorf("inntekten mangler tilknyttet vedlegg, fikk %d", len(att))
 	}
 }
 

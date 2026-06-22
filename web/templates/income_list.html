@@ -5,38 +5,47 @@
 </section>
 
 {{if $d.Income}}
-<table class="data-table">
-  <thead>
-    <tr>
-      <th>{{.Tr "common_date"}}</th>
-      <th>{{.Tr "common_description"}}</th>
-      <th>{{.Tr "common_client"}}</th>
-      <th>{{.Tr "common_category"}}</th>
-      <th>Land</th>
-      <th class="num">{{.Tr "common_amount"}}</th>
-      <th class="num">NOK</th>
-    </tr>
-  </thead>
-  <tbody>
-    {{range $d.Income}}
-    <tr>
-      <td>{{.Date}}</td>
-      <td>{{.Description}}</td>
-      <td>{{if .Client.Valid}}{{.Client.String}}{{end}}</td>
-      <td>{{.Category}}</td>
-      <td>{{.CountryCode}}</td>
-      <td class="num">{{nok .AmountOrig}} {{if ne .Currency "NOK"}}<span class="muted small">{{.Currency}}</span>{{end}}</td>
-      <td class="num">{{nok .AmountNok}}</td>
-    </tr>
-    {{end}}
-  </tbody>
-  <tfoot>
-    <tr class="sum">
-      <td colspan="6" class="num">{{.Tr "common_total"}}</td>
-      <td class="num" data-live="income">{{nok $d.Total}}</td>
-    </tr>
-  </tfoot>
-</table>
+<div class="entry-list">
+  {{range $in := $d.Income}}
+  {{$recs := index $d.Receipts $in.ID}}
+  <details class="entry">
+    <summary class="entry-row">
+      <span class="entry-date">{{$in.Date}}</span>
+      <span class="entry-desc">{{$in.Description}}</span>
+      <span class="entry-meta">{{index $d.CatNames $in.Category}}{{if $in.Client.Valid}} · {{$in.Client.String}}{{end}}</span>
+      {{if $recs}}<span class="entry-clip" title="Vedlegg">📎 {{len $recs}}</span>{{end}}
+      <span class="entry-amount num">{{nok $in.AmountNok}}</span>
+    </summary>
+    <div class="entry-detail">
+      <table class="kv">
+        <tr><td>Kategori</td><td>{{index $d.CatNames $in.Category}}</td></tr>
+        {{if $in.Client.Valid}}<tr><td>Klient</td><td>{{$in.Client.String}}</td></tr>{{end}}
+        <tr><td>Beløp</td><td>{{nok $in.AmountOrig}} {{$in.Currency}}{{if ne $in.Currency "NOK"}} → {{nok $in.AmountNok}}{{if $in.ExchangeRate.Valid}} <span class="muted">(kurs {{nok $in.ExchangeRate.Float64}} per {{$in.RateDate.String}})</span>{{end}}{{end}}</td></tr>
+        <tr><td>Kildeland</td><td>{{$in.CountryCode}}</td></tr>
+        {{if eq $in.ForeignTaxPaid 1}}<tr><td>Utenlandsk skatt</td><td>{{if $in.ForeignTaxNok.Valid}}{{nok $in.ForeignTaxNok.Float64}}{{end}} {{$in.ForeignTaxType.String}}</td></tr>{{end}}
+        {{if $in.Notes.Valid}}<tr><td>Notater</td><td>{{$in.Notes.String}}</td></tr>{{end}}
+      </table>
+      {{if $recs}}
+      <div class="attachments">
+        {{range $recs}}
+        <a class="attachment" href="/receipts/file/{{.ID}}" target="_blank" title="{{.OriginalName}}{{if .Description.Valid}} – {{.Description.String}}{{end}}">
+          <span class="attachment-icon">{{if eq .MimeType "application/pdf"}}📄{{else}}🖼{{end}}</span>
+          <span>{{if .Title.Valid}}{{.Title.String}}{{else}}{{.OriginalName}}{{end}}</span>
+        </a>
+        {{end}}
+      </div>
+      {{end}}
+      <div class="entry-actions">
+        <a class="btn btn-small" href="/income/{{$in.ID}}/edit">Rediger</a>
+      </div>
+    </div>
+  </details>
+  {{end}}
+</div>
+<div class="entry-total">
+  <span>{{.Tr "common_total"}}</span>
+  <span class="num" data-live="income">{{nok $d.Total}}</span>
+</div>
 {{else}}
 <div class="empty">Ingen inntekter registrert for {{.Year}} enda. <a href="/income/new">Legg til den første</a>.</div>
 {{end}}

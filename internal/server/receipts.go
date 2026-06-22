@@ -7,83 +7,57 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/kkollsga/enk-regnskap/internal/core"
-	"github.com/kkollsga/enk-regnskap/internal/db"
 )
 
-type receiptsData struct {
-	Receipts []db.Receipt
-	Filter   string // "all" | "unlinked"
-}
-
-func (s *Server) handleReceiptsList(w http.ResponseWriter, r *http.Request) {
-	v := s.view(r, "receipts", s.tr(r, "nav_receipts"))
-	filter := r.URL.Query().Get("filter")
-	var rows []db.Receipt
-	var err error
-	if filter == "unlinked" {
-		rows, err = s.app().ListUnlinkedReceipts(r.Context())
-	} else {
-		filter = "all"
-		rows, err = s.app().ListReceipts(r.Context())
-	}
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	v.Data = receiptsData{Receipts: rows, Filter: filter}
-	s.renderer.Render(w, "receipts", v)
-}
-
-// handleReceiptUpload tar imot en kvittering fra kvitteringssiden.
-func (s *Server) handleReceiptUpload(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		http.Error(w, "ugyldig opplasting", http.StatusBadRequest)
-		return
-	}
-	rid, err := s.maybeUploadReceipt(r, s.app().ActiveYear(r.Context()))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if rid == nil {
-		http.Error(w, "ingen fil valgt", http.StatusBadRequest)
-		return
-	}
-	http.Redirect(w, r, "/receipts?saved=1", http.StatusSeeOther)
-}
-
-// maybeUploadReceipt laster opp en eventuell fil i feltet "receipt".
-// Returnerer (nil, nil) hvis ingen fil ble sendt.
-func (s *Server) maybeUploadReceipt(r *http.Request, year int) (*int64, error) {
+// uploadReceipts lagrer alle opplastede vedlegg ("attachment") og knytter dem
+// til en inntekt/utgift. Tittel/beskrivelse leses fra parallelle felter.
+// Returnerer antall lagrede vedlegg, eller en feil ved ugyldig fil.
+func (s *Server) uploadReceipts(r *http.Request, parentKind string, parentID int64, year int) (int, error) {
 	if r.MultipartForm == nil {
-		return nil, nil
+		return 0, nil
 	}
-	file, header, err := r.FormFile("receipt")
-	if err != nil {
-		return nil, nil // ingen fil - greit (valgfritt)
-	}
-	defer file.Close()
-	data, err := io.ReadAll(io.LimitReader(file, 32<<20))
-	if err != nil {
-		return nil, err
-	}
-	mime := header.Header.Get("Content-Type")
-	rec, err := s.app().SaveReceipt(r.Context(), core.ActorWeb, core.ReceiptInput{
-		OriginalName: header.Filename,
-		MimeType:     mime,
-		Data:         data,
-		TaxYear:      year,
-	})
-	if err != nil {
-		if ve, ok := core.AsValidation(err); ok {
-			return nil, ve
+	files := r.MultipartForm.File["attachment"]
+	titles := r.MultipartForm.Value["attachment_title"]
+	descs := r.MultipartForm.Value["attachment_desc"]
+	saved := 0
+	for i, header := range files {
+		f, err := header.Open()
+		if err != nil {
+			return saved, err
 		}
-		return nil, err
+		data, err := io.ReadAll(io.LimitReader(f, 32<<20))
+		f.Close()
+		if err != nil {
+			return saved, err
+		}
+		title, desc := "", ""
+		if i < len(titles) {
+			title = titles[i]
+		}
+		if i < len(descs) {
+			desc = descs[i]
+		}
+		if _, err := s.app().SaveReceipt(r.Context(), core.ActorWeb, core.ReceiptInput{
+			OriginalName: header.Filename,
+			MimeType:     header.Header.Get("Content-Type"),
+			Data:         data,
+			Title:        title,
+			Description:  desc,
+			ParentKind:   parentKind,
+			ParentID:     parentID,
+			TaxYear:      year,
+		}); err != nil {
+			if ve, ok := core.AsValidation(err); ok {
+				return saved, ve
+			}
+			return saved, err
+		}
+		saved++
 	}
-	return &rec.ID, nil
+	return saved, nil
 }
 
-// handleReceiptFile serverer en kvitteringsfil inline (forhåndsvisning).
+// handleReceiptFile serverer en vedleggsfil inline (forhåndsvisning).
 func (s *Server) handleReceiptFile(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
@@ -100,18 +74,48 @@ func (s *Server) handleReceiptFile(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, s.app().ReceiptPath(rec))
 }
 
-// handleReceiptLink knytter en kvittering til en transaksjon.
-func (s *Server) handleReceiptLink(w http.ResponseWriter, r *http.Request) {
+// handleReceiptMeta oppdaterer tittel/beskrivelse på et vedlegg.
+func (s *Server) handleReceiptMeta(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "ugyldig skjema", http.StatusBadRequest)
 		return
 	}
-	receiptID, _ := strconv.ParseInt(r.FormValue("receipt_id"), 10, 64)
-	txID, _ := strconv.ParseInt(r.FormValue("tx_id"), 10, 64)
-	kind := r.FormValue("kind")
-	if err := s.app().LinkReceipt(r.Context(), core.ActorWeb, kind, txID, receiptID); err != nil {
+	if err := s.app().UpdateReceiptMeta(r.Context(), core.ActorWeb, id,
+		r.FormValue("title"), r.FormValue("description")); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	http.Redirect(w, r, "/receipts?saved=1", http.StatusSeeOther)
+	redirectBack(w, r)
+}
+
+// handleReceiptDelete sletter et vedlegg.
+func (s *Server) handleReceiptDelete(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err := s.app().DeleteReceipt(r.Context(), core.ActorWeb, id); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	redirectBack(w, r)
+}
+
+// attachmentTypeError sjekker filtypene før posten lagres (unngår delvis lagring).
+func attachmentTypeError(r *http.Request) string {
+	if r.MultipartForm == nil {
+		return ""
+	}
+	for _, h := range r.MultipartForm.File["attachment"] {
+		if !core.ReceiptTypeAllowed(h.Header.Get("Content-Type")) {
+			return "Ugyldig filtype for vedlegg: " + h.Filename + " (bruk bilde eller PDF)."
+		}
+	}
+	return ""
+}
+
+func redirectBack(w http.ResponseWriter, r *http.Request) {
+	dest := r.Header.Get("Referer")
+	if dest == "" {
+		dest = "/"
+	}
+	http.Redirect(w, r, dest, http.StatusSeeOther)
 }

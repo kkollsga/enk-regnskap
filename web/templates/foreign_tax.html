@@ -5,87 +5,95 @@
   <h1>{{.Tr "nav_foreign_tax"}} <span class="muted">{{.Year}}</span></h1>
 </section>
 
-<div class="info-card warn">
-  Reglene for kreditfradrag er komplekse. For større beløp anbefales det å
-  konsultere en skatteradgiver. Appen beregner aldri det endelige
-  kreditfradraget, men gir deg informasjonen og dokumentasjonen du trenger
-  til RF-1147.
-</div>
-
 {{if $d.HasData}}
 {{range $d.Countries}}
 {{$c := .Overview.Credit}}
 <section class="panel">
-  <h2>{{$c.CountryName}} ({{$c.CountryCode}})
+  <div class="ftax-head">
+    <h2>{{$c.CountryName}} ({{$c.CountryCode}})</h2>
     <span class="badge {{if eq .Status "Klar for RF-1147"}}badge-ok{{else}}badge-warn{{end}}">{{.Status}}</span>
-  </h2>
+  </div>
 
-  <table class="kv">
-    <tr><td>Rettsgrunnlag</td><td>{{.Overview.LegalBasisRef}}</td></tr>
-    <tr><td>Samlet inntekt (NOK)</td><td class="num">{{nok $c.IncomeNok}}</td></tr>
-    <tr><td>Betalt utenlandsk skatt ({{$c.ForeignCurrency}})</td><td class="num">{{nok $c.ForeignTaxOrig}}</td></tr>
-    <tr><td>Betalt utenlandsk skatt (NOK)</td><td class="num">{{nok $c.ForeignTaxNok}}</td></tr>
-    <tr><td>Estimert maksimalt kreditfradrag (§ 16-21)</td><td class="num">{{nok .Overview.MaxCreditEst}}</td></tr>
-  </table>
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Samlet inntekt</div>
+      <div class="card-value">{{nok $c.IncomeNok}}</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Betalt utenlandsk skatt</div>
+      <div class="card-value gold">{{nok $c.ForeignTaxNok}}</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Estimert maks kreditfradrag</div>
+      <div class="card-value">{{nok .Overview.MaxCreditEst}}</div>
+      <div class="muted small">§ 16-21</div>
+    </div>
+  </div>
+
+  <p class="muted small" style="margin-top:12px;">Rettsgrunnlag: {{.Overview.LegalBasisRef}}</p>
 
   {{if .NoTaxPaid}}
   <div class="info-card warn">
-    Inntekt fra {{$c.CountryName}} uten trukket kildeskatt er fortsatt fullt
-    skattepliktig i Norge. Du kan ikke kreve kreditfradrag uten dokumentasjon
-    på betalt utenlandsk skatt.
-  </div>
-  {{end}}
-  {{if .NotFinal}}
-  <div class="info-card">
-    Du kan kreve kreditfradrag senest 6 måneder etter at endelig skatt er
-    fastsatt i utlandet (sktl. § 16-30). Merk dette i appen så du ikke går
-    glipp av fristen.
+    Inntekt fra {{$c.CountryName}} uten trukket kildeskatt er fullt skattepliktig i Norge.
+    Uten dokumentasjon på betalt utenlandsk skatt kan du ikke kreve kreditfradrag.
   </div>
   {{end}}
 
-  <h3>Sjekkliste: dokumentasjon og skattetyper</h3>
-  <table class="data-table">
-    <thead><tr><th>Kode</th><th>Navn</th><th>Gjelder</th><th>Krediterbar i Norge</th></tr></thead>
-    <tbody>
-      {{range .TaxTypes}}
-      <tr>
-        <td>{{.TaxTypeCode}}</td>
-        <td>{{.TaxTypeName}}</td>
-        <td>{{if .AppliesTo.Valid}}{{.AppliesTo.String}}{{end}}</td>
-        <td>{{if and .IsCreditableInNorway.Valid (eq .IsCreditableInNorway.Int64 1)}}<span class="badge badge-ok">Ja</span>{{else}}<span class="badge">Normalt nei</span>{{end}}</td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-  <ul class="muted small">
-    <li>Kvittering eller erklæring fra Receita Federal eller arbeidsgiver</li>
-    <li>Dokumentasjon på skattetype (IRRF, ISS, ...) og om den er beregnet på netto eller brutto</li>
-    <li>Bekreftelse på at skatten er endelig fastsatt (eller status hvis ikke)</li>
-  </ul>
+  <details class="info-section">
+    <summary><h3>Dokumentasjon, sjekkliste og status</h3></summary>
 
-  <form method="POST" action="/foreign-tax" class="form" style="margin-top:16px;">
-    <input type="hidden" name="year" value="{{$year}}">
-    <input type="hidden" name="country" value="{{$c.CountryCode}}">
-    <div class="field">
-      <label for="doc-{{$c.CountryCode}}">Dokumentasjonstype</label>
-      <input id="doc-{{$c.CountryCode}}" type="text" name="documentation_type" value="{{if $c.DocumentationType.Valid}}{{$c.DocumentationType.String}}{{end}}" placeholder="f.eks. kvittering, Receita Federal-utskrift">
+    {{if .NotFinal}}
+    <div class="info-card">
+      Du kan kreve kreditfradrag senest 6 måneder etter at endelig skatt er fastsatt i
+      utlandet (sktl. § 16-30). Merk dette så du ikke går glipp av fristen.
     </div>
-    <div class="field">
-      <label class="inline"><input type="checkbox" name="tax_finalized" {{if and $c.TaxFinalizedAbroad.Valid (eq $c.TaxFinalizedAbroad.Int64 1)}}checked{{end}}> Endelig skatt fastsatt i utlandet</label>
-      <label class="inline"><input type="checkbox" name="rf1147_ready" {{if and $c.Rf1147Ready.Valid (eq $c.Rf1147Ready.Int64 1)}}checked{{end}}> Klar for RF-1147</label>
-    </div>
-    <div class="field">
-      <label for="notes-{{$c.CountryCode}}">{{$.Tr "common_notes"}}</label>
-      <textarea id="notes-{{$c.CountryCode}}" name="notes" rows="2">{{if $c.Notes.Valid}}{{$c.Notes.String}}{{end}}</textarea>
-    </div>
-    <button class="btn btn-primary" type="submit">Lagre status</button>
-  </form>
+    {{end}}
 
-  <p class="muted small" style="margin-top:10px;">
-    <a href="https://www.skatteetaten.no/skjema/rf-1147/" target="_blank">Åpne RF-1147 hos Skatteetaten →</a>
-  </p>
+    <table class="data-table">
+      <thead><tr><th>Kode</th><th>Navn</th><th>Krediterbar i Norge</th></tr></thead>
+      <tbody>
+        {{range .TaxTypes}}
+        <tr>
+          <td>{{.TaxTypeCode}}</td>
+          <td>{{.TaxTypeName}}</td>
+          <td>{{if and .IsCreditableInNorway.Valid (eq .IsCreditableInNorway.Int64 1)}}<span class="badge badge-ok">Ja</span>{{else}}<span class="badge">Normalt nei</span>{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    <ul class="muted small">
+      <li>Kvittering eller erklæring fra Receita Federal eller arbeidsgiver</li>
+      <li>Skattetype (IRRF, ISS, ...) og om den er beregnet på netto eller brutto</li>
+      <li>Bekreftelse på at skatten er endelig fastsatt (eller status hvis ikke)</li>
+    </ul>
+
+    <form method="POST" action="/foreign-tax" class="form" style="margin-top:14px;">
+      <input type="hidden" name="year" value="{{$year}}">
+      <input type="hidden" name="country" value="{{$c.CountryCode}}">
+      <div class="field">
+        <label for="doc-{{$c.CountryCode}}">Dokumentasjonstype</label>
+        <input id="doc-{{$c.CountryCode}}" type="text" name="documentation_type" value="{{if $c.DocumentationType.Valid}}{{$c.DocumentationType.String}}{{end}}" placeholder="f.eks. Receita Federal-utskrift">
+      </div>
+      <div class="field">
+        <label class="inline"><input type="checkbox" name="tax_finalized" {{if and $c.TaxFinalizedAbroad.Valid (eq $c.TaxFinalizedAbroad.Int64 1)}}checked{{end}}> Endelig skatt fastsatt i utlandet</label>
+        <label class="inline"><input type="checkbox" name="rf1147_ready" {{if and $c.Rf1147Ready.Valid (eq $c.Rf1147Ready.Int64 1)}}checked{{end}}> Klar for RF-1147</label>
+      </div>
+      <div class="field">
+        <label for="notes-{{$c.CountryCode}}">{{$.Tr "common_notes"}}</label>
+        <textarea id="notes-{{$c.CountryCode}}" name="notes" rows="2">{{if $c.Notes.Valid}}{{$c.Notes.String}}{{end}}</textarea>
+      </div>
+      <button class="btn btn-primary" type="submit">Lagre status</button>
+    </form>
+    <p class="muted small" style="margin-top:10px;"><a href="https://www.skatteetaten.no/skjema/rf-1147/" target="_blank">Åpne RF-1147 hos Skatteetaten →</a></p>
+  </details>
 </section>
 {{end}}
+
+<div class="info-card warn">
+  Reglene for kreditfradrag er komplekse. Appen beregner aldri det endelige
+  kreditfradraget, men gir deg informasjonen du trenger til RF-1147. For større
+  beløp anbefales en skatterådgiver.
+</div>
 {{else}}
 <div class="empty">Ingen utenlandsinntekt registrert for {{.Year}} enda. Registrer inntekt med kildeland utenfor Norge for å se kreditfradrag her.</div>
 {{end}}
