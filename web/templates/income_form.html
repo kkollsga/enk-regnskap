@@ -5,7 +5,7 @@
   <a class="btn" href="/income">{{.Tr "action_back"}}</a>
 </section>
 
-<form method="POST" action="/income" id="income-form" class="form" novalidate>
+<form method="POST" action="/income" id="income-form" class="form" enctype="multipart/form-data" novalidate>
   <div class="field {{if index $d.Errors "date"}}has-error{{end}}">
     <label for="date">{{.Tr "common_date"}}</label>
     <input type="date" id="date" name="date" value="{{index $d.Values "date"}}">
@@ -83,6 +83,12 @@
       </div>
       <input type="hidden" id="foreign_tax_currency" name="foreign_tax_currency" value="{{index $d.Values "foreign_tax_currency"}}">
     </div>
+  </div>
+
+  <div class="field">
+    <label for="receipt">{{.Tr "common_receipt"}} (valgfritt)</label>
+    <input type="file" id="receipt" name="receipt" accept="image/*,application/pdf">
+    {{with index $d.Errors "file"}}<div class="field-error">{{.}}</div>{{end}}
   </div>
 
   <div class="field">

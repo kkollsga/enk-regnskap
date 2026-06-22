@@ -49,9 +49,11 @@ func (s *Server) handleIncomeNew(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleIncomeCreate(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "ugyldig skjema", http.StatusBadRequest)
-		return
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "ugyldig skjema", http.StatusBadRequest)
+			return
+		}
 	}
 	in := core.IncomeInput{
 		Date:               r.FormValue("date"),
@@ -67,6 +69,20 @@ func (s *Server) handleIncomeCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	in.ForeignTaxPaid = parseInt(r.FormValue("foreign_tax_paid"))
 	in.ForeignTaxOrig = parseAmount(r.FormValue("foreign_tax_orig"))
+
+	// Valgfri kvittering.
+	rid, upErr := s.maybeUploadReceipt(r, parseYear(r.FormValue("date")))
+	if upErr != nil {
+		v := s.view(r, "income", s.tr(r, "action_add_income"))
+		form := s.newIncomeForm(r)
+		form.Values = formValues(r)
+		form.Errors = map[string]string{"file": upErr.Error()}
+		v.Data = form
+		w.WriteHeader(http.StatusOK)
+		s.renderer.Render(w, "income_form", v)
+		return
+	}
+	in.ReceiptID = rid
 
 	_, err := s.app().AddIncome(r.Context(), core.ActorWeb, in)
 	if err != nil {

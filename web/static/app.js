@@ -21,17 +21,6 @@
   window.ENK = window.ENK || {};
   window.ENK.toast = showToast;
 
-  // --- Sidebar (hamburger) ---
-  var toggle = document.getElementById("sidebar-toggle");
-  if (toggle) {
-    toggle.addEventListener("click", function () {
-      var collapsed = document.documentElement.classList.toggle("sidebar-collapsed");
-      try {
-        localStorage.setItem("sidebar", collapsed ? "collapsed" : "open");
-      } catch (e) {}
-    });
-  }
-
   // Vis lagringsbekreftelse hvis vi nettopp ble redirigert etter lagring.
   if (location.search.indexOf("saved=1") !== -1) {
     showToast(document.body.dataset.savedText || "Lagret");

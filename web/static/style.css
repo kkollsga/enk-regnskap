@@ -41,34 +41,28 @@ a:hover { text-decoration: underline; }
   z-index: 20;
 }
 
-/* Hamburgerknapp */
-.hamburger {
-  flex: 0 0 auto;
-  width: 38px; height: 38px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 0;
+/* Merkevare ENK / Regnskap (stablet, øverst til venstre) */
+.brand-mark {
+  flex: 0 0 auto; display: flex; flex-direction: column; line-height: 1.05;
 }
-.hamburger:hover { background: var(--sep); }
-.hamburger span { display: block; width: 17px; height: 2px; background: var(--primary); border-radius: 2px; }
+.brand-mark:hover { text-decoration: none; }
+.brand-enk { font-size: 18px; font-weight: 800; color: var(--primary); letter-spacing: 0.04em; }
+.brand-reg { font-size: 12px; font-weight: 600; color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase; }
 
-/* Merkevare + foretak (øverst til venstre) */
-.brand-block { display: flex; flex-direction: column; justify-content: center; flex: 1 1 auto; min-width: 0; line-height: 1.2; }
-.app-name { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; }
-.app-name:hover { text-decoration: none; color: var(--primary); }
+/* Foretak (navn + org.nr) til høyre for merkevaren */
+.company-block {
+  flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; justify-content: center;
+  line-height: 1.2; padding-left: 18px; margin-left: 4px; border-left: 1px solid var(--border);
+}
+.company-block:hover { text-decoration: none; }
+.company-block:hover .company-name { color: #16263f; }
 .company-name {
   font-size: 19px; font-weight: 700; color: var(--primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60vw;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 42vw;
 }
 .company-org { font-size: 12px; color: var(--muted); }
 
+.topbar-spacer { flex: 1 1 auto; }
 .topbar-right { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
 .year-switch select {
   background: var(--sep);
@@ -81,7 +75,37 @@ a:hover { text-decoration: underline; }
 }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
-/* Hovedoppsett: sidebar + innhold */
+/* Burgermeny (oppe til høyre): native <details>, ingen JS */
+details.menu { position: relative; }
+details.menu > summary { list-style: none; }
+details.menu > summary::-webkit-details-marker { display: none; }
+.hamburger {
+  width: 38px; height: 38px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: #fff;
+  cursor: pointer; display: inline-flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px; padding: 0;
+}
+.hamburger:hover { background: var(--sep); }
+.hamburger span { display: block; width: 17px; height: 2px; background: var(--primary); border-radius: 2px; }
+.menu-list {
+  position: absolute; right: 0; top: calc(100% + 8px); min-width: 220px;
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--card-shadow); padding: 6px; z-index: 30;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.menu-list a {
+  display: block; padding: 9px 12px; border-radius: 6px; color: var(--text); font-size: 14px;
+}
+.menu-list a:hover { background: var(--sep); text-decoration: none; }
+.menu-divider { height: 1px; background: var(--border); margin: 5px 4px; }
+.menu-lang { display: flex; gap: 6px; padding: 2px 6px; }
+.menu-lang a {
+  flex: 1; text-align: center; padding: 6px 0; border: 1px solid var(--border);
+  border-radius: 6px; font-size: 13px; font-weight: 600; color: var(--muted);
+}
+.menu-lang a.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* Hovedoppsett: sidebar (alltid synlig) + innhold */
 .app-body { display: flex; align-items: flex-start; }
 .sidebar {
   flex: 0 0 var(--sidebar-w);
@@ -104,25 +128,9 @@ a:hover { text-decoration: underline; }
 }
 .sidenav a:hover { background: var(--sep); text-decoration: none; }
 .sidenav a.active { background: #eef1f6; color: var(--primary); font-weight: 600; }
-.sidenav-secondary {
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid var(--sep);
-  display: flex; flex-direction: column; gap: 2px;
-}
-.sidenav-secondary a,
-.sidenav-secondary button {
-  display: block; width: 100%; text-align: left;
-  padding: 8px 12px; border: none; background: none; border-radius: var(--radius);
-  color: var(--muted); font: inherit; font-size: 14px; cursor: pointer;
-}
-.sidenav-secondary a:hover,
-.sidenav-secondary button:hover { background: var(--sep); color: var(--text); text-decoration: none; }
-.sidenav-secondary a.active { color: var(--primary); }
-.sidenav-secondary form { margin: 0; }
-
-/* Sammenslått sidebar (hamburger) */
-html.sidebar-collapsed .sidebar { display: none; }
+.sidebar-year { margin: auto 0 4px; padding-top: 14px; border-top: 1px solid var(--sep); }
+.sidebar-year label { display: block; font-size: 12px; color: var(--muted); margin: 0 0 6px 4px; }
+.sidebar-year select { width: 100%; }
 
 .content { flex: 1 1 auto; max-width: 1080px; margin: 0 auto; padding: 32px; width: 100%; }
 .content-full { max-width: 1080px; margin: 0 auto; padding: 32px; }

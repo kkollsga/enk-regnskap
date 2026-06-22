@@ -47,14 +47,6 @@ func TestGenerateDummyDataViaButton(t *testing.T) {
 	}
 }
 
-func TestDummyDataButtonInTopMenu(t *testing.T) {
-	h := apptest.Start(t)
-	doc := h.Browser().Get("/")
-	// Toppmenyen skal inneholde testdata-knappen (form mot /dev/dummy-data).
-	apptest.AssertHas(t, doc, "form[action=/dev/dummy-data]")
-	apptest.AssertBodyContains(t, doc, "Testdata")
-}
-
 func TestDummyDataGeneratesValidCalculations(t *testing.T) {
 	h := apptest.Start(t)
 	h.App.SetConfig(h.Context(), core.ConfigActiveYear, "2025")

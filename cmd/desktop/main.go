@@ -44,8 +44,10 @@ func main() {
 	// Native vindu med macOS-tittellinje.
 	w := webview.New(false)
 	defer w.Destroy()
+	gWebview = w
 	w.SetTitle("ENK Regnskap")
 	w.SetSize(1280, 860, webview.HintNone)
+	installAppMenu() // native menylinje: Foretak, Språk, Rediger, Avslutt
 	w.Navigate(url)
 	w.Run()
 }

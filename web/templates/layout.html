@@ -6,42 +6,39 @@
   <title>{{if .Title}}{{.Title}} — {{end}}{{.Tr "app_name"}}</title>
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="stylesheet" href="/static/style.css">
-  <script>try{if(localStorage.getItem('sidebar')==='collapsed')document.documentElement.classList.add('sidebar-collapsed')}catch(e){}</script>
 </head>
 {{$chrome := and (ne .Active "welcome") (ne .Active "projects")}}
 <body class="{{if $chrome}}has-chrome{{end}}">
   <header class="topbar">
-    {{if $chrome}}
-    <button class="hamburger" id="sidebar-toggle" aria-label="Vis/skjul meny" title="Meny">
-      <span></span><span></span><span></span>
-    </button>
-    {{end}}
-    <div class="brand-block">
-      <a class="app-name" href="/">{{.Tr "app_name"}}</a>
-      {{if and $chrome .ProjectCompany}}
-      <div class="company-name" title="{{.ProjectCompany}}">{{.ProjectCompany}}</div>
+    <a class="brand-mark" href="/">
+      <span class="brand-enk">ENK</span>
+      <span class="brand-reg">Regnskap</span>
+    </a>
+    {{if and $chrome .ProjectCompany}}
+    <a class="company-block" href="/projects" title="Bytt foretak">
+      <div class="company-name">{{.ProjectCompany}}</div>
       {{if .ProjectOrgNr}}<div class="company-org">Org.nr. {{orgnr .ProjectOrgNr}}</div>{{end}}
-      {{end}}
-    </div>
+    </a>
+    {{end}}
+    <div class="topbar-spacer"></div>
     {{if $chrome}}
     <div class="topbar-right">
       <a class="btn btn-primary btn-small" href="/income/new">+ {{.Tr "topbar_add_income"}}</a>
       <a class="btn btn-small" href="/expenses/new">+ {{.Tr "topbar_add_expense"}}</a>
-      <form class="year-switch" method="GET" action="/set-year">
-        <label class="visually-hidden" for="year-select">{{.Tr "common_year"}}</label>
-        <select id="year-select" name="year" onchange="this.form.submit()">
-          {{$y := .Year}}
-          {{range .Years}}<option value="{{.}}" {{if eq . $y}}selected{{end}}>{{.}}</option>{{end}}
-        </select>
-      </form>
-      <form class="year-switch" method="GET" action="/set-lang">
-        <label class="visually-hidden" for="lang-select">{{.Tr "language"}}</label>
-        <select id="lang-select" name="lang" onchange="this.form.submit()">
-          <option value="nb" {{if eq .Lang "nb"}}selected{{end}}>NB</option>
-          <option value="pt" {{if eq .Lang "pt"}}selected{{end}}>PT</option>
-          <option value="en" {{if eq .Lang "en"}}selected{{end}}>EN</option>
-        </select>
-      </form>
+      <details class="menu">
+        <summary class="hamburger" aria-label="Meny" title="Meny"><span></span><span></span><span></span></summary>
+        <div class="menu-list">
+          <a href="/changelog">{{.Tr "nav_changelog"}}</a>
+          <a href="/import">{{.Tr "import"}}</a>
+          <a href="/export/backup.zip">{{.Tr "export"}}</a>
+          <div class="menu-divider"></div>
+          <div class="menu-lang">
+            <a href="/set-lang?lang=nb" class="{{if eq .Lang "nb"}}active{{end}}">NB</a>
+            <a href="/set-lang?lang=pt" class="{{if eq .Lang "pt"}}active{{end}}">PT</a>
+            <a href="/set-lang?lang=en" class="{{if eq .Lang "en"}}active{{end}}">EN</a>
+          </div>
+        </div>
+      </details>
     </div>
     {{end}}
   </header>
@@ -58,15 +55,13 @@
         <a href="/tax-info" class="{{if eq .Active "tax-info"}}active{{end}}">{{.Tr "nav_tax_info"}}</a>
         <a href="/reports" class="{{if eq .Active "reports"}}active{{end}}">{{.Tr "nav_reports"}}</a>
       </nav>
-      <div class="sidenav-secondary">
-        <a href="/changelog" class="{{if eq .Active "changelog"}}active{{end}}">{{.Tr "nav_changelog"}}</a>
-        <a href="/import">{{.Tr "import"}}</a>
-        <a href="/export/backup.zip">{{.Tr "export"}}</a>
-        {{if .MultiProject}}<a href="/projects">{{.Tr "switch_project"}}</a>{{end}}
-        <form method="POST" action="/dev/dummy-data" onsubmit="return confirm('{{.Tr "dummy_confirm"}}');">
-          <button type="submit" title="{{.Tr "dummy_hint"}}">{{.Tr "generate_test_data"}}</button>
-        </form>
-      </div>
+      <form class="sidebar-year year-switch" method="GET" action="/set-year">
+        <label for="year-select">{{.Tr "common_year"}}</label>
+        <select id="year-select" name="year" onchange="this.form.submit()">
+          {{$y := .Year}}
+          {{range .Years}}<option value="{{.}}" {{if eq . $y}}selected{{end}}>{{.}}</option>{{end}}
+        </select>
+      </form>
     </aside>
     <main class="content">
       {{template "content" .}}

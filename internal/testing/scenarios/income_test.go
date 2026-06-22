@@ -157,6 +157,30 @@ func TestForeignTaxLegalBasis2024IsInternal(t *testing.T) {
 	}
 }
 
+func TestIncomeWithReceipt(t *testing.T) {
+	h := apptest.Start(t)
+	res := h.Browser().PostMultipart("/income",
+		map[string]string{
+			"date": "2025-03-10", "description": "Tjeneste med kvittering",
+			"currency": "NOK", "country_code": "NO", "amount_orig": "5000",
+			"category": "tjenesteinntekt", "foreign_tax_paid": "0",
+		},
+		"receipt", "faktura.png", "image/png", onePixelPNG())
+	apptest.AssertStatus(t, res, 200)
+
+	rows, _ := h.App.ListIncome(h.Context(), 2025)
+	if len(rows) != 1 {
+		t.Fatalf("forventet 1 inntekt, fikk %d", len(rows))
+	}
+	if !rows[0].ReceiptID.Valid {
+		t.Error("inntekten mangler tilknyttet kvittering")
+	}
+	recs, _ := h.App.ListReceipts(h.Context())
+	if len(recs) != 1 {
+		t.Errorf("forventet 1 kvittering, fikk %d", len(recs))
+	}
+}
+
 func TestIncomeValidationShownInline(t *testing.T) {
 	h := apptest.Start(t)
 	b := h.Browser()
