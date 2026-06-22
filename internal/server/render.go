@@ -14,16 +14,18 @@ import (
 
 // View er datamodellen som sendes til hver mal.
 type View struct {
-	Lang         string
-	T            map[string]string // oversettelser for valgt språk
-	Active       string            // aktiv navigasjonsside
-	Title        string
-	Year         int
-	Years        []int
-	MirrorDir    string
-	ProjectName  string
-	MultiProject bool
-	Data         any // sidespesifikk data
+	Lang           string
+	T              map[string]string // oversettelser for valgt språk
+	Active         string            // aktiv navigasjonsside
+	Title          string
+	Year           int
+	Years          []int
+	MirrorDir      string
+	ProjectName    string
+	ProjectCompany string
+	ProjectOrgNr   string
+	MultiProject   bool
+	Data           any // sidespesifikk data
 }
 
 // Tr slår opp en oversettelse, med nøkkelen som fallback.
@@ -91,8 +93,9 @@ func (r *Renderer) loadTemplates() error {
 		return err
 	}
 	funcs := template.FuncMap{
-		"nok": formatNOK,
-		"pct": formatPct,
+		"nok":   formatNOK,
+		"pct":   formatPct,
+		"orgnr": formatOrgNr,
 	}
 	for _, e := range entries {
 		name := e.Name()

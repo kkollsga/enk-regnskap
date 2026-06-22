@@ -140,9 +140,12 @@ func (s *Server) view(r *http.Request, active, title string) View {
 	ctx := r.Context()
 	lang := "nb"
 	year := time.Now().Year()
+	company, orgnr := "", ""
 	if app := s.app(); app != nil {
 		lang = app.Language(ctx)
 		year = app.ActiveYear(ctx)
+		company = app.GetConfig(ctx, core.ConfigBusinessName, "")
+		orgnr = app.GetConfig(ctx, core.ConfigOrgNr, "")
 	}
 	v := View{
 		Lang:   lang,
@@ -155,7 +158,12 @@ func (s *Server) view(r *http.Request, active, title string) View {
 	if s.ws != nil {
 		v.MultiProject = true
 		v.ProjectName = s.ws.CurrentName()
+		if company == "" {
+			company, _ = core.SplitProjectFolder(s.ws.CurrentName())
+		}
 	}
+	v.ProjectCompany = company
+	v.ProjectOrgNr = orgnr
 	return v
 }
 

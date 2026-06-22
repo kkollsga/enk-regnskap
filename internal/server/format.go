@@ -12,6 +12,20 @@ func formatNOK(v float64) string {
 	return core.FormatNOK(v)
 }
 
+// formatOrgNr grupperer et 9-sifret organisasjonsnummer: "999 888 777".
+func formatOrgNr(s string) string {
+	digits := strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, s)
+	if len(digits) == 9 {
+		return digits[0:3] + " " + digits[3:6] + " " + digits[6:9]
+	}
+	return s
+}
+
 // formatPct formaterer en prosentverdi: "75 %" eller "12,5 %".
 func formatPct(v float64) string {
 	s := strconv.FormatFloat(v, 'f', -1, 64)

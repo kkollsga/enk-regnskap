@@ -6,22 +6,25 @@
   <title>{{if .Title}}{{.Title}} — {{end}}{{.Tr "app_name"}}</title>
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="stylesheet" href="/static/style.css">
+  <script>try{if(localStorage.getItem('sidebar')==='collapsed')document.documentElement.classList.add('sidebar-collapsed')}catch(e){}</script>
 </head>
-<body>
+{{$chrome := and (ne .Active "welcome") (ne .Active "projects")}}
+<body class="{{if $chrome}}has-chrome{{end}}">
   <header class="topbar">
-    <a class="brand" href="/">{{.Tr "app_name"}}</a>
-    {{if and (ne .Active "welcome") (ne .Active "projects")}}
-    {{if .ProjectName}}<span class="brand-project" title="Aktivt foretak">{{.ProjectName}}</span>{{end}}
-    <nav class="mainnav">
-      <a href="/" class="{{if eq .Active "dashboard"}}active{{end}}">{{.Tr "nav_dashboard"}}</a>
-      <a href="/income" class="{{if eq .Active "income"}}active{{end}}">{{.Tr "nav_income"}}</a>
-      <a href="/expenses" class="{{if eq .Active "expenses"}}active{{end}}">{{.Tr "nav_expenses"}}</a>
-      <a href="/receipts" class="{{if eq .Active "receipts"}}active{{end}}">{{.Tr "nav_receipts"}}</a>
-      <a href="/foreign-tax" class="{{if eq .Active "foreign-tax"}}active{{end}}">{{.Tr "nav_foreign_tax"}}</a>
-      <a href="/tax-info" class="{{if eq .Active "tax-info"}}active{{end}}">{{.Tr "nav_tax_info"}}</a>
-      <a href="/reports" class="{{if eq .Active "reports"}}active{{end}}">{{.Tr "nav_reports"}}</a>
-    </nav>
-    <div class="topbar-actions">
+    {{if $chrome}}
+    <button class="hamburger" id="sidebar-toggle" aria-label="Vis/skjul meny" title="Meny">
+      <span></span><span></span><span></span>
+    </button>
+    {{end}}
+    <div class="brand-block">
+      <a class="app-name" href="/">{{.Tr "app_name"}}</a>
+      {{if and $chrome .ProjectCompany}}
+      <div class="company-name" title="{{.ProjectCompany}}">{{.ProjectCompany}}</div>
+      {{if .ProjectOrgNr}}<div class="company-org">Org.nr. {{orgnr .ProjectOrgNr}}</div>{{end}}
+      {{end}}
+    </div>
+    {{if $chrome}}
+    <div class="topbar-right">
       <a class="btn btn-primary btn-small" href="/income/new">+ {{.Tr "topbar_add_income"}}</a>
       <a class="btn btn-small" href="/expenses/new">+ {{.Tr "topbar_add_expense"}}</a>
       <form class="year-switch" method="GET" action="/set-year">
@@ -39,24 +42,42 @@
           <option value="en" {{if eq .Lang "en"}}selected{{end}}>EN</option>
         </select>
       </form>
-      <details class="menu">
-        <summary class="btn btn-small">{{.Tr "more"}} ▾</summary>
-        <div class="menu-list">
-          {{if .MultiProject}}<a href="/projects">{{.Tr "switch_project"}}</a>{{end}}
-          <a href="/changelog">{{.Tr "nav_changelog"}}</a>
-          <div class="menu-divider"></div>
-          <a href="/import">{{.Tr "import"}}</a>
-          <a href="/export/backup.zip">{{.Tr "export"}}</a>
-          <div class="menu-divider"></div>
-          <form method="POST" action="/dev/dummy-data" onsubmit="return confirm('{{.Tr "dummy_confirm"}}');"><button type="submit" title="{{.Tr "dummy_hint"}}">{{.Tr "generate_test_data"}}</button></form>
-        </div>
-      </details>
     </div>
     {{end}}
   </header>
-  <main class="content">
+
+  {{if $chrome}}
+  <div class="app-body">
+    <aside class="sidebar">
+      <nav class="sidenav">
+        <a href="/" class="{{if eq .Active "dashboard"}}active{{end}}">{{.Tr "nav_dashboard"}}</a>
+        <a href="/income" class="{{if eq .Active "income"}}active{{end}}">{{.Tr "nav_income"}}</a>
+        <a href="/expenses" class="{{if eq .Active "expenses"}}active{{end}}">{{.Tr "nav_expenses"}}</a>
+        <a href="/receipts" class="{{if eq .Active "receipts"}}active{{end}}">{{.Tr "nav_receipts"}}</a>
+        <a href="/foreign-tax" class="{{if eq .Active "foreign-tax"}}active{{end}}">{{.Tr "nav_foreign_tax"}}</a>
+        <a href="/tax-info" class="{{if eq .Active "tax-info"}}active{{end}}">{{.Tr "nav_tax_info"}}</a>
+        <a href="/reports" class="{{if eq .Active "reports"}}active{{end}}">{{.Tr "nav_reports"}}</a>
+      </nav>
+      <div class="sidenav-secondary">
+        <a href="/changelog" class="{{if eq .Active "changelog"}}active{{end}}">{{.Tr "nav_changelog"}}</a>
+        <a href="/import">{{.Tr "import"}}</a>
+        <a href="/export/backup.zip">{{.Tr "export"}}</a>
+        {{if .MultiProject}}<a href="/projects">{{.Tr "switch_project"}}</a>{{end}}
+        <form method="POST" action="/dev/dummy-data" onsubmit="return confirm('{{.Tr "dummy_confirm"}}');">
+          <button type="submit" title="{{.Tr "dummy_hint"}}">{{.Tr "generate_test_data"}}</button>
+        </form>
+      </div>
+    </aside>
+    <main class="content">
+      {{template "content" .}}
+    </main>
+  </div>
+  {{else}}
+  <main class="content content-full">
     {{template "content" .}}
   </main>
+  {{end}}
+
   <div id="toast" class="toast" hidden></div>
   <script src="/static/app.js"></script>
 </body>

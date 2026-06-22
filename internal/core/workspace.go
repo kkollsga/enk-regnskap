@@ -183,6 +183,11 @@ func ProjectFolderName(company, orgnr string) string {
 	}
 }
 
+// SplitProjectFolder splitter "<firma> - <orgnr>" tilbake til delene.
+func SplitProjectFolder(folder string) (company, orgnr string) {
+	return parseProjectFolder(folder)
+}
+
 // parseProjectFolder splitter "<firma> - <orgnr>" tilbake til delene.
 func parseProjectFolder(folder string) (company, orgnr string) {
 	if i := strings.LastIndex(folder, " - "); i >= 0 {
