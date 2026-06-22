@@ -9,11 +9,13 @@ import (
 
 // foreignCountryView samler oversikt + sjekkliste for ett land.
 type foreignCountryView struct {
-	Overview  core.ForeignTaxOverview
-	TaxTypes  []db.CountryTaxType
-	Status    string // "Dokumentasjon mangler" | "Klar for RF-1147"
-	NoTaxPaid bool   // inntekt finnes, men ingen dokumentert skatt
-	NotFinal  bool   // skatt ikke endelig fastsatt i utlandet
+	Overview   core.ForeignTaxOverview
+	TaxTypes   []db.CountryTaxType
+	Summary    core.CountryTaxSummary // skatteavtale + krediterbare skatter
+	HasSummary bool
+	Status     string // "Dokumentasjon mangler" | "Klar for RF-1147"
+	NoTaxPaid  bool   // inntekt finnes, men ingen dokumentert skatt
+	NotFinal   bool   // skatt ikke endelig fastsatt i utlandet
 }
 
 type foreignTaxData struct {
@@ -30,6 +32,12 @@ func (s *Server) handleForeignTax(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	summaries, _ := s.app().ForeignCountrySummaries(r.Context())
+	summaryByCode := map[string]core.CountryTaxSummary{}
+	for _, sm := range summaries {
+		summaryByCode[sm.Code] = sm
+	}
+
 	data := foreignTaxData{}
 	for _, ov := range overviews {
 		types, _ := s.app().CountryTaxTypes(r.Context(), ov.Credit.CountryCode, year)
@@ -38,6 +46,10 @@ func (s *Server) handleForeignTax(w http.ResponseWriter, r *http.Request) {
 			TaxTypes:  types,
 			NoTaxPaid: ov.Credit.ForeignTaxNok == 0 && ov.Credit.IncomeNok > 0,
 			NotFinal:  !(ov.Credit.TaxFinalizedAbroad.Valid && ov.Credit.TaxFinalizedAbroad.Int64 == 1),
+		}
+		if sm, ok := summaryByCode[ov.Credit.CountryCode]; ok {
+			cv.Summary = sm
+			cv.HasSummary = true
 		}
 		if ov.Credit.Rf1147Ready.Valid && ov.Credit.Rf1147Ready.Int64 == 1 {
 			cv.Status = "Klar for RF-1147"

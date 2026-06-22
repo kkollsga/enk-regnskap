@@ -9,24 +9,31 @@ import (
 
 // Steg 6: skatteinfo og landoversikt.
 
-func TestTaxInfoShowsBrazilTaxTypes(t *testing.T) {
+func TestTaxInfoShowsDeductionCategories(t *testing.T) {
 	h := apptest.Start(t)
+	h.App.SetConfig(h.Context(), core.ConfigActiveYear, "2025")
 	doc := h.Browser().Get("/tax-info")
 	apptest.AssertStatus(t, doc, 200)
-	// Alle brasilianske skattetyper fra seed-data.
-	for _, code := range []string{"IRRF", "ISS", "CSLL", "PIS", "COFINS"} {
-		apptest.AssertBodyContains(t, doc, code)
-	}
-	// Landoversikten gjelder kun utland – Norge (hjemstat) skal ikke vises.
-	apptest.AssertBodyNotContains(t, doc, "TRYGDEAVGIFT")
+	// Fradragskategoriene vises i nedtrekksmenyen.
+	apptest.AssertBodyContains(t, doc, "Kostnader hjemmekontor (standardfradrag)")
+	apptest.AssertBodyContains(t, doc, "js-ded-select")
+	// Utenlandsk skatt hører hjemme under «Utenlandsk skatt», ikke her.
+	apptest.AssertBodyNotContains(t, doc, "Skatteavtale med Norge")
+	apptest.AssertBodyNotContains(t, doc, "COFINS")
 }
 
-func TestTaxInfoShowsTreatyDate(t *testing.T) {
+func TestTaxInfoSummarizesBookedDeductions(t *testing.T) {
 	h := apptest.Start(t)
+	h.App.SetConfig(h.Context(), core.ConfigActiveYear, "2025")
+	if _, err := h.App.AddExpense(h.Context(), core.ActorWeb, core.ExpenseInput{
+		Date: "2025-03-10", Description: "Kontorrekvisita", Category: "kontorrekvisita",
+		AmountNOK: 1234, TaxYear: 2025,
+	}); err != nil {
+		t.Fatal(err)
+	}
 	doc := h.Browser().Get("/tax-info")
-	// Ikrafttredelsesdato for skatteavtalen Norge-Brasil, lesbart format.
-	apptest.AssertBodyContains(t, doc, "30. desember 2024")
-	apptest.AssertBodyContains(t, doc, "Prop. 13 S (2022-2023)")
+	// Bokført fradrag for året skal summeres i info-boksen.
+	apptest.AssertBodyContains(t, doc, "1 234")
 }
 
 func TestTaxInfoShowsDeductionRates(t *testing.T) {

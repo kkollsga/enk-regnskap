@@ -151,10 +151,14 @@ func (s *Server) saveExpense(w http.ResponseWriter, r *http.Request, id int64) {
 }
 
 func (s *Server) newExpenseForm(r *http.Request, year int) expenseFormData {
+	values := map[string]string{
+		"date": time.Now().Format("2006-01-02"),
+	}
+	if cat := r.URL.Query().Get("category"); cat != "" {
+		values["category"] = cat
+	}
 	return expenseFormData{
-		Values: map[string]string{
-			"date": time.Now().Format("2006-01-02"),
-		},
+		Values:     values,
 		Errors:     map[string]string{},
 		Categories: s.app().ExpenseCategories(year),
 		Today:      time.Now().Format("2006-01-02"),

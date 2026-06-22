@@ -62,6 +62,8 @@ func TestForeignTaxChecklistShowsTaxTypes(t *testing.T) {
 	apptest.AssertBodyContains(t, doc, "IRRF")
 	apptest.AssertBodyContains(t, doc, "COFINS")
 	apptest.AssertBodyContains(t, doc, "RF-1147")
+	// Ikrafttredelsesdato for skatteavtalen vises i lesbart format her (ikke på Skatteinfo).
+	apptest.AssertBodyContains(t, doc, "30. desember 2024")
 }
 
 func TestForeignTaxNoTaxWarning(t *testing.T) {

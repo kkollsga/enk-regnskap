@@ -8,10 +8,11 @@ import (
 )
 
 type taxInfoData struct {
-	Rules     tax.Rules
-	HasRules  bool
-	Countries []core.CountryTaxSummary
-	Dash      core.Dashboard // foreløpig skatteberegning
+	Rules           tax.Rules
+	HasRules        bool
+	Deductions      []core.DeductionUsage
+	TotalDeductible float64
+	Dash            core.Dashboard // foreløpig skatteberegning
 }
 
 func (s *Server) handleTaxInfo(w http.ResponseWriter, r *http.Request) {
@@ -21,12 +22,13 @@ func (s *Server) handleTaxInfo(w http.ResponseWriter, r *http.Request) {
 		data.Rules = rules
 		data.HasRules = true
 	}
-	countries, err := s.app().ForeignCountrySummaries(r.Context())
+	deductions, total, err := s.app().DeductionUsageForYear(r.Context(), v.Year)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	data.Countries = countries
+	data.Deductions = deductions
+	data.TotalDeductible = total
 	data.Dash, _ = s.app().Dashboard(r.Context(), v.Year)
 	v.Data = data
 	s.renderer.Render(w, "tax_info", v)

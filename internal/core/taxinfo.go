@@ -130,6 +130,50 @@ func formatNorwegianDate(iso string) string {
 	return fmt.Sprintf("%d. %s %d", t.Day(), nbMonths[int(t.Month())], t.Year())
 }
 
+// DeductionUsage er en fradragskategori beriket med hvor mye som faktisk er
+// ført på den i et gitt inntektsår.
+type DeductionUsage struct {
+	Key            string
+	Name           string
+	Description    string
+	Note           string
+	DefaultPct     float64
+	SjablongAmount float64
+	MaxAmount      float64
+	BookedNOK      float64 // sum bokført utgift i året
+	DeductibleNOK  float64 // sum fradragsberettiget i året
+}
+
+// DeductionUsageForYear gir de ordinære fradragskategoriene for året, hver
+// beriket med hvor mye som er bokført på den. Returnerer også samlet bokført
+// fradrag for kategoriene.
+func (a *App) DeductionUsageForYear(ctx context.Context, year int) ([]DeductionUsage, float64, error) {
+	rows, err := a.Q.SumExpensesByCategory(ctx, int64(year))
+	if err != nil {
+		return nil, 0, err
+	}
+	booked := map[string]float64{}
+	deductible := map[string]float64{}
+	for _, r := range rows {
+		booked[r.Category] = toFloat(r.Total)
+		deductible[r.Category] = toFloat(r.Deductible)
+	}
+	var out []DeductionUsage
+	var total float64
+	for _, c := range a.ExpenseCategories(year) {
+		if c.Kind != TaxKindNone {
+			continue // utenlandsk skatt vises under «Utenlandsk skatt», ikke her
+		}
+		out = append(out, DeductionUsage{
+			Key: c.Key, Name: c.Name, Description: c.Description, Note: c.Note,
+			DefaultPct: c.DefaultPct, SjablongAmount: c.SjablongAmount, MaxAmount: c.MaxAmount,
+			BookedNOK: booked[c.Key], DeductibleNOK: deductible[c.Key],
+		})
+		total += deductible[c.Key]
+	}
+	return out, total, nil
+}
+
 // TaxRulesFor returnerer skattereglene for et inntektsår.
 func (a *App) TaxRulesFor(year int) (tax.Rules, error) {
 	return tax.Load(year)

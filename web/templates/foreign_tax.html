@@ -49,18 +49,38 @@
     </div>
     {{end}}
 
-    <table class="data-table">
-      <thead><tr><th>Kode</th><th>Navn</th><th>Krediterbar i Norge</th></tr></thead>
-      <tbody>
-        {{range .TaxTypes}}
-        <tr>
-          <td>{{.TaxTypeCode}}</td>
-          <td>{{.TaxTypeName}}</td>
-          <td>{{if and .IsCreditableInNorway.Valid (eq .IsCreditableInNorway.Int64 1)}}<span class="badge badge-ok">Ja</span>{{else}}<span class="badge">Normalt nei</span>{{end}}</td>
-        </tr>
-        {{end}}
-      </tbody>
-    </table>
+    {{if .HasSummary}}{{with .Summary}}
+    {{if .HasTreaty}}
+    <div class="treaty-box ok">
+      <strong>Skatteavtale med Norge:</strong> ja.
+      I kraft fra {{.TreatyInForce}}, og gjelder fra inntektsår {{.TreatyFromYear}}.
+      Dobbeltbeskatning unngås med <strong>{{.TreatyMethodNO}}</strong> – du får
+      fradrag i norsk skatt for skatt betalt i {{.Name}} på samme inntekt.
+      {{if .PreTreatyToYear}}<br>For inntektsår {{.PreTreatyToYear}} og tidligere
+      gjaldt ingen avtale; da følger kreditfradraget intern norsk rett (sktl. § 16-20 flg.).{{end}}
+      {{if .TreatyRef}}<br><span class="muted small">{{if .TreatyURL}}<a href="{{.TreatyURL}}" target="_blank">{{.TreatyRef}} – les avtalen →</a>{{else}}{{.TreatyRef}}{{end}}</span>{{end}}
+    </div>
+    {{else}}
+    <div class="treaty-box">
+      <strong>Skatteavtale med Norge:</strong> nei. Kreditfradrag følger intern
+      norsk rett (sktl. § 16-20 flg.).
+    </div>
+    {{end}}
+
+    <p class="ftax-list-label">Hvilke {{.Name}}-skatter gir kreditfradrag i Norge?</p>
+    <ul class="ftax-list">
+      {{range .Creditable}}
+      <li><span class="yes">✓</span> <strong>{{.TaxTypeCode}}</strong> – {{.TaxTypeName}}.
+        {{if .Description.Valid}}<span class="muted small">{{.Description.String}}</span>{{end}}</li>
+      {{end}}
+      {{range .NonCreditable}}
+      <li><span class="no">✗</span> <strong>{{.TaxTypeCode}}</strong> – {{.TaxTypeName}}.
+        {{if .Description.Valid}}<span class="muted small">{{.Description.String}}</span>{{end}}</li>
+      {{end}}
+    </ul>
+    {{end}}{{end}}
+
+    <p class="ftax-list-label">Dette trenger du for å dokumentere kreditfradraget:</p>
     <ul class="muted small">
       <li>Kvittering eller erklæring fra Receita Federal eller arbeidsgiver</li>
       <li>Skattetype (IRRF, ISS, ...) og om den er beregnet på netto eller brutto</li>

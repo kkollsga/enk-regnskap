@@ -110,6 +110,18 @@
     }
   });
 
+  // --- Fradragskategori-velger: vis detaljer for valgt kategori ---
+  document.addEventListener("change", function (e) {
+    var sel = e.target;
+    if (!sel.classList || !sel.classList.contains("js-ded-select")) return;
+    var picker = sel.closest(".ded-picker");
+    if (!picker) return;
+    var details = picker.querySelectorAll(".ded-detail");
+    for (var i = 0; i < details.length; i++) {
+      details[i].hidden = details[i].getAttribute("data-key") !== sel.value;
+    }
+  });
+
   // Vis lagringsbekreftelse hvis vi nettopp ble redirigert etter lagring.
   if (location.search.indexOf("saved=1") !== -1) {
     showToast(document.body.dataset.savedText || "Lagret");
