@@ -21,6 +21,14 @@ func AssertBodyContains(t *testing.T, d *Doc, substr string) {
 	}
 }
 
+// AssertBodyNotContains feiler hvis body inneholder delstrengen.
+func AssertBodyNotContains(t *testing.T, d *Doc, substr string) {
+	t.Helper()
+	if strings.Contains(d.Body, substr) {
+		t.Errorf("body inneholder %q, men skulle ikke det\nbody: %s", substr, truncate(d.Body, 600))
+	}
+}
+
 // AssertHas feiler hvis ingen node matcher selektoren.
 func AssertHas(t *testing.T, d *Doc, selector string) {
 	t.Helper()

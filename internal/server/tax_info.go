@@ -10,7 +10,7 @@ import (
 type taxInfoData struct {
 	Rules     tax.Rules
 	HasRules  bool
-	Countries []core.CountryInfo
+	Countries []core.CountryTaxSummary
 	Dash      core.Dashboard // foreløpig skatteberegning
 }
 
@@ -21,7 +21,7 @@ func (s *Server) handleTaxInfo(w http.ResponseWriter, r *http.Request) {
 		data.Rules = rules
 		data.HasRules = true
 	}
-	countries, err := s.app().CountryOverview(r.Context())
+	countries, err := s.app().ForeignCountrySummaries(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

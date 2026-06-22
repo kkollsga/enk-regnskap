@@ -57,41 +57,50 @@
 </details>
 {{end}}
 
+{{if $d.Countries}}
 <details class="info-section">
-  <summary><h2>Landoversikt og skatteavtaler</h2></summary>
+  <summary><h2>Inntekt fra utlandet – skatteavtaler og kreditfradrag</h2></summary>
+  <p class="muted small">Har du inntekt fra et annet land enn Norge, kan skatt
+    betalt der gi kreditfradrag i den norske skatten. Her er reglene for landene
+    appen kjenner til.</p>
+
   {{range $d.Countries}}
-  <div class="country-block">
-    <h3>{{.Name}} ({{.Code}})</h3>
-    <table class="data-table">
-      <thead><tr><th>Periode</th><th>Skatteavtale</th><th>Metode</th><th>I kraft</th><th>Referanse</th></tr></thead>
-      <tbody>
-        {{range .Rules}}
-        <tr>
-          <td>{{.EffectiveFrom}}{{if .EffectiveTo.Valid}}–{{.EffectiveTo.Int64}}{{else}}–{{end}}</td>
-          <td>{{if eq .HasTaxTreaty 1}}<span class="badge badge-ok">Ja</span>{{else}}<span class="badge">Nei</span>{{end}}</td>
-          <td>{{if .TreatyMethod.Valid}}{{.TreatyMethod.String}}{{else}}–{{end}}</td>
-          <td>{{if .TreatyInForceDate.Valid}}{{.TreatyInForceDate.String}}{{else}}–{{end}}</td>
-          <td class="small">{{if .TreatyReference.Valid}}{{if .TreatySourceUrl.Valid}}<a href="{{.TreatySourceUrl.String}}" target="_blank">{{.TreatyReference.String}}</a>{{else}}{{.TreatyReference.String}}{{end}}{{end}}</td>
-        </tr>
-        {{end}}
-      </tbody>
-    </table>
-    {{if .Types}}
-    <table class="data-table">
-      <thead><tr><th>Kode</th><th>Navn</th><th>Krediterbar i Norge</th></tr></thead>
-      <tbody>
-        {{range .Types}}
-        <tr>
-          <td>{{.TaxTypeCode}}</td>
-          <td>{{.TaxTypeName}}</td>
-          <td>{{if and .IsCreditableInNorway.Valid (eq .IsCreditableInNorway.Int64 1)}}<span class="badge badge-ok">Ja</span>{{else}}<span class="badge">Normalt nei</span>{{end}}</td>
-        </tr>
-        {{end}}
-      </tbody>
-    </table>
+  <div class="country-card">
+    <h3>{{.Name}}</h3>
+
+    {{if .HasTreaty}}
+    <div class="treaty-box ok">
+      <strong>Skatteavtale med Norge:</strong> ja.
+      I kraft fra {{.TreatyInForce}}, og gjelder fra inntektsår {{.TreatyFromYear}}.
+      Dobbeltbeskatning unngås med <strong>{{.TreatyMethodNO}}</strong> – du får
+      fradrag i norsk skatt for skatt betalt i {{.Name}} på samme inntekt.
+      {{if .PreTreatyToYear}}<br>For inntektsår {{.PreTreatyToYear}} og tidligere
+      gjaldt ingen avtale; da følger kreditfradraget intern norsk rett (sktl. § 16-20 flg.).{{end}}
+      {{if .TreatyRef}}<br><span class="muted small">{{if .TreatyURL}}<a href="{{.TreatyURL}}" target="_blank">{{.TreatyRef}} – les avtalen →</a>{{else}}{{.TreatyRef}}{{end}}</span>{{end}}
+    </div>
+    {{else}}
+    <div class="treaty-box">
+      <strong>Skatteavtale med Norge:</strong> nei. Kreditfradrag følger intern
+      norsk rett (sktl. § 16-20 flg.).
+    </div>
     {{end}}
+
+    <p class="ftax-list-label">Hvilke {{.Name}}-skatter gir kreditfradrag i Norge?</p>
+    <ul class="ftax-list">
+      {{range .Creditable}}
+      <li><span class="yes">✓</span> <strong>{{.TaxTypeCode}}</strong> – {{.TaxTypeName}}.
+        {{if .Description.Valid}}<span class="muted small">{{.Description.String}}</span>{{end}}</li>
+      {{end}}
+      {{range .NonCreditable}}
+      <li><span class="no">✗</span> <strong>{{.TaxTypeCode}}</strong> – {{.TaxTypeName}}.
+        {{if .Description.Valid}}<span class="muted small">{{.Description.String}}</span>{{end}}</li>
+      {{end}}
+    </ul>
   </div>
   {{end}}
-  <p class="muted small"><a href="https://www.skatteetaten.no/person/skatt/skattemelding/naringsdrivende/" target="_blank">Skatteetaten: skattemelding for næringsdrivende →</a></p>
+
+  <p class="muted small">Appen avgjør aldri kreditfradraget endelig – se «Utenlandsk skatt» for status per år.
+    <a href="https://www.skatteetaten.no/person/skatt/skattemelding/naringsdrivende/" target="_blank">Skatteetaten: skattemelding for næringsdrivende →</a></p>
 </details>
+{{end}}
 {{end}}

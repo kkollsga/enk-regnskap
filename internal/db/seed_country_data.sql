@@ -38,25 +38,31 @@ VALUES
 -- country_tax_types - Brasil
 -- ---------------------------------------------------------------------------
 
-INSERT OR IGNORE INTO country_tax_types
+INSERT INTO country_tax_types
   (country_code, tax_type_code, tax_type_name, description, applies_to,
    is_creditable_in_norway, basis, typical_rate_pct, effective_from)
 VALUES
   ('BR', 'IRRF', 'Imposto de Renda Retido na Fonte',
-   'Brasiliansk kildeskatt på inntekt. Trekkes ved kilden på tjenester og honorar.',
+   'Brasiliansk kildeskatt på inntekt. Trekkes ved kilden på tjenester og honorar. Dette er en inntektsskatt og gir kreditfradrag i Norge.',
    'tjenester', 1, 'brutto', 15.0, 2015),
-  ('BR', 'ISS', 'Imposto Sobre Servicos',
-   'Kommunal tjenesteskatt. Krediterbarhet i Norge må vurderes konkret (kommunal, ikke statlig inntektsskatt).',
-   'tjenester', 1, 'brutto', 5.0, 2015),
-  ('BR', 'CSLL', 'Contribuicao Social sobre o Lucro Liquido',
-   'Sosial bidragsskatt på netto overskudd (selskaper). Normalt ikke relevant/krediterbar for et norsk ENK.',
+  ('BR', 'ISS', 'Imposto Sobre Serviços',
+   'Kommunal tjenesteskatt (indirekte, ikke en inntektsskatt). Gir normalt ikke kreditfradrag i Norge.',
+   'tjenester', 0, 'brutto', 5.0, 2015),
+  ('BR', 'CSLL', 'Contribuição Social sobre o Lucro Líquido',
+   'Sosial bidragsskatt på selskapsoverskudd. Normalt ikke relevant eller krediterbar for et norsk ENK.',
    'selskap', 0, 'netto', 9.0, 2015),
-  ('BR', 'PIS', 'Programa de Integracao Social',
-   'Bidragsskatt på omsetning. Normalt ikke krediterbar i Norge.',
+  ('BR', 'PIS', 'Programa de Integração Social',
+   'Bidragsskatt på omsetning. Ikke en inntektsskatt – normalt ikke krediterbar i Norge.',
    'omsetning', 0, 'brutto', 0.65, 2015),
-  ('BR', 'COFINS', 'Contribuicao para o Financiamento da Seguridade Social',
-   'Bidragsskatt til finansiering av sosial trygghet. Normalt ikke krediterbar i Norge.',
-   'omsetning', 0, 'brutto', 3.0, 2015);
+  ('BR', 'COFINS', 'Contribuição para o Financiamento da Seguridade Social',
+   'Bidragsskatt på omsetning til finansiering av sosial trygghet. Normalt ikke krediterbar i Norge.',
+   'omsetning', 0, 'brutto', 3.0, 2015)
+ON CONFLICT(country_code, tax_type_code, effective_from) DO UPDATE SET
+  tax_type_name = excluded.tax_type_name,
+  description = excluded.description,
+  is_creditable_in_norway = excluded.is_creditable_in_norway,
+  basis = excluded.basis,
+  typical_rate_pct = excluded.typical_rate_pct;
 
 -- ---------------------------------------------------------------------------
 -- country_tax_types - Norge

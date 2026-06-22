@@ -17,15 +17,15 @@ func TestTaxInfoShowsBrazilTaxTypes(t *testing.T) {
 	for _, code := range []string{"IRRF", "ISS", "CSLL", "PIS", "COFINS"} {
 		apptest.AssertBodyContains(t, doc, code)
 	}
-	// Norske skattetyper.
-	apptest.AssertBodyContains(t, doc, "TRYGDEAVGIFT")
+	// Landoversikten gjelder kun utland – Norge (hjemstat) skal ikke vises.
+	apptest.AssertBodyNotContains(t, doc, "TRYGDEAVGIFT")
 }
 
 func TestTaxInfoShowsTreatyDate(t *testing.T) {
 	h := apptest.Start(t)
 	doc := h.Browser().Get("/tax-info")
-	// Ikrafttredelsesdato for skatteavtalen Norge-Brasil.
-	apptest.AssertBodyContains(t, doc, "2024-12-30")
+	// Ikrafttredelsesdato for skatteavtalen Norge-Brasil, lesbart format.
+	apptest.AssertBodyContains(t, doc, "30. desember 2024")
 	apptest.AssertBodyContains(t, doc, "Prop. 13 S (2022-2023)")
 }
 
