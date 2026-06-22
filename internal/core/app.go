@@ -103,7 +103,7 @@ func (a *App) Language(ctx context.Context) string {
 	return a.GetConfig(ctx, ConfigLanguage, "nb")
 }
 
-// IsOnboarded forteller om førstegangsoppsettet er fullfort.
+// IsOnboarded forteller om førstegangsoppsettet er fullført.
 func (a *App) IsOnboarded(ctx context.Context) bool {
 	return a.GetConfig(ctx, ConfigOnboarded, "") == "1"
 }
@@ -115,7 +115,7 @@ type OnboardInput struct {
 	Language     string
 }
 
-// CompleteOnboarding lagrer virksomhetsinfo og markerer oppsettet som fullfort.
+// CompleteOnboarding lagrer virksomhetsinfo og markerer oppsettet som fullført.
 func (a *App) CompleteOnboarding(ctx context.Context, in OnboardInput) error {
 	if in.Language == "" {
 		in.Language = "nb"

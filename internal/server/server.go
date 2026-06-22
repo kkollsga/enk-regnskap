@@ -79,6 +79,7 @@ func (s *Server) routes() http.Handler {
 	r.Get("/projects", s.handleProjects)
 	r.Post("/projects/open", s.handleProjectOpen)
 	r.Post("/projects/create", s.handleProjectCreate)
+	r.Post("/projects/demo", s.handleProjectDemo)
 
 	r.Get("/health", s.handleHealth)
 	r.Get("/events", s.handleEvents)

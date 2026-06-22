@@ -51,6 +51,7 @@ a:hover { text-decoration: underline; }
 .project-open.active { border-color: var(--primary); }
 .project-title { font-weight: 600; font-size: 16px; color: var(--text); }
 .project-row { margin: 0; }
+.demo-row { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--sep); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .mainnav { display: flex; gap: 20px; flex: 1; }
 .mainnav a { color: var(--muted); font-weight: 500; padding: 4px 0; }
 .mainnav a:hover { color: var(--text); text-decoration: none; }

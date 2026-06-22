@@ -8,13 +8,14 @@ import (
 )
 
 // onboardingGate omdirigerer til velkomstskjermen til førstegangsoppsettet er
-// fullfort. Statiske ressurser, helse, hendelser og selve oppsettet er unntatt.
+// fullført. Statiske ressurser, helse, hendelser og selve oppsettet er unntatt.
 func (s *Server) onboardingGate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Path
 		exempt := p == "/welcome" || p == "/onboard" || p == "/health" ||
 			p == "/events" || p == "/mcp" || p == "/projects" ||
 			p == "/projects/open" || p == "/projects/create" ||
+			p == "/projects/demo" ||
 			strings.HasPrefix(p, "/static/")
 		if exempt {
 			next.ServeHTTP(w, r)

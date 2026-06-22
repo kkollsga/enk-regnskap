@@ -36,7 +36,7 @@ func Start(t *testing.T) *Harness {
 	return h
 }
 
-// StartRaw starter appen UTEN å fullfore onboarding (for onboarding-tester).
+// StartRaw starter appen UTEN å fullføre onboarding (for onboarding-tester).
 func StartRaw(t *testing.T) *Harness {
 	t.Helper()
 	dir := t.TempDir()
