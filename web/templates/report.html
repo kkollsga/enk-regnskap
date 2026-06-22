@@ -41,6 +41,23 @@
 </section>
 
 <section class="panel">
+  <h2>Lesbar datakopi (mirror)</h2>
+  <p class="muted small">
+    En menneskelesbar speilkopi (JSON + kvitteringsfiler) oppdateres automatisk
+    ved hver endring – et ekstra sikkerhetsnett uten angre-historikk. Mappe:<br>
+    <strong>{{.MirrorDir}}</strong>
+  </p>
+  <form method="POST" action="/mirror/rebuild" style="display:inline;">
+    <button class="btn" type="submit">Bygg speilkopi paa nytt</button>
+  </form>
+  <form method="POST" action="/mirror/import" style="display:inline-block; margin-left:8px;"
+        onsubmit="return confirm('Importere fra speilkopi? Dette ERSTATTER naavaerende inntekter, utgifter og kvitteringer.');">
+    <input type="text" name="dir" placeholder="(standard: mirror-mappen)" style="width:auto; display:inline-block;">
+    <button class="btn" type="submit">Importer (sett tilstand)</button>
+  </form>
+</section>
+
+<section class="panel">
   <h2>Inntekter per kategori</h2>
   <table class="data-table">
     <thead><tr><th>Kategori</th><th class="num">Belop (NOK)</th></tr></thead>

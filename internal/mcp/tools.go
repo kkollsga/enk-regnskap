@@ -248,5 +248,33 @@ func (s *Server) buildTools() []Tool {
 				return fmt.Sprintf("Aktivt ar satt til %d.", year), nil
 			},
 		},
+		{
+			Name:        "rebuild_mirror",
+			Description: "Skriv den lesbare datakopien (mirror-mappen) paa nytt fra databasen.",
+			InputSchema: obj(map[string]any{}),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				if err := app.SyncMirror(ctx); err != nil {
+					return "", err
+				}
+				return "Speilkopi oppdatert: " + app.MirrorDir(), nil
+			},
+		},
+		{
+			Name:        "import_mirror",
+			Description: "Sett tilstanden fra en lesbar mirror-mappe. ERSTATTER naavaerende inntekter, utgifter og kvitteringer. Uten 'dir' brukes appens egen mirror-mappe.",
+			InputSchema: obj(map[string]any{
+				"dir": prop("string", "Sti til mirror-mappen (valgfritt)"),
+			}),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				dir := a.str("dir")
+				if dir == "" {
+					dir = app.MirrorDir()
+				}
+				if err := app.ImportMirror(ctx, dir); err != nil {
+					return "", err
+				}
+				return "Tilstand importert fra " + dir, nil
+			},
+		},
 	}
 }

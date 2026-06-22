@@ -89,6 +89,8 @@ func (s *Server) routes() http.Handler {
 	r.Get("/reports/naeringsspesifikasjon.xlsx", s.handleNaeringsspesifikasjonXLSX)
 	r.Get("/reports/transactions.csv", s.handleTransactionsCSV)
 	r.Get("/export/backup.zip", s.handleBackup)
+	r.Post("/mirror/import", s.handleMirrorImport)
+	r.Post("/mirror/rebuild", s.handleMirrorRebuild)
 
 	r.Get("/changelog", s.handleChangelog)
 	r.Post("/changelog/rollback", s.handleRollback)

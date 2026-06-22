@@ -16,6 +16,7 @@ func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	v.MirrorDir = s.app.MirrorDir()
 	v.Data = rep
 	s.renderer.Render(w, "report", v)
 }

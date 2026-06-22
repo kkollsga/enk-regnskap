@@ -101,6 +101,17 @@ nedlastede skatteregler). Denne mappen committes **aldri** til Git – du
 kopierer din egen `data/`-mappe inn i arbeidsmappen når du kjører appen, og
 kan trygt la den ligge i OneDrive for automatisk sikkerhetskopi.
 
+Sikkerhetskopi finnes i to former:
+
+- **Full backup (`/export/backup.zip`):** et konsistent øyeblikksbilde av hele
+  databasen (alle tabeller, inkludert endringslogg/angre-historikk) pluss alle
+  kvitteringsfiler. Gjenopprett ved å pakke ut i en `data/`-mappe.
+- **Lesbar speilkopi (`data/mirror/`):** en menneskelesbar JSON-kopi av
+  kjernedataene (inntekter, utgifter, kvitteringer, innstillinger) pluss
+  kopier av kvitteringsfilene. Oppdateres automatisk ved hver endring – et
+  ekstra sikkerhetsnett for beta-bruk, uten angre-historikk. Appen kan
+  **importere** denne mappen for å sette tilstanden (erstatter gjeldende data).
+
 ### Krysskompilering
 
 ```bash

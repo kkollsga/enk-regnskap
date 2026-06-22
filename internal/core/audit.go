@@ -150,6 +150,7 @@ func (a *App) logChange(ctx context.Context, actor, op, entity string, id int64,
 		return err
 	}
 	a.Events.Broadcast(Event{Type: entity, Action: op, Entity: entity, ID: id, Year: year})
+	a.syncMirrorBestEffort(ctx)
 	return nil
 }
 
@@ -212,6 +213,7 @@ func (a *App) Rollback(ctx context.Context, actor string, changeID int64) error 
 		return err
 	}
 	a.Events.Broadcast(Event{Type: "rollback", Action: "rollback", Entity: entity, ID: id})
+	a.syncMirrorBestEffort(ctx)
 	return nil
 }
 
