@@ -20,9 +20,9 @@ var restorableTables = []string{
 	"config", "change_log",
 }
 
-// Import oppdager filtypen og gjenoppretter tilstanden fra den. Stotter:
+// Import oppdager filtypen og gjenoppretter tilstanden fra den. Støtter:
 //   - full sikkerhetskopi (.zip: data.db + kvitteringer)
-//   - raa database (.db / .sqlite)
+//   - rå database (.db / .sqlite)
 //
 // Returnerer en valideringsfeil ved ukjent filtype.
 func (a *App) Import(ctx context.Context, filename string, data []byte) error {
@@ -40,7 +40,7 @@ func (a *App) Import(ctx context.Context, filename string, data []byte) error {
 		return a.RestoreFromSQLite(ctx, tmp)
 	default:
 		ve := newValidation()
-		ve.add("file", "Ukjent filtype. Stotter .zip (sikkerhetskopi) eller .db/.sqlite.")
+		ve.add("file", "Ukjent filtype. Støtter .zip (sikkerhetskopi) eller .db/.sqlite.")
 		return ve
 	}
 }
@@ -87,7 +87,7 @@ func (a *App) RestoreFromBackupZip(ctx context.Context, data []byte) error {
 // fra en annen SQLite-fil (via ATTACH). Atomisk for tabellkopieringen.
 func (a *App) RestoreFromSQLite(ctx context.Context, srcPath string) error {
 	// Kopieringen pinner den eneste DB-tilkoblingen; mirror-synk og kringkasting
-	// maa skje ETTER at tilkoblingen er frigitt for aa unnga deadlock.
+	// må skje ETTER at tilkoblingen er frigitt for å unnga deadlock.
 	if err := a.restoreCopy(ctx, srcPath); err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (a *App) restoreCopy(ctx context.Context, srcPath string) error {
 
 	esc := strings.ReplaceAll(srcPath, "'", "''")
 	if _, err := conn.ExecContext(ctx, "ATTACH DATABASE '"+esc+"' AS src"); err != nil {
-		return fmt.Errorf("aapne kildedatabase: %w", err)
+		return fmt.Errorf("åpne kildedatabase: %w", err)
 	}
 	defer conn.ExecContext(ctx, "DETACH DATABASE src")
 

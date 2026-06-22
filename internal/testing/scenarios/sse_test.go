@@ -11,7 +11,7 @@ import (
 	apptest "github.com/kkollsga/enk-regnskap/internal/testing"
 )
 
-// Fase: live oppdatering via SSE. En mutasjon (slik en MCP-agent ville gjort)
+// Fase: live oppdatering via SSE. En mutasjon (slik en MCP-agent ville gjørt)
 // skal kringkastes til en tilkoblet nettleser.
 
 func TestSSEBroadcastsOnMutation(t *testing.T) {
@@ -32,7 +32,7 @@ func TestSSEBroadcastsOnMutation(t *testing.T) {
 		t.Fatalf("les innledende SSE-linje: %v", err)
 	}
 
-	// Utfor en mutasjon (som en MCP-agent kunne gjort).
+	// Utfor en mutasjon (som en MCP-agent kunne gjørt).
 	go func() {
 		time.Sleep(50 * time.Millisecond)
 		h.App.AddIncome(h.Context(), core.ActorMCP, core.IncomeInput{
@@ -41,7 +41,7 @@ func TestSSEBroadcastsOnMutation(t *testing.T) {
 		})
 	}()
 
-	// Vent paa en data-hendelse for "income", med timeout.
+	// Vent på en data-hendelse for "income", med timeout.
 	done := make(chan string, 1)
 	go func() {
 		for {

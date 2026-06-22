@@ -7,7 +7,7 @@ import (
 	"github.com/kkollsga/enk-regnskap/internal/core"
 )
 
-// formatNOK formaterer et belop som norske kroner: "1 234,56 kr".
+// formatNOK formaterer et beløp som norske kroner: "1 234,56 kr".
 func formatNOK(v float64) string {
 	return core.FormatNOK(v)
 }

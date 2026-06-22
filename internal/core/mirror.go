@@ -15,7 +15,7 @@ import (
 // Mirror-laget skriver en menneskelesbar kopi av kjernedataene (inntekter,
 // utgifter, kvitteringer, konfigurasjon) til data/mirror/ som JSON + filer.
 // Dette er et ekstra sikkerhetsnett for beta-programvare: ingen
-// angre-historikk, men appen kan importere mappen for aa sette tilstand.
+// angre-historikk, men appen kan importere mappen for å sette tilstand.
 //
 // Layout:
 //   data/mirror/
@@ -167,7 +167,7 @@ func (a *App) SyncMirror(ctx context.Context) error {
 	return os.WriteFile(filepath.Join(dir, "README.txt"), []byte(mirrorReadme), 0o644)
 }
 
-// syncMirrorBestEffort oppdaterer mirror uten aa feile selve mutasjonen.
+// syncMirrorBestEffort oppdaterer mirror uten å feile selve mutasjonen.
 func (a *App) syncMirrorBestEffort(ctx context.Context) {
 	if a.MirrorDir() == "" {
 		return
@@ -255,7 +255,7 @@ func (a *App) ImportMirror(ctx context.Context, dir string) error {
 		return err
 	}
 
-	// Gjenoppbygg avledede kreditfradrag for alle berorte aar.
+	// Gjenoppbygg avledede kreditfradrag for alle berorte år.
 	years := map[int]bool{}
 	for _, in := range income {
 		years[int(in.TaxYear)] = true
@@ -287,8 +287,8 @@ Denne mappen er en menneskelesbar sikkerhetskopi av kjernedataene dine:
   receipts/      - kopier av kvitteringsfilene
 
 Mappen oppdateres automatisk ved hver endring. Den har INGEN angre-historikk.
-Du kan importere denne mappen i appen for aa sette tilstanden tilbake til det
-som ligger her (dette erstatter naavaerende inntekter/utgifter/kvitteringer).
+Du kan importere denne mappen i appen for å sette tilstanden tilbake til det
+som ligger her (dette erstatter nåværende inntekter/utgifter/kvitteringer).
 `
 
 // --- hjelpere ---
@@ -361,7 +361,7 @@ func niPtr(n sql.NullInt64) *int64 {
 	return nil
 }
 
-// ptrArg gjor en peker om til et SQL-argument (nil hvis peker er nil).
+// ptrArg gjør en peker om til et SQL-argument (nil hvis peker er nil).
 func ptrArg[T any](p *T) any {
 	if p == nil {
 		return nil

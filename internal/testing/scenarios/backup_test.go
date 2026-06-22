@@ -19,7 +19,7 @@ import (
 func TestBackupZipIsComplete(t *testing.T) {
 	h := apptest.Start(t)
 	h.LoadFixtures(t)
-	// Last opp en kvittering slik at backup-en ogsaa inneholder filer.
+	// Last opp en kvittering slik at backup-en også inneholder filer.
 	if _, err := h.App.SaveReceipt(h.Context(), core.ActorWeb, core.ReceiptInput{
 		OriginalName: "kvittering.png", MimeType: "image/png", Data: onePixelPNG(), TaxYear: 2025,
 	}); err != nil {
@@ -57,7 +57,7 @@ func TestBackupZipIsComplete(t *testing.T) {
 	if !hasReceipt {
 		t.Error("backup mangler kvitteringsfiler")
 	}
-	// data.db skal vaere en gyldig SQLite-fil.
+	// data.db skal være en gyldig SQLite-fil.
 	if !bytes.HasPrefix(dbBytes, []byte("SQLite format 3\x00")) {
 		t.Error("data.db har ikke gyldig SQLite-signatur")
 	}
@@ -77,7 +77,7 @@ func TestBackupDBReopensWithData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Skriv data.db til en midlertidig fil og aapne den paa nytt.
+	// Skriv data.db til en midlertidig fil og åpne den på nytt.
 	tmp := filepath.Join(t.TempDir(), "restored.db")
 	for _, f := range zr.File {
 		if f.Name == "data.db" {
@@ -92,12 +92,12 @@ func TestBackupDBReopensWithData(t *testing.T) {
 
 	conn, err := db.Open(tmp)
 	if err != nil {
-		t.Fatalf("gjenaapne backup-db: %v", err)
+		t.Fatalf("gjenåpne backup-db: %v", err)
 	}
 	defer conn.Close()
 	q := db.New(conn)
 
-	// Inntektene skal vaere med (12 i datasettet).
+	// Inntektene skal være med (12 i datasettet).
 	rows, err := q.ListIncomeByYear(h.Context(), 2025)
 	if err != nil {
 		t.Fatal(err)
@@ -106,7 +106,7 @@ func TestBackupDBReopensWithData(t *testing.T) {
 		t.Errorf("gjenopprettet db har %d inntekter, forventet 12", len(rows))
 	}
 
-	// Endringsloggen (rollback-historikk) skal ogsaa vaere med.
+	// Endringsloggen (rollback-historikk) skal også være med.
 	changes, err := q.ListChangeLog(h.Context(), 100)
 	if err != nil {
 		t.Fatal(err)

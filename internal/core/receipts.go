@@ -31,7 +31,7 @@ type ReceiptInput struct {
 }
 
 // SaveReceipt lagrer en kvitteringsfil under data/receipts/AAAA/<uuid>.<ext>
-// og oppretter en rad i receipts. Filnavnet er UUID-basert for aa unnga
+// og oppretter en rad i receipts. Filnavnet er UUID-basert for å unnga
 // kollisjoner og lekkasje av originalnavn.
 func (a *App) SaveReceipt(ctx context.Context, actor string, in ReceiptInput) (*db.Receipt, error) {
 	ext, ok := allowedReceiptTypes[in.MimeType]
@@ -133,7 +133,7 @@ func (a *App) LinkReceipt(ctx context.Context, actor, kind string, txID, receipt
 	}
 }
 
-// IsImageReceipt forteller om en kvittering kan forhaandsvises som bilde.
+// IsImageReceipt forteller om en kvittering kan forhåndsvises som bilde.
 func IsImageReceipt(mime string) bool {
 	return strings.HasPrefix(mime, "image/")
 }

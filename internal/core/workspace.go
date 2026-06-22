@@ -43,7 +43,7 @@ func DefaultBaseDir() string {
 	return filepath.Join(home, "ENK-Regnskap")
 }
 
-// NewWorkspace lager et workspace og aapner sist aktive prosjekt (eller det
+// NewWorkspace lager et workspace og åpner sist aktive prosjekt (eller det
 // eneste som finnes). Hvis ingen prosjekter finnes er Current() nil til et
 // prosjekt opprettes.
 func NewWorkspace(baseDir string, provider currency.ExchangeRateProvider) (*Workspace, error) {
@@ -59,7 +59,7 @@ func NewWorkspace(baseDir string, provider currency.ExchangeRateProvider) (*Work
 	if err != nil {
 		return nil, err
 	}
-	// Aapne sist aktive, ellers det eneste prosjektet.
+	// Åpne sist aktive, ellers det eneste prosjektet.
 	active := w.readActive()
 	switch {
 	case active != "" && w.projectExists(active):
@@ -90,7 +90,7 @@ func (w *Workspace) Projects() ([]Project, error) {
 	return out, nil
 }
 
-// Open lukker gjeldende prosjekt og aapner et annet.
+// Open lukker gjeldende prosjekt og åpner et annet.
 func (w *Workspace) Open(folder string) (*App, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -108,7 +108,7 @@ func (w *Workspace) Open(folder string) (*App, error) {
 	return app, nil
 }
 
-// CreateProject oppretter et nytt prosjekt fra firmanavn og org.nr og aapner det.
+// CreateProject oppretter et nytt prosjekt fra firmanavn og org.nr og åpner det.
 func (w *Workspace) CreateProject(company, orgnr string) (Project, error) {
 	folder := ProjectFolderName(company, orgnr)
 	if folder == "" {
@@ -124,7 +124,7 @@ func (w *Workspace) CreateProject(company, orgnr string) (Project, error) {
 	return Project{Folder: folder, Company: company, OrgNr: orgnr, Path: path}, nil
 }
 
-// Current returnerer den aktive App-instansen (kan vaere nil).
+// Current returnerer den aktive App-instansen (kan være nil).
 func (w *Workspace) Current() *App {
 	w.mu.RLock()
 	defer w.mu.RUnlock()

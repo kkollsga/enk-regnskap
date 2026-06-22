@@ -42,7 +42,7 @@ func TestWorkspaceCreateListOpen(t *testing.T) {
 		t.Fatal(err)
 	}
 	if ws.Current() == nil || ws.CurrentName() != p1.Folder {
-		t.Errorf("etter opprettelse skal prosjektet vaere aktivt (%s)", p1.Folder)
+		t.Errorf("etter opprettelse skal prosjektet være aktivt (%s)", p1.Folder)
 	}
 	// Data skal ligge under base/<folder>/.
 	if _, err := ws.Current().Q.GetConfig(context.Background(), "business_name"); err != nil {
@@ -65,7 +65,7 @@ func TestWorkspaceCreateListOpen(t *testing.T) {
 		t.Fatalf("forventet 2 prosjekter, fikk %d", len(projects))
 	}
 
-	// Bytt tilbake til foerste prosjekt.
+	// Bytt tilbake til første prosjekt.
 	if _, err := ws.Open(p1.Folder); err != nil {
 		t.Fatal(err)
 	}
@@ -83,14 +83,14 @@ func TestWorkspaceReopensActive(t *testing.T) {
 	p, _ := ws.CreateProject("Test AS", "123456789")
 	ws.Close()
 
-	// Nytt workspace skal aapne sist aktive prosjekt automatisk.
+	// Nytt workspace skal åpne sist aktive prosjekt automatisk.
 	ws2, err := NewWorkspace(base, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer ws2.Close()
 	if ws2.CurrentName() != p.Folder {
-		t.Errorf("gjenaapnet aktivt prosjekt = %q, forventet %q", ws2.CurrentName(), p.Folder)
+		t.Errorf("gjenåpnet aktivt prosjekt = %q, forventet %q", ws2.CurrentName(), p.Folder)
 	}
 }
 

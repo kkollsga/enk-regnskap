@@ -8,7 +8,7 @@ import (
 	apptest "github.com/kkollsga/enk-regnskap/internal/testing"
 )
 
-// Steg 1: forste oppstart / onboarding.
+// Steg 1: første oppstart / onboarding.
 
 func TestFreshAppRedirectsToWelcome(t *testing.T) {
 	h := apptest.StartRaw(t)
@@ -56,5 +56,5 @@ func TestDatabaseAndFoldersCreated(t *testing.T) {
 func TestOnboardedAppDoesNotRedirect(t *testing.T) {
 	h := apptest.Start(t) // allerede onboardet
 	status, _, _ := h.Browser().GetRaw("/income/new")
-	apptest.AssertEqual(t, status, 200, "onboardet app skal naa /income/new direkte")
+	apptest.AssertEqual(t, status, 200, "onboardet app skal nå /income/new direkte")
 }

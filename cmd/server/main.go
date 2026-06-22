@@ -1,4 +1,4 @@
-// Command server starter ENK Regnskap: en lokal HTTP-server som apner i
+// Command server starter ENK Regnskap: en lokal HTTP-server som åpner i
 // nettleseren. All data lagres lokalt i en valgt data-mappe (gjerne i OneDrive).
 package main
 
@@ -24,7 +24,7 @@ func main() {
 		home    = flag.String("home", core.DefaultBaseDir(), "basismappe for prosjekter (~/ENK-Regnskap). Hvert foretak er en undermappe.")
 		dataDir = flag.String("data", "", "valgfritt: bruk en enkelt prosjektmappe direkte (overstyrer -home)")
 		port    = flag.Int("port", 7331, "HTTP-port")
-		noOpen  = flag.Bool("no-open", false, "ikke apne nettleseren automatisk")
+		noOpen  = flag.Bool("no-open", false, "ikke åpne nettleseren automatisk")
 		mcpMode = flag.Bool("mcp", false, "kjor som MCP-server over stdio (for AI-agenter)")
 	)
 	flag.Parse()
@@ -39,7 +39,7 @@ func main() {
 	if *mcpMode {
 		log.SetOutput(os.Stderr)
 		if mcpApp == nil {
-			log.Fatalf("ingen aktivt prosjekt for MCP. Opprett et prosjekt i appen forst, eller bruk -data <mappe>.")
+			log.Fatalf("ingen aktivt prosjekt for MCP. Opprett et prosjekt i appen først, eller bruk -data <mappe>.")
 		}
 		if err := mcp.New(mcpApp).ServeStdio(context.Background(), os.Stdin, os.Stdout); err != nil {
 			log.Fatalf("mcp stdio: %v", err)
@@ -60,7 +60,7 @@ func main() {
 		}
 	}()
 
-	log.Printf("ENK Regnskap kjorer paa %s (%s)", url, label)
+	log.Printf("ENK Regnskap kjorer på %s (%s)", url, label)
 	if !*noOpen {
 		waitUntilReady(url, 3*time.Second)
 		openBrowser(url)
@@ -71,7 +71,7 @@ func main() {
 }
 
 // build setter opp serveren i enten enkeltprosjekt- (-data) eller
-// flerprosjekt-modus (-home). Returnerer ogsaa en eventuell App for MCP-stdio.
+// flerprosjekt-modus (-home). Returnerer også en eventuell App for MCP-stdio.
 func build(home, dataDir string) (*server.Server, string, func(), *core.App, error) {
 	if dataDir != "" {
 		app, err := core.New(dataDir, nil)
@@ -109,7 +109,7 @@ func listen(preferred int) (net.Listener, string, error) {
 	return nil, "", fmt.Errorf("ingen ledig port i %d-%d", preferred, preferred+10)
 }
 
-// waitUntilReady venter til serveren svarer paa /health, eller timeout.
+// waitUntilReady venter til serveren svarer på /health, eller timeout.
 func waitUntilReady(url string, timeout time.Duration) {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
@@ -125,7 +125,7 @@ func waitUntilReady(url string, timeout time.Duration) {
 	}
 }
 
-// openBrowser apner url i standard nettleser paa tvers av plattformer.
+// openBrowser åpner url i standard nettleser på tvers av plattformer.
 func openBrowser(url string) {
 	var cmd string
 	var args []string
@@ -138,6 +138,6 @@ func openBrowser(url string) {
 		cmd, args = "xdg-open", []string{url}
 	}
 	if err := exec.Command(cmd, args...).Start(); err != nil {
-		log.Printf("kunne ikke apne nettleser automatisk: %v (apne %s manuelt)", err, url)
+		log.Printf("kunne ikke åpne nettleser automatisk: %v (åpne %s manuelt)", err, url)
 	}
 }

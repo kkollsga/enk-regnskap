@@ -100,7 +100,7 @@ func TestForeignTaxStatusUpdate(t *testing.T) {
 	if c.Rf1147Ready.Int64 != 1 {
 		t.Errorf("rf1147_ready = %d, forventet 1", c.Rf1147Ready.Int64)
 	}
-	// Aggregerte tall skal vaere bevart (10000*2.00 = 20000).
+	// Aggregerte tall skal være bevart (10000*2.00 = 20000).
 	if c.IncomeNok != 20000 {
 		t.Errorf("income_nok = %v, forventet 20000 (bevart)", c.IncomeNok)
 	}

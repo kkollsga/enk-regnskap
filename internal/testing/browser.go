@@ -51,7 +51,7 @@ func (b *Browser) Get(path string) *Doc {
 	return b.readDoc(resp)
 }
 
-// GetRaw henter en side og returnerer status + body uten aa kreve HTML.
+// GetRaw henter en side og returnerer status + body uten å kreve HTML.
 func (b *Browser) GetRaw(path string) (int, string, http.Header) {
 	b.t.Helper()
 	resp, err := b.client.Get(b.base + path)
@@ -118,7 +118,7 @@ func (d *Doc) Find(selector string) []*html.Node {
 		return nil
 	}
 	var tag, id, class, attrKey, attrVal string
-	// Trekk ut et eventuelt [attr=val]-segment forst.
+	// Trekk ut et eventuelt [attr=val]-segment først.
 	if i := strings.IndexByte(selector, '['); i >= 0 {
 		if j := strings.IndexByte(selector, ']'); j > i {
 			inner := selector[i+1 : j]
@@ -171,7 +171,7 @@ func attrMatches(n *html.Node, key, val string) bool {
 	return false
 }
 
-// First returnerer forste node som matcher selektoren, eller nil.
+// First returnerer første node som matcher selektoren, eller nil.
 func (d *Doc) First(selector string) *html.Node {
 	nodes := d.Find(selector)
 	if len(nodes) == 0 {
@@ -185,7 +185,7 @@ func (d *Doc) Has(selector string) bool {
 	return len(d.Find(selector)) > 0
 }
 
-// Text returnerer den sammenslaatte teksten i forste node som matcher.
+// Text returnerer den sammenslåtte teksten i første node som matcher.
 func (d *Doc) Text(selector string) string {
 	n := d.First(selector)
 	if n == nil {
@@ -207,7 +207,7 @@ func nodeMatches(n *html.Node, tag, id, class string) bool {
 	return true
 }
 
-// Attr returnerer verdien til en attributt paa en node (eksportert hjelper).
+// Attr returnerer verdien til en attributt på en node (eksportert hjelper).
 func Attr(n *html.Node, key string) string { return attr(n, key) }
 
 func attr(n *html.Node, key string) string {

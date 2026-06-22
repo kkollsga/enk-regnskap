@@ -1,6 +1,6 @@
 //go:build darwin
 
-// Command desktop kjorer ENK Regnskap som en frittstaaende macOS-app: en native
+// Command desktop kjorer ENK Regnskap som en frittstående macOS-app: en native
 // WKWebView i et NSWindow (med macOS-tittellinje) som viser appen, mens
 // HTTP-serveren kjorer in-process. Bygges som EnkRegnskap.app via make mac-app.
 package main
@@ -20,7 +20,7 @@ func main() {
 	// Flerprosjekt-workspace under ~/ENK-Regnskap/.
 	ws, err := core.NewWorkspace(core.DefaultBaseDir(), nil)
 	if err != nil {
-		log.Fatalf("kunne ikke aapne prosjektmappe: %v", err)
+		log.Fatalf("kunne ikke åpne prosjektmappe: %v", err)
 	}
 	defer ws.Close()
 
@@ -29,7 +29,7 @@ func main() {
 		log.Fatalf("kunne ikke bygge server: %v", err)
 	}
 
-	// Lytt paa en tilfeldig ledig localhost-port.
+	// Lytt på en tilfeldig ledig localhost-port.
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		log.Fatalf("kunne ikke binde port: %v", err)

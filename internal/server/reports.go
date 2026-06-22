@@ -21,7 +21,7 @@ func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 	s.renderer.Render(w, "report", v)
 }
 
-// catNamer gir en funksjon som oversetter kategorinokler til navn for aaret.
+// catNamer gir en funksjon som oversetter kategorinokler til navn for året.
 func (s *Server) catNamer(year int) func(string) string {
 	return func(key string) string { return s.app().CategoryDisplayName(year, key) }
 }

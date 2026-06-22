@@ -35,7 +35,7 @@ func TestTaxInfoShowsDeductionRates(t *testing.T) {
 	doc := h.Browser().Get("/tax-info")
 	// Hjemmekontor sjablong 2025 = 2 192.
 	apptest.AssertBodyContains(t, doc, "2 192")
-	// Trygdeavgift naering 2025 = 10,9 %.
+	// Trygdeavgift næring 2025 = 10,9 %.
 	apptest.AssertBodyContains(t, doc, "10,9")
 }
 

@@ -24,7 +24,7 @@ func TestFrontPageHasNav(t *testing.T) {
 	apptest.AssertStatus(t, doc, 200)
 	apptest.AssertHas(t, doc, "nav")
 
-	// Alle planlagte sider skal vaere lenket i navigasjonen.
+	// Alle planlagte sider skal være lenket i navigasjonen.
 	wantLinks := []string{"/", "/income", "/expenses", "/receipts",
 		"/foreign-tax", "/tax-info", "/reports", "/changelog"}
 	for _, href := range wantLinks {
@@ -45,7 +45,7 @@ func TestDashboardShowsEmptyTotals(t *testing.T) {
 	h := apptest.Start(t)
 	doc := h.Browser().Get("/")
 	apptest.AssertStatus(t, doc, 200)
-	// Forsiden skal vise inntektskortet (live-element) selv naar tomt.
+	// Forsiden skal vise inntektskortet (live-element) selv når tomt.
 	apptest.AssertHas(t, doc, ".card-value")
 	apptest.AssertHTMLContains(t, doc, ".card-value", "0")
 }

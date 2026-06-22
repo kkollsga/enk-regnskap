@@ -26,7 +26,7 @@ func (e *ValidationError) Error() string {
 	return strings.Join(parts, "; ")
 }
 
-// AsValidation forsoker aa hente ut en *ValidationError fra en feil.
+// AsValidation forsoker å hente ut en *ValidationError fra en feil.
 func AsValidation(err error) (*ValidationError, bool) {
 	ve, ok := err.(*ValidationError)
 	return ve, ok

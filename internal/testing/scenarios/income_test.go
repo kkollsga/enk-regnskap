@@ -51,7 +51,7 @@ func TestCreateNOKIncome(t *testing.T) {
 
 func TestCreateBRLIncomeConvertsToNOK(t *testing.T) {
 	h := apptest.Start(t)
-	// Mock-kurs: 1 BRL = 1.90 NOK paa inntektsdatoen.
+	// Mock-kurs: 1 BRL = 1.90 NOK på inntektsdatoen.
 	h.Mock.AddRate("BRL", "2025-04-15", 1.90)
 	b := h.Browser()
 	doc := b.Get("/income/new")
@@ -115,7 +115,7 @@ func TestBRLIncomeWithForeignTax(t *testing.T) {
 		t.Errorf("foreign_tax_type = %q", in.ForeignTaxType.String)
 	}
 
-	// Kreditfradrag skal vaere aggregert for BR/2025 med rettsgrunnlag 'treaty'.
+	// Kreditfradrag skal være aggregert for BR/2025 med rettsgrunnlag 'treaty'.
 	credit, err := h.App.ForeignTaxForYear(h.Context(), 2025)
 	if err != nil {
 		t.Fatal(err)
@@ -160,7 +160,7 @@ func TestForeignTaxLegalBasis2024IsInternal(t *testing.T) {
 func TestIncomeValidationShownInline(t *testing.T) {
 	h := apptest.Start(t)
 	b := h.Browser()
-	// Tomt skjema (mangler beskrivelse, belop=0, ingen kategori).
+	// Tomt skjema (mangler beskrivelse, beløp=0, ingen kategori).
 	res := b.PostForm("/income", url.Values{
 		"date":         {"2025-01-10"},
 		"description":  {""},
@@ -172,7 +172,7 @@ func TestIncomeValidationShownInline(t *testing.T) {
 	// Siden skal IKKE redirecte; den viser skjemaet med feil.
 	apptest.AssertStatus(t, res, 200)
 	apptest.AssertHas(t, res, ".field-error")
-	apptest.AssertBodyContains(t, res, "Beskrivelse er pakrevd.")
+	apptest.AssertBodyContains(t, res, "Beskrivelse er påkrevd.")
 
 	rows, _ := h.App.ListIncome(h.Context(), 2025)
 	if len(rows) != 0 {
@@ -211,6 +211,6 @@ func TestIncomeRollback(t *testing.T) {
 	}
 	rows, _ := h.App.ListIncome(h.Context(), 2025)
 	if len(rows) != 0 {
-		t.Errorf("etter rollback skulle inntekten vaere borte, fikk %d", len(rows))
+		t.Errorf("etter rollback skulle inntekten være borte, fikk %d", len(rows))
 	}
 }

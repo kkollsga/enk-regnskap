@@ -32,7 +32,7 @@ func (s staticSource) Current() *core.App { return s.app }
 // Server binder core.App til HTTP-laget.
 type Server struct {
 	src      AppSource
-	ws       *core.Workspace // valgfritt: flerprosjekt-stotte
+	ws       *core.Workspace // valgfritt: flerprosjekt-støtte
 	renderer *Renderer
 	mux      http.Handler
 }
@@ -45,7 +45,7 @@ func New(app *core.App) (*Server, error) {
 	return newServer(staticSource{app: app}, nil)
 }
 
-// NewWithWorkspace lager en Server med flerprosjekt-stotte.
+// NewWithWorkspace lager en Server med flerprosjekt-støtte.
 func NewWithWorkspace(ws *core.Workspace) (*Server, error) {
 	return newServer(ws, ws)
 }
@@ -60,7 +60,7 @@ func newServer(src AppSource, ws *core.Workspace) (*Server, error) {
 	return s, nil
 }
 
-// ServeHTTP gjor Server til en http.Handler.
+// ServeHTTP gjør Server til en http.Handler.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
@@ -133,7 +133,7 @@ func (s *Server) routes() http.Handler {
 	return r
 }
 
-// view bygger en grunnleggende View med sprak, aar og oversettelser.
+// view bygger en grunnleggende View med språk, år og oversettelser.
 // Er ingen prosjekt aktivt (flerprosjekt-modus) brukes trygge standarder.
 func (s *Server) view(r *http.Request, active, title string) View {
 	ctx := r.Context()
@@ -158,7 +158,7 @@ func (s *Server) view(r *http.Request, active, title string) View {
 	return v
 }
 
-// selectableYears er registrerte skatteaar pluss aktivt aar (stigende, unikt).
+// selectableYears er registrerte skatteår pluss aktivt år (stigende, unikt).
 func selectableYears(active int) []int {
 	set := map[int]bool{active: true}
 	for _, y := range tax.AvailableYears() {
@@ -172,7 +172,7 @@ func selectableYears(active int) []int {
 	return years
 }
 
-// handleSetLang bytter sprak (uten omstart) og gaar tilbake til forrige side.
+// handleSetLang bytter språk (uten omstart) og går tilbake til forrige side.
 func (s *Server) handleSetLang(w http.ResponseWriter, r *http.Request) {
 	lang := r.URL.Query().Get("lang")
 	if lang == "nb" || lang == "pt" || lang == "en" {
@@ -185,7 +185,7 @@ func (s *Server) handleSetLang(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, dest, http.StatusSeeOther)
 }
 
-// handleSetYear setter aktivt inntektsaar og gaar tilbake til forrige side.
+// handleSetYear setter aktivt inntektsår og går tilbake til forrige side.
 func (s *Server) handleSetYear(w http.ResponseWriter, r *http.Request) {
 	year := parseInt(r.URL.Query().Get("year"))
 	if year >= 2000 && year <= 2100 {
@@ -198,7 +198,7 @@ func (s *Server) handleSetYear(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, dest, http.StatusSeeOther)
 }
 
-// tr returnerer en oversettelse for forespoerselens sprak.
+// tr returnerer en oversettelse for forespørselens språk.
 func (s *Server) tr(r *http.Request, key string) string {
 	m := s.renderer.translations(s.app().Language(r.Context()))
 	if v, ok := m[key]; ok {
@@ -241,7 +241,7 @@ func (s *Server) handleExchangeRate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		http.Error(w, "streaming stottes ikke", http.StatusInternalServerError)
+		http.Error(w, "streaming støttes ikke", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -251,7 +251,7 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 	ch, unsubscribe := s.app().Events.Subscribe()
 	defer unsubscribe()
 
-	// Innledende kommentar slik at klienten vet at strommen er aapen.
+	// Innledende kommentar slik at klienten vet at strommen er åpen.
 	fmt.Fprintf(w, ": connected\n\n")
 	flusher.Flush()
 

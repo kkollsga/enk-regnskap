@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   filename      TEXT NOT NULL,          -- relativ sti fra data/receipts/
   original_name TEXT NOT NULL,
   mime_type     TEXT NOT NULL,
-  tax_year      INTEGER,                -- aaret kvitteringen ble lastet opp for
+  tax_year      INTEGER,                -- året kvitteringen ble lastet opp for
   uploaded_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS income (
   id            INTEGER PRIMARY KEY,
   date          TEXT NOT NULL,          -- ISO 8601
   description   TEXT NOT NULL,
-  amount_orig   REAL NOT NULL,          -- belop i original valuta
+  amount_orig   REAL NOT NULL,          -- beløp i original valuta
   currency      TEXT NOT NULL DEFAULT 'NOK',
   exchange_rate REAL,                   -- hentet fra Norges Bank, NULL hvis NOK
   rate_date     TEXT,                   -- hvilken dato kursen gjelder for
@@ -65,15 +65,15 @@ CREATE TABLE IF NOT EXISTS country_tax_rules (
   id                   INTEGER PRIMARY KEY,
   country_code         TEXT NOT NULL,   -- ISO 3166-1, f.eks. 'BR', 'NO'
   country_name         TEXT NOT NULL,
-  effective_from       INTEGER NOT NULL, -- inntektsaar regelen gjelder fra
+  effective_from       INTEGER NOT NULL, -- inntektsår regelen gjelder fra
   effective_to         INTEGER,          -- NULL = fortsatt gjeldende
   has_tax_treaty       INTEGER NOT NULL DEFAULT 0, -- 1 = skatteavtale med Norge
   treaty_in_force_date TEXT,             -- ISO 8601, dato avtalen tradte i kraft
   treaty_method        TEXT,             -- 'credit', 'exemption', NULL hvis ingen avtale
   treaty_reference     TEXT,             -- f.eks. 'Prop. 13 S (2022-2023)'
-  treaty_source_url    TEXT,             -- lenke til avtaleteksten paa Lovdata
+  treaty_source_url    TEXT,             -- lenke til avtaleteksten på Lovdata
   standard_withholding_pct REAL,         -- standard kildeskattesats landet bruker
-  notes                TEXT,             -- fritekst om saerregler
+  notes                TEXT,             -- fritekst om særregler
   last_updated         TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(country_code, effective_from)
 );
@@ -84,8 +84,8 @@ CREATE TABLE IF NOT EXISTS country_tax_types (
   country_code     TEXT NOT NULL,
   tax_type_code    TEXT NOT NULL,        -- f.eks. 'IRRF', 'ISS', 'CSLL'
   tax_type_name    TEXT NOT NULL,        -- fullt navn
-  description      TEXT,                 -- forklaring paa norsk
-  applies_to       TEXT,                 -- 'tjenester', 'lonn', 'utbytte', etc.
+  description      TEXT,                 -- forklaring på norsk
+  applies_to       TEXT,                 -- 'tjenester', 'lønn', 'utbytte', etc.
   is_creditable_in_norway INTEGER DEFAULT 1, -- 1 = godkjent for kreditfradrag i Norge
   basis            TEXT,                 -- 'netto' eller 'brutto'
   typical_rate_pct REAL,
@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS country_tax_types (
   UNIQUE(country_code, tax_type_code, effective_from)
 );
 
--- Utenlandsk skatt per inntektsaar og land (kreditfradrag)
+-- Utenlandsk skatt per inntektsår og land (kreditfradrag)
 CREATE TABLE IF NOT EXISTS foreign_tax_credits (
   id                   INTEGER PRIMARY KEY,
   tax_year             INTEGER NOT NULL,
@@ -104,9 +104,9 @@ CREATE TABLE IF NOT EXISTS foreign_tax_credits (
   foreign_tax_orig     REAL NOT NULL,    -- betalt skatt i utenlandsk valuta
   foreign_currency     TEXT NOT NULL,    -- 'BRL'
   foreign_tax_nok      REAL NOT NULL,    -- konvertert til NOK
-  max_credit_nok       REAL,             -- beregnet tak (fylles inn ved aarsavslutning)
+  max_credit_nok       REAL,             -- beregnet tak (fylles inn ved årsavslutning)
   utilized_nok         REAL,             -- faktisk benyttet kreditfradrag
-  carryforward_nok     REAL DEFAULT 0,   -- fremfort til neste aar (sktl. § 16-22)
+  carryforward_nok     REAL DEFAULT 0,   -- fremfort til neste år (sktl. § 16-22)
   tax_finalized_abroad INTEGER DEFAULT 0,-- 1 = endelig fastsatt i utlandet
   documentation_type   TEXT,             -- 'kvittering', 'arbeidsgiverbekreftelse', etc.
   legal_basis          TEXT,             -- 'treaty' (2025+) eller 'internal' (2024-)

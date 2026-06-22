@@ -7,7 +7,7 @@ import (
 	"github.com/kkollsga/enk-regnskap/internal/tax"
 )
 
-// Dashboard er noekkeltallene paa forsiden for et inntektsaar.
+// Dashboard er nøkkeltallene på forsiden for et inntektsår.
 type Dashboard struct {
 	Year             int
 	IncomeYTD        float64
@@ -17,7 +17,7 @@ type Dashboard struct {
 	EstimatedTax     *tax.TaxEstimate
 }
 
-// Dashboard beregner noekkeltall for et gitt inntektsaar.
+// Dashboard beregner nøkkeltall for et gitt inntektsår.
 func (a *App) Dashboard(ctx context.Context, year int) (Dashboard, error) {
 	income, err := a.Q.SumIncomeNOKByYear(ctx, int64(year))
 	if err != nil {
@@ -43,7 +43,7 @@ func (a *App) Dashboard(ctx context.Context, year int) (Dashboard, error) {
 		Result:           result,
 		UnlinkedReceipts: unlinked,
 	}
-	// Skatteestimat hvis vi har regler for aaret og positivt resultat.
+	// Skatteestimat hvis vi har regler for året og positivt resultat.
 	if rules, err := tax.Load(year); err == nil {
 		est := rules.Estimate(result, result)
 		d.EstimatedTax = &est

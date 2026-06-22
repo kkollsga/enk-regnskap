@@ -15,7 +15,7 @@ import (
 // View er datamodellen som sendes til hver mal.
 type View struct {
 	Lang         string
-	T            map[string]string // oversettelser for valgt sprak
+	T            map[string]string // oversettelser for valgt språk
 	Active       string            // aktiv navigasjonsside
 	Title        string
 	Year         int
@@ -26,7 +26,7 @@ type View struct {
 	Data         any // sidespesifikk data
 }
 
-// Tr slaar opp en oversettelse, med nokkelen som fallback.
+// Tr slår opp en oversettelse, med nøkkelen som fallback.
 func (v View) Tr(key string) string {
 	if s, ok := v.T[key]; ok {
 		return s
@@ -116,7 +116,7 @@ func (r *Renderer) loadTemplates() error {
 	return nil
 }
 
-// translations returnerer oversettelser for et sprak, med fallback til nb.
+// translations returnerer oversettelser for et språk, med fallback til nb.
 func (r *Renderer) translations(lang string) map[string]string {
 	if m, ok := r.i18n[lang]; ok {
 		return m
@@ -134,7 +134,7 @@ func (r *Renderer) Render(w http.ResponseWriter, page string, v View) {
 	if v.T == nil {
 		v.T = r.translations(v.Lang)
 	}
-	// Render til buffer forst slik at en feil ikke gir halv-skrevet respons.
+	// Render til buffer først slik at en feil ikke gir halv-skrevet respons.
 	var buf bytes.Buffer
 	if err := t.ExecuteTemplate(&buf, "layout", v); err != nil {
 		http.Error(w, "malfeil: "+err.Error(), http.StatusInternalServerError)

@@ -111,7 +111,7 @@ func (s *Server) newExpenseForm(r *http.Request, year int) expenseFormData {
 	}
 }
 
-// parseYear utleder aaret fra en ISO-dato (for kvitteringslagring).
+// parseYear utleder året fra en ISO-dato (for kvitteringslagring).
 func parseYear(date string) int {
 	if t, err := time.Parse("2006-01-02", date); err == nil {
 		return t.Year()

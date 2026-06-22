@@ -1,4 +1,4 @@
-// Package pdf genererer PDF-rapporter (aarsrapport og naeringsspesifikasjon)
+// Package pdf genererer PDF-rapporter (årsrapport og næringsspesifikasjon)
 // for ENK Regnskap via go-pdf/fpdf.
 package pdf
 
@@ -46,7 +46,7 @@ func (d *doc) small(s string) {
 	d.pdf.SetTextColor(0, 0, 0)
 }
 
-// row skriver en to-kolonne rad (etikett + hoyrejustert belop).
+// row skriver en to-kolonne rad (etikett + hoyrejustert beløp).
 func (d *doc) row(label, value string, bold bool) {
 	style := ""
 	if bold {
@@ -73,7 +73,7 @@ func (d *doc) output(w io.Writer) error { return d.pdf.Output(w) }
 
 func nok(v float64) string { return core.FormatNOK(v) }
 
-// AnnualReport skriver en fullstendig aarsrapport som PDF.
+// AnnualReport skriver en fullstendig årsrapport som PDF.
 func AnnualReport(w io.Writer, rep core.Report, catName func(string) string) error {
 	d := newDoc()
 	name := rep.BusinessName
@@ -88,7 +88,7 @@ func AnnualReport(w io.Writer, rep core.Report, catName func(string) string) err
 	}
 
 	d.heading("Driftsinntekter")
-	d.row3("Kategori", "", "Belop (NOK)", true)
+	d.row3("Kategori", "", "Beløp (NOK)", true)
 	for _, c := range rep.IncomeByCategory {
 		d.row3(catName(c.Category), "", nok(c.Total), false)
 	}
@@ -102,7 +102,7 @@ func AnnualReport(w io.Writer, rep core.Report, catName func(string) string) err
 	d.row("Sum fradragsberettiget", nok(rep.TotalDeductible), true)
 
 	d.heading("Resultat")
-	d.row("Naeringsresultat (inntekt - fradrag)", nok(rep.Result), true)
+	d.row("Næringsresultat (inntekt - fradrag)", nok(rep.Result), true)
 	if rep.Tax != nil {
 		d.row("Estimert alminnelig inntektsskatt (22 %)", nok(rep.Tax.AlminneligInntektsskatt), false)
 		d.row("Estimert trygdeavgift", nok(rep.Tax.Trygdeavgift), false)
@@ -120,7 +120,7 @@ func AnnualReport(w io.Writer, rep core.Report, catName func(string) string) err
 			d.small(fmt.Sprintf("%s: inntekt %s, betalt utenlandsk skatt %s. Rettsgrunnlag: %s. Kreditfradrag fylles inn i RF-1147.",
 				c.CountryName, nok(c.IncomeNok), nok(c.ForeignTaxNok), basis))
 		}
-		d.small("Maksimalt kreditfradrag begrenses av norsk skatt paa samme inntekt (sktl. § 16-21). Ubenyttet kredit kan fremfoeres i inntil 5 aar (sktl. § 16-22).")
+		d.small("Maksimalt kreditfradrag begrenses av norsk skatt på samme inntekt (sktl. § 16-21). Ubenyttet kredit kan fremføres i inntil 5 år (sktl. § 16-22).")
 	}
 
 	if len(rep.Income) > 0 || len(rep.Expenses) > 0 {
@@ -144,18 +144,18 @@ func AnnualReport(w io.Writer, rep core.Report, catName func(string) string) err
 	}
 
 	d.pdf.Ln(6)
-	d.small("Generert av ENK Regnskap. Dette er et stottedokument, ikke en bindende skattefastsettelse.")
+	d.small("Generert av ENK Regnskap. Dette er et støttedokument, ikke en bindende skattefastsettelse.")
 	return d.output(w)
 }
 
-// TaxSummary skriver naeringsspesifikasjonen (Skatteetaten-poster) som PDF.
+// TaxSummary skriver næringsspesifikasjonen (Skatteetaten-poster) som PDF.
 func TaxSummary(w io.Writer, rep core.Report, catName func(string) string) error {
 	d := newDoc()
-	d.title(fmt.Sprintf("Naeringsspesifikasjon %d", rep.Year))
-	d.small("Strukturert etter Skatteetatens poster for ENK. Klar til aa taste inn i skattemeldingen paa skatteetaten.no.")
+	d.title(fmt.Sprintf("Næringsspesifikasjon %d", rep.Year))
+	d.small("Strukturert etter Skatteetatens poster for ENK. Klar til å taste inn i skattemeldingen på skatteetaten.no.")
 
 	d.heading("Driftsinntekter")
-	d.row3("Post / kategori", "", "Belop (NOK)", true)
+	d.row3("Post / kategori", "", "Beløp (NOK)", true)
 	for _, c := range rep.IncomeByCategory {
 		d.row3(catName(c.Category), "", nok(c.Total), false)
 	}
@@ -168,8 +168,8 @@ func TaxSummary(w io.Writer, rep core.Report, catName func(string) string) error
 	}
 	d.row("Sum fradrag", nok(rep.TotalDeductible), true)
 
-	d.heading("Naeringsresultat")
-	d.row("Skattemessig naeringsresultat", nok(rep.Result), true)
+	d.heading("Næringsresultat")
+	d.row("Skattemessig næringsresultat", nok(rep.Result), true)
 
 	if len(rep.ForeignCredits) > 0 {
 		d.heading("Kreditfradrag for utenlandsk skatt (RF-1147)")

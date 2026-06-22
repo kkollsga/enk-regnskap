@@ -68,7 +68,7 @@ func TestExpenseViaFormWithReceipt(t *testing.T) {
 	}
 	full := filepath.Join(h.DataDir, "receipts", recs[0].Filename)
 	if _, err := os.Stat(full); err != nil {
-		t.Errorf("kvitteringsfil ikke funnet paa %s: %v", full, err)
+		t.Errorf("kvitteringsfil ikke funnet på %s: %v", full, err)
 	}
 	if filepath.Dir(recs[0].Filename) != "2025" {
 		t.Errorf("kvittering lagret i feil mappe: %s (forventet 2025/...)", recs[0].Filename)

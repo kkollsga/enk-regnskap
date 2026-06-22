@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// FormatNOK formaterer et belop som "1 234,56 kr".
+// FormatNOK formaterer et beløp som "1 234,56 kr".
 func FormatNOK(v float64) string {
 	return FormatThousands(v, 2) + " kr"
 }

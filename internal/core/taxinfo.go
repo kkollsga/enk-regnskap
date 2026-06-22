@@ -51,12 +51,12 @@ func (a *App) CountryOverview(ctx context.Context) ([]CountryInfo, error) {
 	return out, nil
 }
 
-// TaxRulesFor returnerer skattereglene for et inntektsaar.
+// TaxRulesFor returnerer skattereglene for et inntektsår.
 func (a *App) TaxRulesFor(year int) (tax.Rules, error) {
 	return tax.Load(year)
 }
 
-// AvailableTaxYears returnerer aar det finnes skatteregler for.
+// AvailableTaxYears returnerer år det finnes skatteregler for.
 func (a *App) AvailableTaxYears() []int {
 	return tax.AvailableYears()
 }

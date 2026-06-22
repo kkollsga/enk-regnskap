@@ -9,7 +9,7 @@ import (
 	"github.com/kkollsga/enk-regnskap/internal/tax"
 )
 
-// ExpenseCategory beriker en fradragskategori med satser for et inntektsaar.
+// ExpenseCategory beriker en fradragskategori med satser for et inntektsår.
 type ExpenseCategory struct {
 	Key            string
 	Name           string
@@ -20,7 +20,7 @@ type ExpenseCategory struct {
 	Note           string
 }
 
-// ExpenseCategories henter fradragskategoriene for et inntektsaar fra
+// ExpenseCategories henter fradragskategoriene for et inntektsår fra
 // skattereglene.
 func (a *App) ExpenseCategories(year int) []ExpenseCategory {
 	rules, err := tax.Load(year)
@@ -60,7 +60,7 @@ type ExpenseInput struct {
 	ReceiptID        *int64
 }
 
-// AddExpense validerer, beregner fradragsberettiget belop, lagrer utgiften og
+// AddExpense validerer, beregner fradragsberettiget beløp, lagrer utgiften og
 // loggfor endringen.
 func (a *App) AddExpense(ctx context.Context, actor string, in ExpenseInput) (*db.Expense, error) {
 	in.normalize()
@@ -122,7 +122,7 @@ func (a *App) DeleteExpense(ctx context.Context, actor string, id int64) error {
 	return a.logChange(ctx, actor, "delete", "expenses", id, before, nil, year, fmt.Sprintf("Slettet utgift #%d", id))
 }
 
-// ListExpenses henter alle utgifter for et inntektsaar.
+// ListExpenses henter alle utgifter for et inntektsår.
 func (a *App) ListExpenses(ctx context.Context, year int) ([]db.Expense, error) {
 	return a.Q.ListExpensesByYear(ctx, int64(year))
 }
@@ -143,10 +143,10 @@ func (in *ExpenseInput) validate() error {
 		ve.add("date", "Ugyldig eller manglende dato (forventet AAAA-MM-DD).")
 	}
 	if in.Description == "" {
-		ve.add("description", "Beskrivelse er pakrevd.")
+		ve.add("description", "Beskrivelse er påkrevd.")
 	}
 	if in.AmountNOK <= 0 {
-		ve.add("amount_nok", "Belop ma vaere storre enn 0.")
+		ve.add("amount_nok", "Beløp må være større enn 0.")
 	}
 	if in.Category == "" {
 		ve.add("category", "Velg en kategori.")

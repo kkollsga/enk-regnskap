@@ -37,7 +37,7 @@ dist: clean
 	GOOS=darwin  GOARCH=amd64 go build -o $(DIST)/$(BINARY)-mac-intel     $(PKG)
 	GOOS=linux   GOARCH=amd64 go build -o $(DIST)/$(BINARY)-linux         $(PKG)
 
-## mac-app: bygg den frittstaaende macOS-appen EnkRegnskap.app (native vindu)
+## mac-app: bygg den frittstående macOS-appen EnkRegnskap.app (native vindu)
 mac-app:
 	bash assets/make-app.sh
 

@@ -7,10 +7,10 @@ import (
 )
 
 // Fixtures er et fast, FIKTIVT testdatasett for "Testforetak" (org.nr.
-// 000000000). Brukes til aa verifisere at beregninger stemmer ende-til-ende.
+// 000000000). Brukes til å verifisere at beregninger stemmer ende-til-ende.
 // Alle verdier er oppdiktet og ligner ikke reelle brukerdata.
 //
-// Datasettet (inntektsaar 2025):
+// Datasettet (inntektsår 2025):
 //   - 9 NOK-inntekter (sum 136 000 NOK)
 //   - 3 BRL-inntekter til kurs 2,00 (sum 45 000 NOK): to med IRRF, en uten
 //   - 8 utgifter (sum 38 892 NOK, hvorav 35 892 NOK fradragsberettiget)
@@ -46,7 +46,7 @@ func fixtureIncomes() []fixtureIncome {
 		{"2025-03-10", "Konsulenttjeneste C", "NOK", "NO", "konsulent", 12000, 0, 0, ""},
 		{"2025-04-05", "Lisensinntekt", "NOK", "NO", "royalty", 8000, 0, 0, ""},
 		{"2025-05-12", "Stort oppdrag", "NOK", "NO", "tjenesteinntekt", 25000, 0, 0, ""},
-		{"2025-06-01", "Smaajobb", "NOK", "NO", "annet", 5000, 0, 0, ""},
+		{"2025-06-01", "Småjobb", "NOK", "NO", "annet", 5000, 0, 0, ""},
 		{"2025-09-15", "Konsulenttjeneste D", "NOK", "NO", "konsulent", 30000, 0, 0, ""},
 		{"2025-11-20", "Honorar artikkel", "NOK", "NO", "honorar", 11000, 0, 0, ""},
 		// Brasilianske inntekter (kurs 2,00):
@@ -65,11 +65,11 @@ func fixtureExpenses() []fixtureExpense {
 		{"2025-05-20", "Yrkeskjoring", "bil_km", 3500, 0},
 		{"2025-06-15", "Fagkurs", "kurs_faglitteratur", 2500, 0},
 		{"2025-08-01", "Regnskapsprogram (abonnement)", "regnskapsprogram", 1200, 0},
-		{"2025-09-10", "Bærbar PC", "smaa_driftsmidler", 18000, 0},
+		{"2025-09-10", "Bærbar PC", "små_driftsmidler", 18000, 0},
 	}
 }
 
-// LoadFixtures fyller databasen med testdatasettet og setter aktivt aar.
+// LoadFixtures fyller databasen med testdatasettet og setter aktivt år.
 func (h *Harness) LoadFixtures(t *testing.T) {
 	t.Helper()
 	ctx := h.Context()

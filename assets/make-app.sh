@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bygger den frittstaaende macOS-appen "EnkRegnskap.app" (native WKWebView).
+# Bygger den frittstående macOS-appen "EnkRegnskap.app" (native WKWebView).
 # Krever macOS med Xcode command line tools (clang + WebKit).
 set -euo pipefail
 
@@ -40,4 +40,4 @@ PLIST
 
 rm -f "/tmp/$BIN"
 echo "Ferdig: $APP"
-echo "Aapne med:  open \"$APP\"   (eller flytt den til /Applications)"
+echo "Åpne med:  open \"$APP\"   (eller flytt den til /Applications)"

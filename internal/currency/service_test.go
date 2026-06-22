@@ -83,10 +83,10 @@ func TestWeekendFallsBackToPreviousBankDay(t *testing.T) {
 		t.Errorf("lordagskurs = %v, forventet 1.95 (fredag)", r.RateNOK)
 	}
 	if r.Date != "2025-01-17" {
-		t.Errorf("kursdato = %q, forventet 2025-01-17 (naermeste bankdag)", r.Date)
+		t.Errorf("kursdato = %q, forventet 2025-01-17 (nærmeste bankdag)", r.Date)
 	}
 
-	// Sondag igjen -> skal treffe cache, ikke kalle provider paa nytt
+	// Sondag igjen -> skal treffe cache, ikke kalle provider på nytt
 	if _, err := svc.Rate(ctx, "BRL", "2025-01-19"); err != nil {
 		t.Fatalf("Rate sondag: %v", err)
 	}

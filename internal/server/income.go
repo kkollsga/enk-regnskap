@@ -118,7 +118,7 @@ func formValues(r *http.Request) map[string]string {
 	return m
 }
 
-// parseAmount tolker et belop som kan bruke komma som desimalskille.
+// parseAmount tolker et beløp som kan bruke komma som desimalskille.
 func parseAmount(s string) float64 {
 	s = strings.TrimSpace(s)
 	s = strings.ReplaceAll(s, " ", "")

@@ -7,7 +7,7 @@ import (
 	"github.com/kkollsga/enk-regnskap/internal/core"
 )
 
-// onboardingGate omdirigerer til velkomstskjermen til forstegangsoppsettet er
+// onboardingGate omdirigerer til velkomstskjermen til førstegangsoppsettet er
 // fullfort. Statiske ressurser, helse, hendelser og selve oppsettet er unntatt.
 func (s *Server) onboardingGate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +39,7 @@ func (s *Server) handleWelcome(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/projects", http.StatusSeeOther)
 		return
 	}
-	// Allerede ferdig? Gaa til dashbordet.
+	// Allerede ferdig? Gå til dashbordet.
 	if s.app().IsOnboarded(r.Context()) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return

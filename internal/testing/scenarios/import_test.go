@@ -36,7 +36,7 @@ func TestImportFromBackupZip(t *testing.T) {
 func TestImportFromRawDB(t *testing.T) {
 	src := apptest.Start(t)
 	src.LoadFixtures(t)
-	// Lag et rent oyeblikksbilde av databasen.
+	// Lag et rent øyeblikksbilde av databasen.
 	dbBytes := snapshotDB(t, src)
 
 	dst := apptest.Start(t)
@@ -47,7 +47,7 @@ func TestImportFromRawDB(t *testing.T) {
 	if len(rows) != 8 {
 		t.Errorf("etter db-import: %d utgifter, forventet 8", len(rows))
 	}
-	// Endringsloggen skal ogsaa vaere med (full kopi).
+	// Endringsloggen skal også være med (full kopi).
 	changes, _ := dst.App.Q.ListChangeLog(dst.Context(), 100)
 	if len(changes) == 0 {
 		t.Error("import mistet endringsloggen")
@@ -79,7 +79,7 @@ func TestImportReplacesExistingData(t *testing.T) {
 
 	dst := apptest.Start(t)
 	dst.App.SetConfig(dst.Context(), core.ConfigActiveYear, "2025")
-	// Forhaandsfyll med noe annet som skal forsvinne.
+	// Forhåndsfyll med noe annet som skal forsvinne.
 	dst.App.AddIncome(dst.Context(), core.ActorWeb, core.IncomeInput{
 		Date: "2025-01-01", Description: "Skal erstattes", Currency: "NOK",
 		CountryCode: "NO", AmountOrig: 999, Category: "annet",
@@ -107,7 +107,7 @@ func TestImportViaHTTPEndpoint(t *testing.T) {
 	dst := apptest.Start(t)
 	res := dst.Browser().PostMultipart("/import",
 		map[string]string{}, "file", "backup.zip", "application/zip", buf.Bytes())
-	apptest.AssertStatus(t, res, 200) // foelger redirect til /
+	apptest.AssertStatus(t, res, 200) // følger redirect til /
 	rows, _ := dst.App.ListIncome(dst.Context(), 2025)
 	if len(rows) != 12 {
 		t.Errorf("HTTP-import: %d inntekter, forventet 12", len(rows))

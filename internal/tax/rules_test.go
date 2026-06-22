@@ -25,11 +25,11 @@ func TestLoadAndFallback(t *testing.T) {
 		t.Fatalf("Load(2026): %v", err)
 	}
 	if r.Year != 2025 {
-		t.Errorf("Load(2026) = aar %d, vil ha fallback til 2025", r.Year)
+		t.Errorf("Load(2026) = år %d, vil ha fallback til 2025", r.Year)
 	}
-	// For tidlig aar finnes ingen regler
+	// For tidlig år finnes ingen regler
 	if _, err := Load(2000); err == nil {
-		t.Error("Load(2000) skulle gi feil, ingen regler saa langt tilbake")
+		t.Error("Load(2000) skulle gi feil, ingen regler så langt tilbake")
 	}
 }
 
@@ -48,7 +48,7 @@ func TestTrinnskatt2025(t *testing.T) {
 	if !near(got, 17541.50) {
 		t.Errorf("Trinnskatt(700000) 2025 = %.2f, forventet 17541.50", got)
 	}
-	// Under forste innslagspunkt -> 0
+	// Under første innslagspunkt -> 0
 	if got := r.Trinnskatt(200000); got != 0 {
 		t.Errorf("Trinnskatt(200000) 2025 = %.2f, forventet 0", got)
 	}
@@ -74,7 +74,7 @@ func TestTrygdeavgift2025(t *testing.T) {
 	if got := r.Trygdeavgift(100000); !near(got, 87.50) {
 		t.Errorf("Trygdeavgift(100000) 2025 = %.2f, forventet 87.50 (opptrapping)", got)
 	}
-	// Hoy inntekt -> full sats 10.9%
+	// Høy inntekt -> full sats 10.9%
 	// 700 000: full=76300, opptrapping=(600350)*25%=150087.50 -> 76300
 	if got := r.Trygdeavgift(700000); !near(got, 76300) {
 		t.Errorf("Trygdeavgift(700000) 2025 = %.2f, forventet 76300", got)
@@ -83,7 +83,7 @@ func TestTrygdeavgift2025(t *testing.T) {
 
 func TestTrygdeavgift2024(t *testing.T) {
 	r, _ := Load(2024)
-	// 700 000: full = 11.0% = 77000; opptrapping mye hoyere -> 77000
+	// 700 000: full = 11.0% = 77000; opptrapping mye høyere -> 77000
 	if got := r.Trygdeavgift(700000); !near(got, 77000) {
 		t.Errorf("Trygdeavgift(700000) 2024 = %.2f, forventet 77000", got)
 	}

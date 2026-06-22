@@ -6,18 +6,18 @@ import (
 )
 
 // Event er en endringshendelse som kringkastes til abonnenter (nettleseren)
-// slik at UI-et kan oppdatere seg live naar data endres - ogsaa naar
+// slik at UI-et kan oppdatere seg live når data endres - også når
 // endringen kommer fra MCP-agenten.
 type Event struct {
 	Type   string `json:"type"`   // f.eks. "income", "expense", "rollback"
 	Action string `json:"action"` // "created", "updated", "deleted"
 	Entity string `json:"entity"` // tabellnavn
 	ID     int64  `json:"id"`     // rad-id (0 hvis ikke relevant)
-	Year   int    `json:"year"`   // berort inntektsaar (0 hvis ikke relevant)
+	Year   int    `json:"year"`   // berort inntektsår (0 hvis ikke relevant)
 }
 
-// Hub er en enkel SSE-kringkaster. Abonnenter registrerer en kanal og faar
-// alle paafolgende hendelser.
+// Hub er en enkel SSE-kringkaster. Abonnenter registrerer en kanal og får
+// alle påfølgende hendelser.
 type Hub struct {
 	mu   sync.Mutex
 	subs map[chan Event]struct{}
@@ -46,7 +46,7 @@ func (h *Hub) Subscribe() (<-chan Event, func()) {
 }
 
 // Broadcast sender en hendelse til alle abonnenter. Trege abonnenter hopper
-// over hendelsen (ikke-blokkerende) i stedet for aa henge hele appen.
+// over hendelsen (ikke-blokkerende) i stedet for å henge hele appen.
 func (h *Hub) Broadcast(ev Event) {
 	h.mu.Lock()
 	defer h.mu.Unlock()

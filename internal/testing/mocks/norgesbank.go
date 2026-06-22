@@ -16,7 +16,7 @@ const dateLayout = "2006-01-02"
 // NorgesBankMock er en deterministisk ExchangeRateProvider for test.
 // Rates er kurser per bankdag: currency -> dato (ISO) -> NOK per enhet.
 // Datoer som ikke finnes regnes som helg/helligdag og faller tilbake til
-// naermeste foregaaende bankdag som finnes.
+// nærmeste foregående bankdag som finnes.
 type NorgesBankMock struct {
 	Rates map[string]map[string]float64
 	Calls int // antall FetchRate-kall (for cache-verifisering)
@@ -51,7 +51,7 @@ func (m *NorgesBankMock) FetchRate(ctx context.Context, cur, date string) (curre
 	if err != nil {
 		return currency.Rate{}, fmt.Errorf("mock: ugyldig dato %q", date)
 	}
-	// Gaa bakover inntil 10 dager for aa finne naermeste foregaaende bankdag.
+	// Gå bakover inntil 10 dager for å finne nærmeste foregående bankdag.
 	for i := 0; i < 11; i++ {
 		d := t.AddDate(0, 0, -i).Format(dateLayout)
 		if r, ok := rates[d]; ok {
@@ -62,7 +62,7 @@ func (m *NorgesBankMock) FetchRate(ctx context.Context, cur, date string) (curre
 }
 
 // SeedBRL fyller inn realistiske BRL/NOK-kurser for alle ukedager i et
-// intervall (helger utelates med vilje for aa teste fallback). Brukes av
+// intervall (helger utelates med vilje for å teste fallback). Brukes av
 // fixtures. base er kurs ved start; den varierer svakt.
 func (m *NorgesBankMock) SeedBRL(from, to string, base float64) error {
 	start, err := time.Parse(dateLayout, from)

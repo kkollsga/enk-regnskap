@@ -6,7 +6,7 @@
 </section>
 
 <div class="info-card warn">
-  Reglene for kreditfradrag er komplekse. For storre belop anbefales det aa
+  Reglene for kreditfradrag er komplekse. For større beløp anbefales det å
   konsultere en skatteradgiver. Appen beregner aldri det endelige
   kreditfradraget, men gir deg informasjonen og dokumentasjonen du trenger
   til RF-1147.
@@ -32,13 +32,13 @@
   <div class="info-card warn">
     Inntekt fra {{$c.CountryName}} uten trukket kildeskatt er fortsatt fullt
     skattepliktig i Norge. Du kan ikke kreve kreditfradrag uten dokumentasjon
-    paa betalt utenlandsk skatt.
+    på betalt utenlandsk skatt.
   </div>
   {{end}}
   {{if .NotFinal}}
   <div class="info-card">
-    Du kan kreve kreditfradrag senest 6 maaneder etter at endelig skatt er
-    fastsatt i utlandet (sktl. § 16-30). Merk dette i appen saa du ikke gaar
+    Du kan kreve kreditfradrag senest 6 måneder etter at endelig skatt er
+    fastsatt i utlandet (sktl. § 16-30). Merk dette i appen så du ikke går
     glipp av fristen.
   </div>
   {{end}}
@@ -58,9 +58,9 @@
     </tbody>
   </table>
   <ul class="muted small">
-    <li>Kvittering eller erklaering fra Receita Federal eller arbeidsgiver</li>
-    <li>Dokumentasjon paa skattetype (IRRF, ISS, ...) og om den er beregnet paa netto eller brutto</li>
-    <li>Bekreftelse paa at skatten er endelig fastsatt (eller status hvis ikke)</li>
+    <li>Kvittering eller erklæring fra Receita Federal eller arbeidsgiver</li>
+    <li>Dokumentasjon på skattetype (IRRF, ISS, ...) og om den er beregnet på netto eller brutto</li>
+    <li>Bekreftelse på at skatten er endelig fastsatt (eller status hvis ikke)</li>
   </ul>
 
   <form method="POST" action="/foreign-tax" class="form" style="margin-top:16px;">
@@ -82,11 +82,11 @@
   </form>
 
   <p class="muted small" style="margin-top:10px;">
-    <a href="https://www.skatteetaten.no/skjema/rf-1147/" target="_blank">Aapne RF-1147 hos Skatteetaten →</a>
+    <a href="https://www.skatteetaten.no/skjema/rf-1147/" target="_blank">Åpne RF-1147 hos Skatteetaten →</a>
   </p>
 </section>
 {{end}}
 {{else}}
-<div class="empty">Ingen utenlandsinntekt registrert for {{.Year}} enda. Registrer inntekt med kildeland utenfor Norge for aa se kreditfradrag her.</div>
+<div class="empty">Ingen utenlandsinntekt registrert for {{.Year}} enda. Registrer inntekt med kildeland utenfor Norge for å se kreditfradrag her.</div>
 {{end}}
 {{end}}

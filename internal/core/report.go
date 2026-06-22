@@ -14,8 +14,8 @@ type CategorySum struct {
 	Deductible float64
 }
 
-// Report er all data som trengs for aarsrapport, naeringsspesifikasjon og
-// transaksjonslogg for ett inntektsaar.
+// Report er all data som trengs for årsrapport, næringsspesifikasjon og
+// transaksjonslogg for ett inntektsår.
 type Report struct {
 	Year              int
 	BusinessName      string
@@ -32,7 +32,7 @@ type Report struct {
 	Tax               *tax.TaxEstimate
 }
 
-// BuildReport samler alle tall for et inntektsaar.
+// BuildReport samler alle tall for et inntektsår.
 func (a *App) BuildReport(ctx context.Context, year int) (Report, error) {
 	rep := Report{Year: year}
 	rep.BusinessName = a.GetConfig(ctx, ConfigBusinessName, "")
@@ -90,7 +90,7 @@ func (a *App) BuildReport(ctx context.Context, year int) (Report, error) {
 	return rep, nil
 }
 
-// CategoryDisplayName gir et lesbart navn for en kategorinokkel for et aar.
+// CategoryDisplayName gir et lesbart navn for en kategorinøkkel for et år.
 func (a *App) CategoryDisplayName(year int, key string) string {
 	for _, c := range a.ExpenseCategories(year) {
 		if c.Key == key {

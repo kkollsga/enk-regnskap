@@ -1,6 +1,6 @@
 package core
 
-// Category er et valg i en nedtrekksmeny (maskinnokkel + visningsnavn).
+// Category er et valg i en nedtrekksmeny (maskinnøkkel + visningsnavn).
 type Category struct {
 	Key  string
 	Name string
@@ -17,12 +17,12 @@ func IncomeCategories() []Category {
 	}
 }
 
-// SupportedCurrencies er valutaene appen stotter (NOK forst).
+// SupportedCurrencies er valutaene appen støtter (NOK først).
 func SupportedCurrencies() []string {
 	return []string{"NOK", "USD", "EUR", "BRL", "GBP", "SEK", "DKK"}
 }
 
-// IsIncomeCategory sjekker om en nokkel er en gyldig inntektskategori.
+// IsIncomeCategory sjekker om en nøkkel er en gyldig inntektskategori.
 func IsIncomeCategory(key string) bool {
 	for _, c := range IncomeCategories() {
 		if c.Key == key {

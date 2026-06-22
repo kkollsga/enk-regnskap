@@ -1,5 +1,5 @@
 // Package currency henter og cacher valutakurser mot Norges Bank, slik at
-// historiske transaksjoner aldri trenger nett. Provider-interfacet gjor at
+// historiske transaksjoner aldri trenger nett. Provider-interfacet gjør at
 // ekte tjeneste og mock er utbyttbare (dependency injection).
 package currency
 
@@ -10,7 +10,7 @@ import (
 )
 
 // Rate er en valutakurs: 1 enhet Currency = RateNOK norske kroner.
-// Date er den faktiske bankdagen kursen stammer fra (kan vaere tidligere enn
+// Date er den faktiske bankdagen kursen stammer fra (kan være tidligere enn
 // datoen det ble spurt om, ved helg/helligdag).
 type Rate struct {
 	Currency string  `json:"currency"`
@@ -19,17 +19,17 @@ type Rate struct {
 	Source   string  `json:"source"`
 }
 
-// ExchangeRateProvider henter en kurs for en valuta paa (eller naermest for)
+// ExchangeRateProvider henter en kurs for en valuta på (eller nærmest for)
 // en gitt dato. Implementeres av Norges Bank-klienten og av mocken.
 type ExchangeRateProvider interface {
 	// FetchRate returnerer kursen for currency som gjelder for date. Hvis date
-	// faller paa helg/helligdag returneres naermeste foregaaende bankdag.
+	// faller på helg/helligdag returneres nærmeste foregående bankdag.
 	FetchRate(ctx context.Context, currency, date string) (Rate, error)
 }
 
 const dateLayout = "2006-01-02"
 
-// NormalizeCurrency gjor valutakoden stor og trimmet.
+// NormalizeCurrency gjør valutakoden stor og trimmet.
 func NormalizeCurrency(c string) string {
 	return strings.ToUpper(strings.TrimSpace(c))
 }

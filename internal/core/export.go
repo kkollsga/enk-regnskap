@@ -12,13 +12,13 @@ import (
 )
 
 // WriteBackup skriver en fullstendig, ren sikkerhetskopi som en ZIP til w:
-//   - data.db  (et konsistent oyeblikksbilde av HELE databasen, inkludert
+//   - data.db  (et konsistent øyeblikksbilde av HELE databasen, inkludert
 //     endringsloggen/rollback-historikken, via SQLite VACUUM INTO)
 //   - receipts/...  (alle opplastede kvitteringsfiler)
 //
-// Resultatet kan gjenopprettes ved aa pakke det ut i en data-mappe.
+// Resultatet kan gjenopprettes ved å pakke det ut i en data-mappe.
 func (a *App) WriteBackup(ctx context.Context, w io.Writer) error {
-	// 1. Konsistent oyeblikksbilde av databasen til en midlertidig fil.
+	// 1. Konsistent øyeblikksbilde av databasen til en midlertidig fil.
 	tmp := filepath.Join(os.TempDir(), fmt.Sprintf("enk-backup-%d.db", time.Now().UnixNano()))
 	defer os.Remove(tmp)
 	esc := strings.ReplaceAll(tmp, "'", "''")

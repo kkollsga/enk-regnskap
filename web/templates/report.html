@@ -14,7 +14,7 @@
     <div class="card-value">{{nok $d.TotalDeductible}}</div>
   </div>
   <div class="card">
-    <div class="card-label">Naeringsresultat</div>
+    <div class="card-label">Næringsresultat</div>
     <div class="card-value {{if lt $d.Result 0.0}}red{{end}}">{{nok $d.Result}}</div>
   </div>
 </div>
@@ -23,18 +23,18 @@
   <h2>Last ned</h2>
   <ul class="download-list">
     <li><a class="btn" href="/reports/annual.pdf">Arsrapport (PDF)</a></li>
-    <li><a class="btn" href="/reports/tax-summary.pdf">Naeringsspesifikasjon (PDF)</a></li>
-    <li><a class="btn" href="/reports/naeringsspesifikasjon.xlsx">Naeringsspesifikasjon (Excel)</a></li>
+    <li><a class="btn" href="/reports/tax-summary.pdf">Næringsspesifikasjon (PDF)</a></li>
+    <li><a class="btn" href="/reports/naeringsspesifikasjon.xlsx">Næringsspesifikasjon (Excel)</a></li>
     <li><a class="btn" href="/reports/transactions.xlsx">Transaksjonslogg (Excel)</a></li>
     <li><a class="btn" href="/reports/transactions.csv">Transaksjonslogg (CSV)</a></li>
   </ul>
-  <p class="muted small">Full sikkerhetskopi og speilkopi finner du i «{{.Tr "more"}}»-menyen oppe til hoyre.</p>
+  <p class="muted small">Full sikkerhetskopi og speilkopi finner du i «{{.Tr "more"}}»-menyen oppe til høyre.</p>
 </section>
 
 <section class="panel">
   <h2>Inntekter per kategori</h2>
   <table class="data-table">
-    <thead><tr><th>Kategori</th><th class="num">Belop (NOK)</th></tr></thead>
+    <thead><tr><th>Kategori</th><th class="num">Beløp (NOK)</th></tr></thead>
     <tbody>
       {{range $d.IncomeByCategory}}<tr><td>{{.Category}}</td><td class="num">{{nok .Total}}</td></tr>{{end}}
     </tbody>

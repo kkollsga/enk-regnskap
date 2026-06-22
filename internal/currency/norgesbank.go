@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// NorgesBank henter dagskurser fra Norges Banks aapne API (SDMX-JSON).
+// NorgesBank henter dagskurser fra Norges Banks åpne API (SDMX-JSON).
 type NorgesBank struct {
 	client  *http.Client
 	baseURL string
@@ -27,7 +27,7 @@ func NewNorgesBank() *NorgesBank {
 
 // FetchRate henter kursen for currency som gjelder for date. Den henter et
 // vindu (date-10 dager .. date) og velger siste observasjon t.o.m. date, slik
-// at helg/helligdag faller tilbake til naermeste foregaaende bankdag.
+// at helg/helligdag faller tilbake til nærmeste foregående bankdag.
 func (n *NorgesBank) FetchRate(ctx context.Context, currency, date string) (Rate, error) {
 	currency = NormalizeCurrency(currency)
 	if currency == "NOK" {
@@ -63,7 +63,7 @@ func (n *NorgesBank) FetchRate(ctx context.Context, currency, date string) (Rate
 	if len(obs) == 0 {
 		return Rate{}, fmt.Errorf("ingen kurs funnet for %s frem til %s", currency, date)
 	}
-	// Velg siste observasjon t.o.m. onsket dato.
+	// Velg siste observasjon t.o.m. ønsket dato.
 	sort.Slice(obs, func(i, j int) bool { return obs[i].date < obs[j].date })
 	chosen := obs[0]
 	for _, o := range obs {
@@ -142,7 +142,7 @@ func parseSDMX(r io.Reader) ([]observation, error) {
 	return out, nil
 }
 
-// rawToFloat tolker en SDMX-verdi som kan vaere streng eller tall.
+// rawToFloat tolker en SDMX-verdi som kan være streng eller tall.
 func rawToFloat(raw json.RawMessage) (float64, bool) {
 	var f float64
 	if err := json.Unmarshal(raw, &f); err == nil {

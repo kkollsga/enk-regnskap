@@ -11,7 +11,7 @@ import (
 	"github.com/kkollsga/enk-regnskap/internal/db"
 )
 
-// Aktorer som kan utfore endringer.
+// Aktorer som kan utføre endringer.
 const (
 	ActorWeb    = "web"
 	ActorMCP    = "mcp"
@@ -19,7 +19,7 @@ const (
 )
 
 // auditableEntities er tabellene som kan endres og rulles tilbake. Hvitliste
-// for aa hindre at dynamisk SQL bygges fra ukjente tabellnavn.
+// for å hindre at dynamisk SQL bygges fra ukjente tabellnavn.
 var auditableEntities = map[string]bool{
 	"income":              true,
 	"expenses":            true,
@@ -171,7 +171,7 @@ func (a *App) Rollback(ctx context.Context, actor string, changeID int64) error 
 
 	switch cl.Operation {
 	case "insert":
-		// Reverser ved aa slette den innsatte raden.
+		// Reverser ved å slette den innsatte raden.
 		if err := a.genericDelete(ctx, entity, id); err != nil {
 			return err
 		}
@@ -198,7 +198,7 @@ func (a *App) Rollback(ctx context.Context, actor string, changeID int64) error 
 	if err := a.Q.MarkChangeRolledBack(ctx, changeID); err != nil {
 		return err
 	}
-	// Loggfor selve tilbakerullingen (uten aa kringkaste dobbelt).
+	// Loggfor selve tilbakerullingen (uten å kringkaste dobbelt).
 	_, err = a.Q.CreateChangeLog(ctx, db.CreateChangeLogParams{
 		Actor:       actor,
 		Operation:   "rollback",
@@ -236,7 +236,7 @@ func decodeRow(j sql.NullString) (map[string]any, error) {
 	if err := json.Unmarshal([]byte(j.String), &m); err != nil {
 		return nil, err
 	}
-	// JSON gjor heltall om til float64; SQLite tar imot float for INTEGER-kolonner.
+	// JSON gjør heltall om til float64; SQLite tar imot float for INTEGER-kolonner.
 	return m, nil
 }
 

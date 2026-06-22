@@ -14,7 +14,7 @@ import (
 // Foreign-tax-paid-tilstander for en inntekt.
 const (
 	ForeignTaxNo      = 0 // ingen utenlandsk skatt trukket
-	ForeignTaxYes     = 1 // skatt trukket, belop oppgitt
+	ForeignTaxYes     = 1 // skatt trukket, beløp oppgitt
 	ForeignTaxUnknown = 2 // vet ikke enna
 )
 
@@ -26,7 +26,7 @@ type IncomeInput struct {
 	Client      string
 	CountryCode string  // ISO 3166-1, default 'NO'
 	Currency    string  // default 'NOK'
-	AmountOrig  float64 // belop i valgt valuta
+	AmountOrig  float64 // beløp i valgt valuta
 	TaxYear     int     // 0 = utled fra dato
 	Notes       string
 
@@ -45,7 +45,7 @@ type IncomeResult struct {
 	RateDate string
 }
 
-// AddIncome validerer, henter valutakurs, beregner NOK-belop, lagrer inntekten,
+// AddIncome validerer, henter valutakurs, beregner NOK-beløp, lagrer inntekten,
 // loggfor endringen og kringkaster en live-hendelse. actor er "web" eller "mcp".
 func (a *App) AddIncome(ctx context.Context, actor string, in IncomeInput) (*IncomeResult, error) {
 	in.normalize()
@@ -129,7 +129,7 @@ func (a *App) AddIncome(ctx context.Context, actor string, in IncomeInput) (*Inc
 		return nil, err
 	}
 
-	// Aggreger utenlandsinntekt for aaret hvis inntekten er utenlandsk.
+	// Aggreger utenlandsinntekt for året hvis inntekten er utenlandsk.
 	if in.CountryCode != "NO" {
 		if err := a.RecomputeForeignTaxCredits(ctx, in.TaxYear); err != nil {
 			return nil, err
@@ -165,7 +165,7 @@ func (a *App) DeleteIncome(ctx context.Context, actor string, id int64) error {
 	return nil
 }
 
-// ListIncome henter alle inntekter for et inntektsaar.
+// ListIncome henter alle inntekter for et inntektsår.
 func (a *App) ListIncome(ctx context.Context, year int) ([]db.Income, error) {
 	return a.Q.ListIncomeByYear(ctx, int64(year))
 }
@@ -214,10 +214,10 @@ func (in *IncomeInput) validate() error {
 		ve.add("date", "Ugyldig eller manglende dato (forventet AAAA-MM-DD).")
 	}
 	if in.Description == "" {
-		ve.add("description", "Beskrivelse er pakrevd.")
+		ve.add("description", "Beskrivelse er påkrevd.")
 	}
 	if in.AmountOrig <= 0 {
-		ve.add("amount_orig", "Belop ma vaere storre enn 0.")
+		ve.add("amount_orig", "Beløp må være større enn 0.")
 	}
 	if in.Category == "" {
 		ve.add("category", "Velg en kategori.")

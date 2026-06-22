@@ -83,7 +83,7 @@ func (s *Server) maybeUploadReceipt(r *http.Request, year int) (*int64, error) {
 	return &rec.ID, nil
 }
 
-// handleReceiptFile serverer en kvitteringsfil inline (forhaandsvisning).
+// handleReceiptFile serverer en kvitteringsfil inline (forhåndsvisning).
 func (s *Server) handleReceiptFile(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {

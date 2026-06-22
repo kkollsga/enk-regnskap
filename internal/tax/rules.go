@@ -1,10 +1,10 @@
 // Package tax inneholder norske skatteregler for enkeltpersonforetak (ENK),
-// med en egen fil per inntektsaar (rules_AAAA.go). Reglene registreres
+// med en egen fil per inntektsår (rules_AAAA.go). Reglene registreres
 // automatisk via init() og lastes med Load(year).
 //
 // Tallene er hentet fra Skatteetaten og Lovdata (se Sources-feltet og
-// kommentarer i hver aarsfil). Appen skal aldri garantere et endelig
-// skatteoppgjor - dette er stotteberegninger og informasjon.
+// kommentarer i hver årsfil). Appen skal aldri garantere et endelig
+// skatteoppgjør - dette er støtteberegninger og informasjon.
 package tax
 
 import (
@@ -15,14 +15,14 @@ import (
 
 // Deduction beskriver en fradragskategori for et tjenestebasert ENK.
 type Deduction struct {
-	Key            string  // maskinnokkel brukt i databasen
+	Key            string  // maskinnøkkel brukt i databasen
 	Name           string  // offisiell norsk postbetegnelse
 	Description    string  // forklaring til brukeren
-	PostReference  string  // referanse i naeringsspesifikasjonen (kan vaere tom)
+	PostReference  string  // referanse i næringsspesifikasjonen (kan være tom)
 	DefaultPct     float64 // standard fradragsprosent (0-100)
-	SjablongAmount float64 // fast aarlig sjablongbelop i NOK (0 = ingen)
-	MaxAmount      float64 // maksbelop i NOK (0 = ingen)
-	Note           string  // saerregler / vilkaar
+	SjablongAmount float64 // fast årlig sjablongbeløp i NOK (0 = ingen)
+	MaxAmount      float64 // maksbeløp i NOK (0 = ingen)
+	Note           string  // særregler / vilkår
 }
 
 // TrinnskattBracket er ett trinn i trinnskatten. Threshold er nedre
@@ -33,14 +33,14 @@ type TrinnskattBracket struct {
 	Rate      float64
 }
 
-// Rules samler alle satser og kategorier for ett inntektsaar.
+// Rules samler alle satser og kategorier for ett inntektsår.
 type Rules struct {
 	Year int
 
 	Deductions []Deduction
 
 	// Sjablong- og standardsatser (NOK / prosent)
-	HjemmekontorSjablong    float64 // fast aarlig hjemmekontorfradrag
+	HjemmekontorSjablong    float64 // fast årlig hjemmekontorfradrag
 	KmRate                  float64 // skattefri sats per km, egen bil
 	KmPassengerAddon        float64 // tillegg per km per passasjer
 	SmaaanskaffelseLimit    float64 // grense for straksfradrag (ellers saldoavskriving)
@@ -48,8 +48,8 @@ type Rules struct {
 	EkPrivateAddback        float64 // sjablongtillegg for privat bruk av EK-tjeneste
 
 	// Personinntekt
-	AlminneligInntektsskattPct float64 // flat sats paa alminnelig inntekt
-	TrygdeavgiftNaeringPct     float64 // trygdeavgift paa naeringsinntekt
+	AlminneligInntektsskattPct float64 // flat sats på alminnelig inntekt
+	TrygdeavgiftNaeringPct     float64 // trygdeavgift på næringsinntekt
 	TrygdeavgiftNedreGrense    float64 // nedre grense for trygdeavgift
 	TrygdeavgiftOpptrappingPct float64 // opptrappingssats over nedre grense
 	TrinnskattBrackets         []TrinnskattBracket
@@ -57,7 +57,7 @@ type Rules struct {
 	Sources map[string]string // kilde-URL-er for satsene
 }
 
-// DeductionByKey finner en fradragskategori paa maskinnokkel.
+// DeductionByKey finner en fradragskategori på maskinnøkkel.
 func (r Rules) DeductionByKey(key string) (Deduction, bool) {
 	for _, d := range r.Deductions {
 		if d.Key == key {
@@ -103,7 +103,7 @@ func (r Rules) Trinnskatt(personinntekt float64) float64 {
 	return Round2(total)
 }
 
-// TaxEstimate er et grovt estimat paa skatt for et ENK.
+// TaxEstimate er et grovt estimat på skatt for et ENK.
 type TaxEstimate struct {
 	Year                    int
 	AlminneligInntekt       float64
@@ -114,8 +114,8 @@ type TaxEstimate struct {
 	SumSkatt                float64
 }
 
-// Estimate gir et forenklet skatteestimat. For et lite ENK uten lonn
-// settes ofte personinntekt ~ alminnelig inntekt (naeringsresultat), men
+// Estimate gir et forenklet skatteestimat. For et lite ENK uten lønn
+// settes ofte personinntekt ~ alminnelig inntekt (næringsresultat), men
 // vi tar begge som parametre for fleksibilitet. Dette er KUN et estimat.
 func (r Rules) Estimate(alminneligInntekt, personinntekt float64) TaxEstimate {
 	if alminneligInntekt < 0 {
@@ -147,14 +147,14 @@ func Round2(v float64) float64 {
 
 var registry = map[int]Rules{}
 
-// register kalles fra init() i hver aarsfil.
+// register kalles fra init() i hver årsfil.
 func register(r Rules) {
 	registry[r.Year] = r
 }
 
-// Load returnerer reglene for et inntektsaar. Finnes ikke aaret eksakt,
-// brukes naermeste tidligere aar som er registrert (regler gjelder til de
-// erstattes). Feiler bare hvis ingen aar er registrert.
+// Load returnerer reglene for et inntektsår. Finnes ikke året eksakt,
+// brukes nærmeste tidligere år som er registrert (regler gjelder til de
+// erstattes). Feiler bare hvis ingen år er registrert.
 func Load(year int) (Rules, error) {
 	if r, ok := registry[year]; ok {
 		return r, nil
@@ -166,12 +166,12 @@ func Load(year int) (Rules, error) {
 		}
 	}
 	if best == -1 {
-		return Rules{}, fmt.Errorf("ingen skatteregler registrert for inntektsaar %d eller tidligere", year)
+		return Rules{}, fmt.Errorf("ingen skatteregler registrert for inntektsår %d eller tidligere", year)
 	}
 	return registry[best], nil
 }
 
-// AvailableYears returnerer registrerte inntektsaar i stigende rekkefolge.
+// AvailableYears returnerer registrerte inntektsår i stigende rekkefolge.
 func AvailableYears() []int {
 	years := make([]int, 0, len(registry))
 	for y := range registry {

@@ -5,6 +5,6 @@ package main
 import "log"
 
 func main() {
-	log.Fatal("Den frittstaaende desktop-appen stottes kun paa macOS. " +
-		"Bruk 'enk-regnskap' (cmd/server) i nettleser paa andre plattformer.")
+	log.Fatal("Den frittstående desktop-appen støttes kun på macOS. " +
+		"Bruk 'enk-regnskap' (cmd/server) i nettleser på andre plattformer.")
 }

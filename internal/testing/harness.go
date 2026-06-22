@@ -1,5 +1,5 @@
 // Package apptest er appens eget lettvekts ende-til-ende-testbibliotek. Det
-// starter appen paa en tilfeldig port, simulerer nettleserinteraksjon over
+// starter appen på en tilfeldig port, simulerer nettleserinteraksjon over
 // HTTP, og tilbyr enkle assertions. Ikke Playwright/Selenium - bare net/http
 // og golang.org/x/net/html.
 package apptest
@@ -36,7 +36,7 @@ func Start(t *testing.T) *Harness {
 	return h
 }
 
-// StartRaw starter appen UTEN aa fullfore onboarding (for onboarding-tester).
+// StartRaw starter appen UTEN å fullfore onboarding (for onboarding-tester).
 func StartRaw(t *testing.T) *Harness {
 	t.Helper()
 	dir := t.TempDir()

@@ -43,7 +43,7 @@ type Tool struct {
 	Run         func(ctx context.Context, args Args) (string, error)
 }
 
-// obj og prop er hjelpere for aa bygge JSON Schema.
+// obj og prop er hjelpere for å bygge JSON Schema.
 func obj(props map[string]any, required ...string) map[string]any {
 	m := map[string]any{"type": "object", "properties": props}
 	if len(required) > 0 {
@@ -66,11 +66,11 @@ func (s *Server) buildTools() []Tool {
 	return []Tool{
 		{
 			Name:        "add_income",
-			Description: "Registrer en inntekt. For utenlandsk valuta hentes Norges Bank-kurs automatisk og NOK-belop beregnes. Sett country_code og foreign_tax_* for utenlandsinntekt.",
+			Description: "Registrer en inntekt. For utenlandsk valuta hentes Norges Bank-kurs automatisk og NOK-beløp beregnes. Sett country_code og foreign_tax_* for utenlandsinntekt.",
 			InputSchema: obj(map[string]any{
 				"date":               prop("string", "Dato (AAAA-MM-DD)"),
 				"description":        prop("string", "Beskrivelse"),
-				"amount":             prop("number", "Belop i valgt valuta"),
+				"amount":             prop("number", "Beløp i valgt valuta"),
 				"currency":           prop("string", "Valutakode (NOK, USD, EUR, BRL, ...). Default NOK."),
 				"country_code":       prop("string", "Kildeland ISO 3166-1 (default NO)"),
 				"category":           prop("string", "Inntektskategori (tjenesteinntekt, honorar, konsulent, royalty, annet)"),
@@ -106,8 +106,8 @@ func (s *Server) buildTools() []Tool {
 			InputSchema: obj(map[string]any{
 				"date":           prop("string", "Dato (AAAA-MM-DD)"),
 				"description":    prop("string", "Beskrivelse"),
-				"amount_nok":     prop("number", "Belop i NOK"),
-				"category":       prop("string", "Fradragskategori (se tax_info for gyldige nokler)"),
+				"amount_nok":     prop("number", "Beløp i NOK"),
+				"category":       prop("string", "Fradragskategori (se tax_info for gyldige nøkler)"),
 				"deductible_pct": prop("number", "Fradragsprosent (valgfritt; default fra kategori)"),
 				"tax_year":       prop("integer", "Inntektsar (default fra dato)"),
 				"notes":          prop("string", "Notater"),
@@ -157,8 +157,8 @@ func (s *Server) buildTools() []Tool {
 		},
 		{
 			Name:        "dashboard",
-			Description: "Hent noekkeltall (inntekt, fradrag, resultat, skatteestimat) for et inntektsar.",
-			InputSchema: obj(map[string]any{"year": prop("integer", "Inntektsar (default aktivt aar)")}),
+			Description: "Hent nøkkeltall (inntekt, fradrag, resultat, skatteestimat) for et inntektsar.",
+			InputSchema: obj(map[string]any{"year": prop("integer", "Inntektsar (default aktivt år)")}),
 			Run: func(ctx context.Context, a Args) (string, error) {
 				year := a.intval("year")
 				if year == 0 {
@@ -197,7 +197,7 @@ func (s *Server) buildTools() []Tool {
 		},
 		{
 			Name:        "tax_info",
-			Description: "Skatteregler for et ar: fradragskategorier (gyldige nokler) og satser.",
+			Description: "Skatteregler for et ar: fradragskategorier (gyldige nøkler) og satser.",
 			InputSchema: obj(map[string]any{"year": prop("integer", "Inntektsar")}, "year"),
 			Run: func(ctx context.Context, a Args) (string, error) {
 				rules, err := app.TaxRulesFor(a.intval("year"))
@@ -237,7 +237,7 @@ func (s *Server) buildTools() []Tool {
 		},
 		{
 			Name:        "set_active_year",
-			Description: "Sett aktivt inntektsar for appen (paavirker nettgrensesnittet).",
+			Description: "Sett aktivt inntektsar for appen (påvirker nettgrensesnittet).",
 			InputSchema: obj(map[string]any{"year": prop("integer", "Inntektsar")}, "year"),
 			Run: func(ctx context.Context, a Args) (string, error) {
 				year := a.intval("year")
@@ -250,7 +250,7 @@ func (s *Server) buildTools() []Tool {
 		},
 		{
 			Name:        "generate_dummy_data",
-			Description: "Fyll appen med et fiktivt testdatasett (12 inntekter inkl. brasilianske, 8 utgifter, en kvittering) for det aktive inntektsaaret.",
+			Description: "Fyll appen med et fiktivt testdatasett (12 inntekter inkl. brasilianske, 8 utgifter, en kvittering) for det aktive inntektsåret.",
 			InputSchema: obj(map[string]any{}),
 			Run: func(ctx context.Context, a Args) (string, error) {
 				n, err := app.GenerateDummyData(ctx, core.ActorMCP)
@@ -262,7 +262,7 @@ func (s *Server) buildTools() []Tool {
 		},
 		{
 			Name:        "rebuild_mirror",
-			Description: "Skriv den lesbare datakopien (mirror-mappen) paa nytt fra databasen.",
+			Description: "Skriv den lesbare datakopien (mirror-mappen) på nytt fra databasen.",
 			InputSchema: obj(map[string]any{}),
 			Run: func(ctx context.Context, a Args) (string, error) {
 				if err := app.SyncMirror(ctx); err != nil {
@@ -273,7 +273,7 @@ func (s *Server) buildTools() []Tool {
 		},
 		{
 			Name:        "import_mirror",
-			Description: "Sett tilstanden fra en lesbar mirror-mappe. ERSTATTER naavaerende inntekter, utgifter og kvitteringer. Uten 'dir' brukes appens egen mirror-mappe.",
+			Description: "Sett tilstanden fra en lesbar mirror-mappe. ERSTATTER nåværende inntekter, utgifter og kvitteringer. Uten 'dir' brukes appens egen mirror-mappe.",
 			InputSchema: obj(map[string]any{
 				"dir": prop("string", "Sti til mirror-mappen (valgfritt)"),
 			}),

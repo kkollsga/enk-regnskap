@@ -1,11 +1,11 @@
 // Package mcp eksponerer ENK Regnskap over Model Context Protocol slik at en
 // AI-agent kan betjene appen (legge til inntekt/utgift, sporre, lage rapporter,
-// angre). Serveren er en tynn adapter over internal/core, saa agentens
-// endringer gaar gjennom samme revisjonsspor og live-oppdatering (SSE) som
+// angre). Serveren er en tynn adapter over internal/core, så agentens
+// endringer går gjennom samme revisjonsspor og live-oppdatering (SSE) som
 // nettgrensesnittet.
 //
-// To transporter stottes:
-//   - HTTP: POST /mcp paa den kjorende web-serveren (in-process => live UI).
+// To transporter støttes:
+//   - HTTP: POST /mcp på den kjorende web-serveren (in-process => live UI).
 //   - stdio: `enk-regnskap --mcp` for klienter som Claude Code/Desktop.
 package mcp
 

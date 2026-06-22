@@ -23,7 +23,7 @@ func TestDashboardReflectsTransactions(t *testing.T) {
 		CountryCode: "NO", AmountOrig: 50000, Category: "honorar",
 	})
 	h.App.AddExpense(ctx, core.ActorWeb, core.ExpenseInput{
-		Date: "2025-02-15", Description: "Utstyr", Category: "smaa_driftsmidler",
+		Date: "2025-02-15", Description: "Utstyr", Category: "små_driftsmidler",
 		AmountNOK: 20000,
 	})
 
@@ -68,6 +68,6 @@ func TestYearSwitcherPersists(t *testing.T) {
 	b := h.Browser()
 	b.Get("/set-year?year=2024")
 	if got := h.App.ActiveYear(h.Context()); got != 2024 {
-		t.Errorf("aktivt aar = %d, forventet 2024 etter bytte", got)
+		t.Errorf("aktivt år = %d, forventet 2024 etter bytte", got)
 	}
 }

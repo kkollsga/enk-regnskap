@@ -6,7 +6,7 @@
 
 <div class="info-card">
   Dette er appens hjelpeseksjon. Satsene er hentet fra Skatteetaten og Lovdata.
-  Appen gir informasjon og stotteberegninger, ikke bindende skatteradgivning.
+  Appen gir informasjon og støtteberegninger, ikke bindende skatteradgivning.
 </div>
 
 {{if $d.HasRules}}
@@ -33,11 +33,11 @@
   <h2>Satser {{.Year}}</h2>
   <table class="kv">
     <tr><td>Hjemmekontor sjablong</td><td class="num">{{nok $r.HjemmekontorSjablong}}</td></tr>
-    <tr><td>Kilometgodtgjorelse (egen bil)</td><td class="num">{{nok $r.KmRate}} / km</td></tr>
-    <tr><td>Straksfradrag-grense (smaaanskaffelser)</td><td class="num">{{nok $r.SmaaanskaffelseLimit}}</td></tr>
+    <tr><td>Kilometgodtgjørelse (egen bil)</td><td class="num">{{nok $r.KmRate}} / km</td></tr>
+    <tr><td>Straksfradrag-grense (småanskaffelser)</td><td class="num">{{nok $r.SmaaanskaffelseLimit}}</td></tr>
     <tr><td>Representasjon per person</td><td class="num">{{nok $r.RepresentasjonPerPerson}}</td></tr>
     <tr><td>Alminnelig inntektsskatt</td><td class="num">{{pct $r.AlminneligInntektsskattPct}}</td></tr>
-    <tr><td>Trygdeavgift (naering)</td><td class="num">{{pct $r.TrygdeavgiftNaeringPct}}</td></tr>
+    <tr><td>Trygdeavgift (næring)</td><td class="num">{{pct $r.TrygdeavgiftNaeringPct}}</td></tr>
     <tr><td>Nedre grense trygdeavgift</td><td class="num">{{nok $r.TrygdeavgiftNedreGrense}}</td></tr>
   </table>
   <h3>Trinnskatt</h3>
@@ -94,7 +94,7 @@
   </div>
   {{end}}
   <p class="muted small">
-    <a href="https://www.skatteetaten.no/person/skatt/skattemelding/naringsdrivende/" target="_blank">Skatteetaten: skattemelding for naeringsdrivende →</a>
+    <a href="https://www.skatteetaten.no/person/skatt/skattemelding/naringsdrivende/" target="_blank">Skatteetaten: skattemelding for næringsdrivende →</a>
   </p>
 </section>
 {{end}}

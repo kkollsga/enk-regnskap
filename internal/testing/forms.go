@@ -7,7 +7,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-// Form representerer et HTML-skjema funnet paa en side, med standardverdier
+// Form representerer et HTML-skjema funnet på en side, med standardverdier
 // hentet fra feltene.
 type Form struct {
 	Action string
@@ -16,7 +16,7 @@ type Form struct {
 	doc    *Doc
 }
 
-// Form finner et skjema paa siden. selector kan vaere "" (forste skjema),
+// Form finner et skjema på siden. selector kan være "" (første skjema),
 // "#id", ".class", eller en delstreng av action-attributtet.
 func (d *Doc) Form(selector string) *Form {
 	d.t.Helper()
@@ -93,7 +93,7 @@ func collectFields(form *html.Node, vals url.Values) {
 	walk(form)
 }
 
-// selectedOption returnerer verdien til valgt option, ellers forste option.
+// selectedOption returnerer verdien til valgt option, ellers første option.
 func selectedOption(sel *html.Node) string {
 	var first, selected string
 	got := false

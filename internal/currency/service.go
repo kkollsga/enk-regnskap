@@ -10,8 +10,8 @@ import (
 )
 
 // maxCacheStaleDays er hvor mange dager en cachet kurs maks kan ligge for
-// onsket dato og fortsatt brukes direkte (dekker helg + helligdager). Er
-// gapet storre, hentes ny kurs fra provideren for aa unngaa feil "naermeste".
+// ønsket dato og fortsatt brukes direkte (dekker helg + helligdager). Er
+// gapet større, hentes ny kurs fra provideren for å unngå feil "nærmeste".
 const maxCacheStaleDays = 5
 
 // Service henter kurser via en provider og cacher dem i SQLite.
@@ -25,7 +25,7 @@ func NewService(provider ExchangeRateProvider, q *db.Queries) *Service {
 	return &Service{provider: provider, q: q}
 }
 
-// Rate returnerer kursen for currency paa date (NOK per 1 enhet). For NOK
+// Rate returnerer kursen for currency på date (NOK per 1 enhet). For NOK
 // returneres alltid 1. Kursen caches slik at gjentatte oppslag ikke trenger
 // nett.
 func (s *Service) Rate(ctx context.Context, currency, date string) (Rate, error) {
@@ -34,7 +34,7 @@ func (s *Service) Rate(ctx context.Context, currency, date string) (Rate, error)
 		return Rate{Currency: "NOK", Date: date, RateNOK: 1, Source: "fixed"}, nil
 	}
 
-	// 1. Cache: naermeste foregaaende kurs, hvis den er fersk nok.
+	// 1. Cache: nærmeste foregående kurs, hvis den er fersk nok.
 	cached, err := s.q.GetNearestExchangeRate(ctx, db.GetNearestExchangeRateParams{
 		Currency: currency,
 		Date:     date,

@@ -22,7 +22,7 @@ func TransactionsXLSX(w io.Writer, rep core.Report, catName func(string) string)
 	// Ark: Inntekter
 	inc := "Inntekter"
 	f.SetSheetName("Sheet1", inc)
-	incHeaders := []string{"Dato", "Beskrivelse", "Klient", "Kategori", "Land", "Valuta", "Belop", "Kurs", "Kursdato", "Belop NOK", "Utenlandsk skatt (NOK)"}
+	incHeaders := []string{"Dato", "Beskrivelse", "Klient", "Kategori", "Land", "Valuta", "Beløp", "Kurs", "Kursdato", "Beløp NOK", "Utenlandsk skatt (NOK)"}
 	writeRow(f, inc, 1, toAny(incHeaders)...)
 	r := 2
 	for _, in := range rep.Income {
@@ -37,7 +37,7 @@ func TransactionsXLSX(w io.Writer, rep core.Report, catName func(string) string)
 	// Ark: Utgifter
 	exp := "Utgifter"
 	f.NewSheet(exp)
-	expHeaders := []string{"Dato", "Beskrivelse", "Kategori", "Belop NOK", "Fradrag %", "Fradragsberettiget NOK"}
+	expHeaders := []string{"Dato", "Beskrivelse", "Kategori", "Beløp NOK", "Fradrag %", "Fradragsberettiget NOK"}
 	writeRow(f, exp, 1, toAny(expHeaders)...)
 	r = 2
 	for _, ex := range rep.Expenses {
@@ -49,14 +49,14 @@ func TransactionsXLSX(w io.Writer, rep core.Report, catName func(string) string)
 	return f.Write(w)
 }
 
-// Naeringsspesifikasjon skriver naeringsspesifikasjonen som .xlsx.
+// Næringsspesifikasjon skriver næringsspesifikasjonen som .xlsx.
 func Naeringsspesifikasjon(w io.Writer, rep core.Report, catName func(string) string) error {
 	f := excelize.NewFile()
 	defer f.Close()
-	sh := "Naeringsspesifikasjon"
+	sh := "Næringsspesifikasjon"
 	f.SetSheetName("Sheet1", sh)
 
-	writeRow(f, sh, 1, fmt.Sprintf("Naeringsspesifikasjon %d", rep.Year))
+	writeRow(f, sh, 1, fmt.Sprintf("Næringsspesifikasjon %d", rep.Year))
 	row := 3
 	writeRow(f, sh, row, "Driftsinntekter")
 	row++
@@ -74,7 +74,7 @@ func Naeringsspesifikasjon(w io.Writer, rep core.Report, catName func(string) st
 	}
 	writeRow(f, sh, row, "Sum fradrag", rep.TotalExpenses, rep.TotalDeductible)
 	row += 2
-	writeRow(f, sh, row, "Naeringsresultat", rep.Result)
+	writeRow(f, sh, row, "Næringsresultat", rep.Result)
 	return f.Write(w)
 }
 
@@ -85,7 +85,7 @@ func TransactionsCSV(w io.Writer, rep core.Report, catName func(string) string) 
 	cw.Comma = ';'
 	defer cw.Flush()
 
-	header := []string{"Type", "Dato", "Beskrivelse", "Kategori", "Land", "Valuta", "Belop", "Belop NOK", "Fradragsberettiget NOK", "Utenlandsk skatt NOK"}
+	header := []string{"Type", "Dato", "Beskrivelse", "Kategori", "Land", "Valuta", "Beløp", "Beløp NOK", "Fradragsberettiget NOK", "Utenlandsk skatt NOK"}
 	if err := cw.Write(header); err != nil {
 		return err
 	}

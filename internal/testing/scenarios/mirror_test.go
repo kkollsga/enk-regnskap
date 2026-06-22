@@ -11,7 +11,7 @@ import (
 	apptest "github.com/kkollsga/enk-regnskap/internal/testing"
 )
 
-// Lesbar mirror-mappe: ekstra sikkerhetsnett + import for aa sette tilstand.
+// Lesbar mirror-mappe: ekstra sikkerhetsnett + import for å sette tilstand.
 
 func TestMirrorAutoSyncIsHumanReadable(t *testing.T) {
 	h := apptest.Start(t)
@@ -72,7 +72,7 @@ func TestMirrorImportSetsState(t *testing.T) {
 	backupDir := filepath.Join(t.TempDir(), "min-backup")
 	copyDir(t, filepath.Join(h.DataDir, "mirror"), backupDir)
 
-	// Endre tilstanden etterpaa (legg til mer som IKKE er i backup-en).
+	// Endre tilstanden etterpå (legg til mer som IKKE er i backup-en).
 	h.App.AddIncome(ctx, core.ActorWeb, core.IncomeInput{
 		Date: "2025-03-01", Description: "Skal forsvinne ved import", Currency: "NOK",
 		CountryCode: "NO", AmountOrig: 99999, Category: "honorar",

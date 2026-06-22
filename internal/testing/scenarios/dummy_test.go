@@ -15,7 +15,7 @@ func TestGenerateDummyDataViaButton(t *testing.T) {
 
 	// Knappen i toppmenyen poster hit.
 	res := h.Browser().PostForm("/dev/dummy-data", nil)
-	apptest.AssertStatus(t, res, 200) // foelger redirect til /
+	apptest.AssertStatus(t, res, 200) // følger redirect til /
 
 	income, _ := h.App.ListIncome(h.Context(), 2025)
 	if len(income) != 12 {
@@ -26,13 +26,13 @@ func TestGenerateDummyDataViaButton(t *testing.T) {
 		t.Errorf("forventet 8 testutgifter, fikk %d", len(expenses))
 	}
 
-	// BRL-inntekt skal vaere konvertert til NOK uten nett (kurs fra cache).
+	// BRL-inntekt skal være konvertert til NOK uten nett (kurs fra cache).
 	var brl int
 	for _, in := range income {
 		if in.Currency == "BRL" {
 			brl++
 			if in.AmountNok <= 0 {
-				t.Errorf("BRL-inntekt %q mangler NOK-belop", in.Description)
+				t.Errorf("BRL-inntekt %q mangler NOK-beløp", in.Description)
 			}
 		}
 	}
@@ -40,7 +40,7 @@ func TestGenerateDummyDataViaButton(t *testing.T) {
 		t.Errorf("forventet 3 BRL-inntekter, fikk %d", brl)
 	}
 
-	// Utenlandsk skatt skal vaere aggregert (treaty for 2025).
+	// Utenlandsk skatt skal være aggregert (treaty for 2025).
 	credits, _ := h.App.ForeignTaxForYear(h.Context(), 2025)
 	if len(credits) != 1 || credits[0].Credit.LegalBasis.String != "treaty" {
 		t.Errorf("forventet 1 BR-kreditfradrag (treaty), fikk %+v", credits)

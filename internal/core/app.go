@@ -1,6 +1,6 @@
 // Package core er forretningslogikklaget i ENK Regnskap. Bade HTTP-handlerne
 // og MCP-serveren er tynne adaptere over dette laget, slik at en AI-agent og
-// en menneskelig bruker far noyaktig samme oppforsel - inkludert revisjonsspor
+// en menneskelig bruker far nøyaktig samme oppforsel - inkludert revisjonsspor
 // (change_log) og live oppdatering (SSE Hub).
 package core
 
@@ -25,7 +25,7 @@ type App struct {
 	DataDir  string
 }
 
-// New aapner databasen i dataDir/data.db, oppretter nodvendige mapper og
+// New åpner databasen i dataDir/data.db, oppretter nodvendige mapper og
 // returnerer en klar App. Hvis dataDir er tom brukes en flyktig in-memory
 // database (for test).
 func New(dataDir string, provider currency.ExchangeRateProvider) (*App, error) {
@@ -63,7 +63,7 @@ func (a *App) Close() error {
 
 // --- Konfigurasjon ---
 
-// Config-noekler som brukes av appen.
+// Config-nøkler som brukes av appen.
 const (
 	ConfigLanguage     = "language"
 	ConfigBusinessName = "business_name"
@@ -86,7 +86,7 @@ func (a *App) SetConfig(ctx context.Context, key, value string) error {
 	return a.Q.SetConfig(ctx, db.SetConfigParams{Key: key, Value: value})
 }
 
-// ActiveYear returnerer aktivt inntektsaar fra config, eller inneverende aar.
+// ActiveYear returnerer aktivt inntektsår fra config, eller inneverende år.
 func (a *App) ActiveYear(ctx context.Context) int {
 	v := a.GetConfig(ctx, ConfigActiveYear, "")
 	if v != "" {
@@ -98,12 +98,12 @@ func (a *App) ActiveYear(ctx context.Context) int {
 	return time.Now().Year()
 }
 
-// Language returnerer valgt sprak (default norsk bokmal).
+// Language returnerer valgt språk (default norsk bokmal).
 func (a *App) Language(ctx context.Context) string {
 	return a.GetConfig(ctx, ConfigLanguage, "nb")
 }
 
-// IsOnboarded forteller om forstegangsoppsettet er fullfort.
+// IsOnboarded forteller om førstegangsoppsettet er fullfort.
 func (a *App) IsOnboarded(ctx context.Context) bool {
 	return a.GetConfig(ctx, ConfigOnboarded, "") == "1"
 }

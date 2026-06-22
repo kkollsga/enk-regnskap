@@ -20,9 +20,9 @@ var dummyPNG = []byte{
 const dummyBRLRate = 1.85
 
 // GenerateDummyData fyller appen med et realistisk, FIKTIVT datasett for det
-// aktive inntektsaaret (12 inntekter inkl. brasilianske med IRRF, 8 utgifter
-// og en eksempelkvittering). Alt gaar via de vanlige (reviderte) kjernekallene,
-// saa endringslogg, mirror og live oppdatering oppdateres normalt.
+// aktive inntektsåret (12 inntekter inkl. brasilianske med IRRF, 8 utgifter
+// og en eksempelkvittering). Alt går via de vanlige (reviderte) kjernekallene,
+// så endringslogg, mirror og live oppdatering oppdateres normalt.
 // Returnerer antall opprettede transaksjoner.
 func (a *App) GenerateDummyData(ctx context.Context, actor string) (int, error) {
 	year := a.ActiveYear(ctx)
@@ -50,7 +50,7 @@ func (a *App) GenerateDummyData(ctx context.Context, actor string) (int, error) 
 		{"03-10", "Radgivning", "NOK", "NO", "konsulent", "Nordic Tech AS", 12000, 0, 0, ""},
 		{"04-05", "Lisensinntekt app", "NOK", "NO", "royalty", "App Store", 8000, 0, 0, ""},
 		{"05-12", "Stort prosjekt", "NOK", "NO", "tjenesteinntekt", "Equinor ASA", 25000, 0, 0, ""},
-		{"06-01", "Smaajobb", "NOK", "NO", "annet", "", 5000, 0, 0, ""},
+		{"06-01", "Småjobb", "NOK", "NO", "annet", "", 5000, 0, 0, ""},
 		{"09-15", "Konsulentoppdrag", "NOK", "NO", "konsulent", "Fjord Design AS", 30000, 0, 0, ""},
 		{"11-20", "Fagartikkel", "NOK", "NO", "honorar", "Teknisk Ukeblad", 11000, 0, 0, ""},
 		// Brasilianske inntekter (kurs 1,85):
@@ -73,7 +73,7 @@ func (a *App) GenerateDummyData(ctx context.Context, actor string) (int, error) 
 		count++
 	}
 
-	// En eksempelkvittering, knyttet til PC-kjopet.
+	// En eksempelkvittering, knyttet til PC-kjøpet.
 	var receiptID *int64
 	if rec, err := a.SaveReceipt(ctx, actor, ReceiptInput{
 		OriginalName: "kvittering-pc.png", MimeType: "image/png", Data: dummyPNG, TaxYear: year,
@@ -94,7 +94,7 @@ func (a *App) GenerateDummyData(ctx context.Context, actor string) (int, error) 
 		{"05-20", "Yrkeskjoring", "bil_km", 3500, 0, false},
 		{"06-15", "Fagkurs", "kurs_faglitteratur", 2500, 0, false},
 		{"08-01", "Regnskapsprogram", "regnskapsprogram", 1200, 0, false},
-		{"09-10", "Barbar PC", "smaa_driftsmidler", 18000, 0, true},
+		{"09-10", "Barbar PC", "små_driftsmidler", 18000, 0, true},
 	}
 	for _, ex := range expenses {
 		input := ExpenseInput{

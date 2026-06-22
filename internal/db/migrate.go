@@ -13,7 +13,7 @@ var schemaSQL string
 var seedCountrySQL string
 
 // Migrate kjorer skjema-migrasjonen. Alle setninger er idempotente
-// (CREATE TABLE/INDEX IF NOT EXISTS), saa funksjonen kan trygt kjores ved
+// (CREATE TABLE/INDEX IF NOT EXISTS), så funksjonen kan trygt kjores ved
 // hver oppstart.
 func Migrate(conn *sql.DB) error {
 	if _, err := conn.Exec(schemaSQL); err != nil {

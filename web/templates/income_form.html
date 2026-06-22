@@ -60,13 +60,13 @@
   <!-- Utenlandsk skatt: vises dynamisk for ikke-norsk kildeland -->
   <div id="foreign-tax-block" hidden>
     <div class="info-card" id="foreign-warn">
-      Inntekt fra utlandet er skattepliktig i Norge. For aa kreve kreditfradrag
-      trenger du dokumentasjon paa betalt utenlandsk skatt.
+      Inntekt fra utlandet er skattepliktig i Norge. For å kreve kreditfradrag
+      trenger du dokumentasjon på betalt utenlandsk skatt.
     </div>
     <div class="field">
-      <label>Er det trukket skatt paa denne inntekten i kildelandet?</label>
+      <label>Er det trukket skatt på denne inntekten i kildelandet?</label>
       <div>
-        <label class="inline"><input type="radio" name="foreign_tax_paid" value="1" {{if eq (index $d.Values "foreign_tax_paid") "1"}}checked{{end}}> Ja, med beloep</label>
+        <label class="inline"><input type="radio" name="foreign_tax_paid" value="1" {{if eq (index $d.Values "foreign_tax_paid") "1"}}checked{{end}}> Ja, med beløp</label>
         <label class="inline"><input type="radio" name="foreign_tax_paid" value="0" {{if eq (index $d.Values "foreign_tax_paid") "0"}}checked{{end}}> Nei</label>
         <label class="inline"><input type="radio" name="foreign_tax_paid" value="2" {{if eq (index $d.Values "foreign_tax_paid") "2"}}checked{{end}}> Vet ikke enna</label>
       </div>

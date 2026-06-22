@@ -17,7 +17,7 @@ const (
 )
 
 // RecomputeForeignTaxCredits aggregerer all utenlandsinntekt per land for et
-// inntektsaar og oppdaterer foreign_tax_credits. Brukerinnskrevne felter
+// inntektsår og oppdaterer foreign_tax_credits. Brukerinnskrevne felter
 // (dokumentasjon, status, notater) bevares. Dette er en avledet systemhandling
 // og logges ikke i endringsloggen.
 func (a *App) RecomputeForeignTaxCredits(ctx context.Context, year int) error {
@@ -67,7 +67,7 @@ func (a *App) RecomputeForeignTaxCredits(ctx context.Context, year int) error {
 	return nil
 }
 
-// legalBasis avgjor rettsgrunnlaget for kreditfradrag for et land og aar.
+// legalBasis avgjør rettsgrunnlaget for kreditfradrag for et land og år.
 func (a *App) legalBasis(ctx context.Context, country string, year int) string {
 	rule, err := a.Q.GetCountryRule(ctx, db.GetCountryRuleParams{
 		CountryCode:   country,
@@ -92,7 +92,7 @@ func (a *App) countryName(ctx context.Context, country string) string {
 	return country
 }
 
-// ForeignTaxOverview er en beriket visning av kreditfradrag for et aar.
+// ForeignTaxOverview er en beriket visning av kreditfradrag for et år.
 type ForeignTaxOverview struct {
 	Credit        db.ForeignTaxCredit
 	MaxCreditEst  float64 // estimert maksimalt kreditfradrag (§ 16-21)
@@ -100,7 +100,7 @@ type ForeignTaxOverview struct {
 	LegalBasisRef string
 }
 
-// ForeignTaxForYear henter alle kreditfradrag for et aar, beriket med estimat.
+// ForeignTaxForYear henter alle kreditfradrag for et år, beriket med estimat.
 func (a *App) ForeignTaxForYear(ctx context.Context, year int) ([]ForeignTaxOverview, error) {
 	rows, err := a.Q.ListForeignTaxCreditsByYear(ctx, int64(year))
 	if err != nil {
@@ -109,7 +109,7 @@ func (a *App) ForeignTaxForYear(ctx context.Context, year int) ([]ForeignTaxOver
 	out := make([]ForeignTaxOverview, 0, len(rows))
 	for _, c := range rows {
 		ov := ForeignTaxOverview{Credit: c}
-		// Estimert tak: norsk skatt som forholdsmessig faller paa inntekten.
+		// Estimert tak: norsk skatt som forholdsmessig faller på inntekten.
 		// Bruker alminnelig sats som konservativt anslag (sktl. § 16-21).
 		if rules, err := tax.Load(year); err == nil {
 			ov.MaxCreditEst = tax.Round2(c.IncomeNok * rules.AlminneligInntektsskattPct / 100.0)
@@ -125,7 +125,7 @@ func (a *App) ForeignTaxForYear(ctx context.Context, year int) ([]ForeignTaxOver
 	return out, nil
 }
 
-// CountryTaxTypes henter skattetypene for et land og inntektsaar (sjekkliste).
+// CountryTaxTypes henter skattetypene for et land og inntektsår (sjekkliste).
 func (a *App) CountryTaxTypes(ctx context.Context, country string, year int) ([]db.CountryTaxType, error) {
 	return a.Q.ListCountryTaxTypes(ctx, db.ListCountryTaxTypesParams{
 		CountryCode:   country,
@@ -144,8 +144,8 @@ type ForeignTaxStatusInput struct {
 	Notes             string
 }
 
-// UpdateForeignTaxStatus oppdaterer brukerstyrte felter paa et kreditfradrag
-// (dokumentasjon, status, notater) uten aa roere de aggregerte tallene.
+// UpdateForeignTaxStatus oppdaterer brukerstyrte felter på et kreditfradrag
+// (dokumentasjon, status, notater) uten å røre de aggregerte tallene.
 // Endringen revisjonslogges.
 func (a *App) UpdateForeignTaxStatus(ctx context.Context, actor string, in ForeignTaxStatusInput) error {
 	existing, err := a.Q.GetForeignTaxCredit(ctx, db.GetForeignTaxCreditParams{
@@ -195,7 +195,7 @@ type CountryOption struct {
 	Name string
 }
 
-// Countries returnerer registrerte land (for nedtrekksmenyer). Norge forst.
+// Countries returnerer registrerte land (for nedtrekksmenyer). Norge først.
 func (a *App) Countries(ctx context.Context) ([]CountryOption, error) {
 	rows, err := a.Q.ListCountryCodes(ctx)
 	if err != nil {

@@ -26,7 +26,7 @@ func seedReportData(t *testing.T, h *apptest.Harness) {
 		CountryCode: "NO", AmountOrig: 40000, Category: "honorar",
 	})
 	h.App.AddExpense(ctx, core.ActorWeb, core.ExpenseInput{
-		Date: "2025-01-20", Description: "PC", Category: "smaa_driftsmidler", AmountNOK: 15000,
+		Date: "2025-01-20", Description: "PC", Category: "små_driftsmidler", AmountNOK: 15000,
 	})
 }
 
@@ -48,7 +48,7 @@ func TestTaxSummaryIsValidPDF(t *testing.T) {
 	seedReportData(t, h)
 	_, body, _ := h.Browser().GetRaw("/reports/tax-summary.pdf")
 	if !strings.HasPrefix(body, "%PDF") {
-		t.Error("naeringsspesifikasjon er ikke en gyldig PDF")
+		t.Error("næringsspesifikasjon er ikke en gyldig PDF")
 	}
 }
 
@@ -60,10 +60,10 @@ func TestTransactionsXLSXIsValid(t *testing.T) {
 	if !strings.HasPrefix(body, "PK") {
 		t.Fatal("xlsx mangler ZIP-signatur (PK)")
 	}
-	// Maa kunne aapnes av excelize.
+	// Må kunne åpnes av excelize.
 	f, err := excelize.OpenReader(bytes.NewReader([]byte(body)))
 	if err != nil {
-		t.Fatalf("kunne ikke aapne xlsx: %v", err)
+		t.Fatalf("kunne ikke åpne xlsx: %v", err)
 	}
 	defer f.Close()
 	rows, err := f.GetRows("Inntekter")

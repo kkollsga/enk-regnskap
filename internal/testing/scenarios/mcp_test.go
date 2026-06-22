@@ -137,13 +137,13 @@ func TestMCPRollback(t *testing.T) {
 
 	rows, _ := h.App.ListIncome(h.Context(), 2025)
 	if len(rows) != 0 {
-		t.Errorf("inntekt skulle vaere rullet tilbake, fikk %d", len(rows))
+		t.Errorf("inntekt skulle være rullet tilbake, fikk %d", len(rows))
 	}
 }
 
 func TestMCPValidationError(t *testing.T) {
 	h := apptest.Start(t)
-	// Ugyldig inntekt (belop 0) -> isError, ikke protokollfeil.
+	// Ugyldig inntekt (beløp 0) -> isError, ikke protokollfeil.
 	out := mcpCall(t, h, "tools/call", map[string]any{
 		"name": "add_income",
 		"arguments": map[string]any{

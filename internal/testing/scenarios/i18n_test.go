@@ -7,7 +7,7 @@ import (
 	apptest "github.com/kkollsga/enk-regnskap/internal/testing"
 )
 
-// Fase 11: flerspraklig stotte.
+// Fase 11: flerspråklig støtte.
 
 func TestDefaultLanguageNorwegian(t *testing.T) {
 	h := apptest.Start(t)
@@ -35,11 +35,11 @@ func TestSetLangEndpointPersists(t *testing.T) {
 	b := h.Browser()
 	b.Get("/set-lang?lang=en")
 	if got := h.App.Language(h.Context()); got != "en" {
-		t.Errorf("sprak = %q, forventet en", got)
+		t.Errorf("språk = %q, forventet en", got)
 	}
-	// Ugyldig sprak ignoreres.
+	// Ugyldig språk ignoreres.
 	b.Get("/set-lang?lang=zz")
 	if got := h.App.Language(h.Context()); got != "en" {
-		t.Errorf("ugyldig sprak endret tilstand: %q", got)
+		t.Errorf("ugyldig språk endret tilstand: %q", got)
 	}
 }

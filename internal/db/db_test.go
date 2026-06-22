@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// openTest aapner en flyktig in-memory database for testing.
+// openTest åpner en flyktig in-memory database for testing.
 func openTest(t *testing.T) *sql.DB {
 	t.Helper()
 	conn, err := Open(":memory:")
@@ -96,7 +96,7 @@ func TestSeedCountryData(t *testing.T) {
 		t.Errorf("BR 2025 in_force_date = %q, forventet 2024-12-30", br25.TreatyInForceDate.String)
 	}
 
-	// Brasil-skattetyper: IRRF skal vaere krediterbar, COFINS ikke
+	// Brasil-skattetyper: IRRF skal være krediterbar, COFINS ikke
 	types, err := q.ListCountryTaxTypes(ctx, ListCountryTaxTypesParams{
 		CountryCode: "BR", EffectiveFrom: 2025,
 		EffectiveTo: sql.NullInt64{Int64: 2025, Valid: true},
@@ -129,7 +129,7 @@ func TestMigrationsIdempotent(t *testing.T) {
 		t.Fatalf("tredje SeedCountryData: %v", err)
 	}
 
-	// Antallet land-regler skal vaere uendret (ingen duplikater)
+	// Antallet land-regler skal være uendret (ingen duplikater)
 	var count int
 	if err := conn.QueryRow(`SELECT COUNT(*) FROM country_tax_rules`).Scan(&count); err != nil {
 		t.Fatalf("tell country_tax_rules: %v", err)
