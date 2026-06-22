@@ -29,12 +29,19 @@
     <select id="category" name="category">
       <option value="">– velg –</option>
       {{$cat := index $d.Values "category"}}
-      {{range $d.Categories}}
-        <option value="{{.Key}}" data-pct="{{.DefaultPct}}" {{if eq .Key $cat}}selected{{end}}>{{.Name}} ({{pct .DefaultPct}} fradrag)</option>
-      {{end}}
+      <optgroup label="Driftskostnader">
+        {{range $d.Categories}}{{if eq .Kind ""}}
+        <option value="{{.Key}}" data-pct="{{.DefaultPct}}" data-kind="{{.Kind}}" data-note="{{.Note}}" {{if eq .Key $cat}}selected{{end}}>{{.Name}} ({{pct .DefaultPct}} fradrag)</option>
+        {{end}}{{end}}
+      </optgroup>
+      <optgroup label="Skatt – Brasil (skatteavtale)">
+        {{range $d.Categories}}{{if ne .Kind ""}}
+        <option value="{{.Key}}" data-pct="{{.DefaultPct}}" data-kind="{{.Kind}}" data-note="{{.Note}}" {{if eq .Key $cat}}selected{{end}}>{{.Name}}</option>
+        {{end}}{{end}}
+      </optgroup>
     </select>
     {{with index $d.Errors "category"}}<div class="field-error">{{.}}</div>{{end}}
-    <div class="rate-info" id="cat-note" hidden></div>
+    <div class="info-card" id="cat-note" hidden></div>
   </div>
 
   <div class="field">
@@ -73,13 +80,28 @@
     if (opt && opt.dataset.pct && !userSetPct) {
       pct.value = opt.dataset.pct;
     }
+    // Vis veiledning for skattekategorier (kreditberettiget / overskytende).
+    var kind = opt ? opt.dataset.kind : "";
+    if (kind) {
+      catNote.textContent = opt.dataset.note || "";
+      catNote.className = "info-card" + (kind === "creditable" ? "" : " warn");
+      catNote.hidden = false;
+    } else {
+      catNote.hidden = true;
+    }
     update();
   }
   function update() {
+    var opt = category.options[category.selectedIndex];
+    var isTax = opt && opt.dataset.kind;
     var amt = parseFloat((amount.value || "0").replace(/\s/g, "").replace(",", ".")) || 0;
     var p = parseFloat((pct.value || "100").replace(",", ".")) || 0;
     var d = amt * p / 100;
-    info.innerHTML = "Fradragsberettiget: <strong>" + fmt(d) + " kr</strong>";
+    if (isTax) {
+      info.innerHTML = "Utenlandsk skatt – ikke kostnadsfradrag i resultatet.";
+    } else {
+      info.innerHTML = "Fradragsberettiget: <strong>" + fmt(d) + " kr</strong>";
+    }
     info.hidden = false;
   }
   category.addEventListener("change", applyCategoryDefault);

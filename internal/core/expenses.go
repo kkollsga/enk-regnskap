@@ -9,6 +9,19 @@ import (
 	"github.com/kkollsga/enk-regnskap/internal/tax"
 )
 
+// Kind for en utgiftskategori.
+const (
+	TaxKindNone          = ""              // vanlig driftskostnad
+	TaxKindCreditable    = "creditable"    // utenlandsk skatt som gir kreditfradrag
+	TaxKindNonCreditable = "noncreditable" // utenlandsk skatt uten kredit (overskytende)
+)
+
+// Gruppenavn for kategorier i nedtrekksmenyen.
+const (
+	GroupDriftskostnad = "Driftskostnader"
+	GroupSkattBrasil   = "Skatt – Brasil (skatteavtale)"
+)
+
 // ExpenseCategory beriker en fradragskategori med satser for et inntektsår.
 type ExpenseCategory struct {
 	Key            string
@@ -18,24 +31,37 @@ type ExpenseCategory struct {
 	SjablongAmount float64
 	MaxAmount      float64
 	Note           string
+	Kind           string // TaxKind*: vanlig kostnad eller utenlandsk skatt
+	Group          string
 }
 
 // ExpenseCategories henter fradragskategoriene for et inntektsår fra
-// skattereglene.
+// skattereglene, pluss kategorier for utenlandsk skatt (skatteavtale Brasil).
 func (a *App) ExpenseCategories(year int) []ExpenseCategory {
 	rules, err := tax.Load(year)
 	if err != nil {
-		return nil
+		return ForeignTaxExpenseCategories()
 	}
-	out := make([]ExpenseCategory, 0, len(rules.Deductions))
+	out := make([]ExpenseCategory, 0, len(rules.Deductions)+6)
 	for _, d := range rules.Deductions {
 		out = append(out, ExpenseCategory{
 			Key: d.Key, Name: d.Name, Description: d.Description,
 			DefaultPct: d.DefaultPct, SjablongAmount: d.SjablongAmount,
 			MaxAmount: d.MaxAmount, Note: d.Note,
+			Kind: TaxKindNone, Group: GroupDriftskostnad,
 		})
 	}
+	out = append(out, ForeignTaxExpenseCategories()...)
 	return out
+}
+
+// ExpenseCategoryKind returnerer kategoriens kind (vanlig / kreditberettiget /
+// ikke-krediterbar utenlandsk skatt).
+func (a *App) ExpenseCategoryKind(year int, key string) string {
+	if c, ok := a.expenseCategory(year, key); ok {
+		return c.Kind
+	}
+	return TaxKindNone
 }
 
 func (a *App) expenseCategory(year int, key string) (ExpenseCategory, bool) {

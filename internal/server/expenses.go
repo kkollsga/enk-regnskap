@@ -17,8 +17,10 @@ type expenseFormData struct {
 
 type expenseListData struct {
 	Expenses    []db.Expense
+	Kinds       map[string]string // kategorinøkkel -> TaxKind
 	TotalAmount float64
 	TotalDeduct float64
+	TaxSummary  core.TaxExpenseSummary
 }
 
 func (s *Server) handleExpenseList(w http.ResponseWriter, r *http.Request) {
@@ -28,12 +30,19 @@ func (s *Server) handleExpenseList(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	kinds := map[string]string{}
+	for _, c := range s.app().ExpenseCategories(v.Year) {
+		kinds[c.Key] = c.Kind
+	}
 	var amt, ded float64
 	for _, e := range rows {
 		amt += e.AmountNok
 		ded += e.DeductibleNok
 	}
-	v.Data = expenseListData{Expenses: rows, TotalAmount: amt, TotalDeduct: ded}
+	summary, _ := s.app().TaxExpenseSummaryForYear(r.Context(), v.Year)
+	v.Data = expenseListData{
+		Expenses: rows, Kinds: kinds, TotalAmount: amt, TotalDeduct: ded, TaxSummary: summary,
+	}
 	s.renderer.Render(w, "expenses_list", v)
 }
 

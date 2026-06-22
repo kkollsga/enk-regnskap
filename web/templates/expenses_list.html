@@ -4,6 +4,21 @@
   <h1>{{.Tr "nav_expenses"}} <span class="muted">{{.Year}}</span></h1>
 </section>
 
+{{if $d.TaxSummary.HasTaxExpense}}
+<div class="cards" style="margin-bottom:24px;">
+  <div class="card">
+    <div class="card-label">Kreditberettiget brasiliansk skatt (IRRF)</div>
+    <div class="card-value gold">{{nok $d.TaxSummary.Creditable}}</div>
+    <div class="muted small">Krediteres mot norsk skatt – se Utenlandsk skatt.</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Overskytende / ikke krediterbar skatt</div>
+    <div class="card-value red">{{nok $d.TaxSummary.Overpaid}}</div>
+    <div class="muted small">Skatt betalt til Brasil uten kreditfradrag.</div>
+  </div>
+</div>
+{{end}}
+
 {{if $d.Expenses}}
 <table class="data-table">
   <thead>
@@ -18,15 +33,20 @@
     </tr>
   </thead>
   <tbody>
-    {{range $d.Expenses}}
+    {{range $e := $d.Expenses}}
+    {{$kind := index $d.Kinds $e.Category}}
     <tr>
-      <td>{{.Date}}</td>
-      <td>{{.Description}}</td>
-      <td>{{.Category}}</td>
-      <td class="num">{{nok .AmountNok}}</td>
-      <td class="num">{{pct .DeductiblePct}}</td>
-      <td class="num">{{nok .DeductibleNok}}</td>
-      <td>{{if .ReceiptID.Valid}}<a href="/receipts/file/{{.ReceiptID.Int64}}" target="_blank">vis</a>{{else}}<span class="muted">–</span>{{end}}</td>
+      <td>{{$e.Date}}</td>
+      <td>{{$e.Description}}</td>
+      <td>
+        {{$e.Category}}
+        {{if eq $kind "creditable"}}<span class="badge badge-ok">Kreditberettiget</span>
+        {{else if eq $kind "noncreditable"}}<span class="badge badge-warn">Overskytende</span>{{end}}
+      </td>
+      <td class="num">{{nok $e.AmountNok}}</td>
+      <td class="num">{{pct $e.DeductiblePct}}</td>
+      <td class="num">{{nok $e.DeductibleNok}}</td>
+      <td>{{if $e.ReceiptID.Valid}}<a href="/receipts/file/{{$e.ReceiptID.Int64}}" target="_blank">vis</a>{{else}}<span class="muted">–</span>{{end}}</td>
     </tr>
     {{end}}
   </tbody>
