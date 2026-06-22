@@ -32,9 +32,10 @@ sqlc:
 ## dist: krysskompiler for Windows, macOS (arm64) og Linux
 dist: clean
 	mkdir -p $(DIST)
-	GOOS=windows GOARCH=amd64 go build -o $(DIST)/$(BINARY)-windows.exe $(PKG)
-	GOOS=darwin  GOARCH=arm64 go build -o $(DIST)/$(BINARY)-mac        $(PKG)
-	GOOS=linux   GOARCH=amd64 go build -o $(DIST)/$(BINARY)-linux      $(PKG)
+	GOOS=windows GOARCH=amd64 go build -o $(DIST)/$(BINARY)-windows.exe   $(PKG)
+	GOOS=darwin  GOARCH=arm64 go build -o $(DIST)/$(BINARY)-mac-arm64     $(PKG)
+	GOOS=darwin  GOARCH=amd64 go build -o $(DIST)/$(BINARY)-mac-intel     $(PKG)
+	GOOS=linux   GOARCH=amd64 go build -o $(DIST)/$(BINARY)-linux         $(PKG)
 
 ## clean: fjern byggeartefakter
 clean:

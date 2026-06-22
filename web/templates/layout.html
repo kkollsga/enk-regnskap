@@ -35,6 +35,10 @@
         <option value="en" {{if eq .Lang "en"}}selected{{end}}>EN</option>
       </select>
     </form>
+    <form method="POST" action="/dev/dummy-data"
+          onsubmit="return confirm('{{.Tr "dummy_confirm"}}');">
+      <button class="btn btn-small" type="submit" title="{{.Tr "dummy_hint"}}">{{.Tr "generate_test_data"}}</button>
+    </form>
     {{end}}
   </header>
   <main class="content">

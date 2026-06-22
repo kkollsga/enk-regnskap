@@ -76,6 +76,7 @@ h2 { font-size: 18px; font-weight: 600; }
 .btn:hover { background: var(--sep); text-decoration: none; }
 .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
 .btn-primary:hover { background: #16263f; }
+.btn-small { padding: 6px 10px; font-size: 13px; }
 
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 .card {

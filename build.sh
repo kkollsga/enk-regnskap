@@ -13,8 +13,11 @@ mkdir -p "$DIST"
 echo "Bygger windows/amd64 ..."
 GOOS=windows GOARCH=amd64 go build -o "$DIST/$BINARY-windows.exe" "$PKG"
 
-echo "Bygger darwin/arm64 ..."
-GOOS=darwin GOARCH=arm64 go build -o "$DIST/$BINARY-mac" "$PKG"
+echo "Bygger darwin/arm64 (Apple Silicon) ..."
+GOOS=darwin GOARCH=arm64 go build -o "$DIST/$BINARY-mac-arm64" "$PKG"
+
+echo "Bygger darwin/amd64 (Intel Mac) ..."
+GOOS=darwin GOARCH=amd64 go build -o "$DIST/$BINARY-mac-intel" "$PKG"
 
 echo "Bygger linux/amd64 ..."
 GOOS=linux GOARCH=amd64 go build -o "$DIST/$BINARY-linux" "$PKG"

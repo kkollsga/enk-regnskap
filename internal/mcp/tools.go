@@ -249,6 +249,18 @@ func (s *Server) buildTools() []Tool {
 			},
 		},
 		{
+			Name:        "generate_dummy_data",
+			Description: "Fyll appen med et fiktivt testdatasett (12 inntekter inkl. brasilianske, 8 utgifter, en kvittering) for det aktive inntektsaaret.",
+			InputSchema: obj(map[string]any{}),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				n, err := app.GenerateDummyData(ctx, core.ActorMCP)
+				if err != nil {
+					return "", err
+				}
+				return fmt.Sprintf("Opprettet %d fiktive transaksjoner.", n), nil
+			},
+		},
+		{
 			Name:        "rebuild_mirror",
 			Description: "Skriv den lesbare datakopien (mirror-mappen) paa nytt fra databasen.",
 			InputSchema: obj(map[string]any{}),

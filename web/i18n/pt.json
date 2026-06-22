@@ -29,5 +29,8 @@
   "dashboard_result": "Resultado tributável estimado",
   "dashboard_unlinked_receipts": "Comprovantes não processados",
   "saved": "Salvo",
-  "language": "Idioma"
+  "language": "Idioma",
+  "generate_test_data": "Dados de teste",
+  "dummy_confirm": "Gerar um conjunto de dados fictício para o ano selecionado?",
+  "dummy_hint": "Preencher o app com dados fictícios para demonstração/teste"
 }

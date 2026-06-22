@@ -33,6 +33,15 @@ func (s *Server) handleMirrorImport(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/reports?saved=1", http.StatusSeeOther)
 }
 
+// handleGenerateDummy fyller appen med fiktivt testdatasett.
+func (s *Server) handleGenerateDummy(w http.ResponseWriter, r *http.Request) {
+	if _, err := s.app.GenerateDummyData(r.Context(), core.ActorWeb); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/?saved=1", http.StatusSeeOther)
+}
+
 // handleMirrorRebuild skriver mirror-mappen paa nytt fra databasen.
 func (s *Server) handleMirrorRebuild(w http.ResponseWriter, r *http.Request) {
 	if err := s.app.SyncMirror(r.Context()); err != nil {

@@ -91,6 +91,7 @@ func (s *Server) routes() http.Handler {
 	r.Get("/export/backup.zip", s.handleBackup)
 	r.Post("/mirror/import", s.handleMirrorImport)
 	r.Post("/mirror/rebuild", s.handleMirrorRebuild)
+	r.Post("/dev/dummy-data", s.handleGenerateDummy)
 
 	r.Get("/changelog", s.handleChangelog)
 	r.Post("/changelog/rollback", s.handleRollback)

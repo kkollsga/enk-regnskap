@@ -29,5 +29,8 @@
   "dashboard_result": "Estimated taxable result",
   "dashboard_unlinked_receipts": "Unprocessed receipts",
   "saved": "Saved",
-  "language": "Language"
+  "language": "Language",
+  "generate_test_data": "Test data",
+  "dummy_confirm": "Generate a fictional test dataset for the selected year?",
+  "dummy_hint": "Fill the app with fictional sample data for demo/testing"
 }

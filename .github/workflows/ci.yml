@@ -37,7 +37,10 @@ jobs:
             out: enk-regnskap-windows.exe
           - goos: darwin
             goarch: arm64
-            out: enk-regnskap-mac
+            out: enk-regnskap-mac-arm64
+          - goos: darwin
+            goarch: amd64
+            out: enk-regnskap-mac-intel
           - goos: linux
             goarch: amd64
             out: enk-regnskap-linux
