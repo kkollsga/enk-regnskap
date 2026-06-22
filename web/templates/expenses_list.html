@@ -36,24 +36,56 @@
       <span class="entry-amount num">{{nok $e.AmountNok}}</span>
     </summary>
     <div class="entry-detail">
-      <table class="kv">
-        <tr><td>Kategori</td><td>{{index $d.CatNames $e.Category}}</td></tr>
-        <tr><td>Beløp</td><td>{{nok $e.AmountNok}}</td></tr>
-        <tr><td>Fradrag</td><td>{{pct $e.DeductiblePct}} → {{nok $e.DeductibleNok}} fradragsberettiget</td></tr>
-        {{if $e.Notes.Valid}}<tr><td>Notater</td><td>{{$e.Notes.String}}</td></tr>{{end}}
-      </table>
-      {{if $recs}}
-      <div class="attachments">
-        {{range $recs}}
-        <a class="attachment" href="/receipts/file/{{.ID}}" target="_blank" title="{{.OriginalName}}{{if .Description.Valid}} – {{.Description.String}}{{end}}">
-          <span class="attachment-icon">{{if eq .MimeType "application/pdf"}}📄{{else}}🖼{{end}}</span>
-          <span>{{if .Title.Valid}}{{.Title.String}}{{else}}{{.OriginalName}}{{end}}</span>
-        </a>
-        {{end}}
+      <div class="entry-view">
+        <table class="kv">
+          <tr><td>Kategori</td><td>{{index $d.CatNames $e.Category}}</td></tr>
+          <tr><td>Beløp</td><td>{{nok $e.AmountNok}}</td></tr>
+          <tr><td>Fradrag</td><td>{{pct $e.DeductiblePct}} → {{nok $e.DeductibleNok}} fradragsberettiget</td></tr>
+          {{if $e.Notes.Valid}}<tr><td>Notater</td><td>{{$e.Notes.String}}</td></tr>{{end}}
+        </table>
+        {{if $recs}}{{template "attachment_list" $recs}}{{end}}
+        <div class="entry-actions">
+          <button type="button" class="btn btn-small js-edit-toggle">Rediger</button>
+        </div>
       </div>
-      {{end}}
-      <div class="entry-actions">
-        <a class="btn btn-small" href="/expenses/{{$e.ID}}/edit">Rediger</a>
+
+      <div class="entry-edit" hidden>
+        <form method="POST" action="/expenses/{{$e.ID}}" enctype="multipart/form-data" data-attach-form novalidate>
+          <div class="edit-grid">
+            <label class="edit-field">Dato
+              <input type="date" name="date" value="{{$e.Date}}">
+            </label>
+            <label class="edit-field">Beskrivelse
+              <input type="text" name="description" value="{{$e.Description}}" autocomplete="off">
+            </label>
+            <label class="edit-field">Kategori
+              <select name="category">
+                {{range $d.Categories}}<option value="{{.Key}}" {{if eq .Key $e.Category}}selected{{end}}>{{.Name}}</option>{{end}}
+              </select>
+            </label>
+            <label class="edit-field">Beløp (NOK)
+              <input type="text" name="amount_nok" inputmode="decimal" value="{{printf "%g" $e.AmountNok}}">
+            </label>
+            <label class="edit-field">Fradragsprosent
+              <input type="text" name="deductible_pct" inputmode="decimal" value="{{printf "%g" $e.DeductiblePct}}">
+            </label>
+            <label class="edit-field edit-wide">Notater
+              <textarea name="notes" rows="2">{{$e.Notes.String}}</textarea>
+            </label>
+          </div>
+          <div class="edit-attach">
+            <div class="dropzone" tabindex="0">
+              <input type="file" class="js-file-input" name="attachment" accept="image/*,application/pdf" multiple hidden>
+              <span class="dropzone-text">Dra og slipp filer her, eller <strong>klikk for å velge</strong></span>
+            </div>
+            <div class="attach-list"></div>
+          </div>
+          <div class="entry-actions">
+            <button type="submit" class="btn btn-small btn-primary">Lagre</button>
+            <button type="button" class="btn btn-small js-edit-cancel">Avbryt</button>
+          </div>
+        </form>
+        {{template "existing_attachments_inline" $recs}}
       </div>
     </div>
   </details>

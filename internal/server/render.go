@@ -96,6 +96,7 @@ func (r *Renderer) loadTemplates() error {
 		"nok":   formatNOK,
 		"pct":   formatPct,
 		"orgnr": formatOrgNr,
+		"clip":  clip,
 	}
 	for _, e := range entries {
 		name := e.Name()

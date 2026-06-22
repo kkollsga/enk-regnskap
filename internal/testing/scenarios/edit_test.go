@@ -3,6 +3,7 @@ package scenarios
 import (
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/kkollsga/enk-regnskap/internal/core"
@@ -66,6 +67,49 @@ func TestEditFormPrefilled(t *testing.T) {
 	apptest.AssertBodyContains(t, doc, "4321")
 	// Skjemaet skal poste til oppdaterings-URL.
 	apptest.AssertHas(t, doc, "form[action=/income/"+strconv.FormatInt(inc.Income.ID, 10)+"]")
+}
+
+func TestInlineEditFormOnList(t *testing.T) {
+	h := apptest.Start(t)
+	h.App.SetConfig(h.Context(), core.ConfigActiveYear, "2025")
+	inc, _ := h.App.AddIncome(h.Context(), core.ActorWeb, core.IncomeInput{
+		Date: "2025-03-03", Description: "Inline-post", Currency: "NOK",
+		CountryCode: "NO", AmountOrig: 4321, Category: "konsulent",
+	})
+	doc := h.Browser().Get("/income")
+	apptest.AssertStatus(t, doc, 200)
+	// Inline-redigeringsskjemaet ligger i listen og poster til oppdaterings-URL.
+	apptest.AssertHas(t, doc, "form[action=/income/"+strconv.FormatInt(inc.Income.ID, 10)+"]")
+	apptest.AssertBodyContains(t, doc, "js-edit-toggle")
+	apptest.AssertBodyContains(t, doc, "4321") // forhåndsutfylt beløp
+}
+
+func TestAttachmentListingHasThumbAndCroppedDesc(t *testing.T) {
+	h := apptest.Start(t)
+	h.App.SetConfig(h.Context(), core.ConfigActiveYear, "2025")
+	longDesc := strings.Repeat("a", 250)
+	res := h.Browser().PostMultipartFiles("/expenses",
+		map[string]string{
+			"date": "2025-05-01", "description": "Med vedlegg",
+			"amount_nok": "500", "category": "kontorrekvisita",
+		},
+		"attachment",
+		[]apptest.UploadFile{{Name: "kvittering.png", ContentType: "image/png", Data: onePixelPNG()}},
+		map[string][]string{
+			"attachment_title": {"Kvittering"},
+			"attachment_desc":  {longDesc},
+		})
+	apptest.AssertStatus(t, res, 200)
+
+	doc := h.Browser().Get("/expenses")
+	// Miniatyrbilde + tittel vises i listevisningen.
+	apptest.AssertHas(t, doc, "a.attach-row")
+	apptest.AssertBodyContains(t, doc, "Kvittering")
+	// Undertittelen (beskrivelsen) kuttes til 200 tegn med ellipsis.
+	apptest.AssertHas(t, doc, ".attach-sub")
+	apptest.AssertHTMLContains(t, doc, ".attach-sub", "…")
+	sub := strings.Repeat("a", 200) + "…"
+	apptest.AssertHTMLContains(t, doc, ".attach-sub", sub)
 }
 
 func TestMultipleAttachmentsPerEntry(t *testing.T) {

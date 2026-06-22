@@ -24,6 +24,7 @@ type expenseListData struct {
 	Expenses    []db.Expense
 	Kinds       map[string]string // kategorinøkkel -> TaxKind
 	CatNames    map[string]string
+	Categories  []core.ExpenseCategory // for redigering i listen
 	Receipts    map[int64][]db.Receipt
 	TotalAmount float64
 	TotalDeduct float64
@@ -37,9 +38,10 @@ func (s *Server) handleExpenseList(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	cats := s.app().ExpenseCategories(v.Year)
 	kinds := map[string]string{}
 	catNames := map[string]string{}
-	for _, c := range s.app().ExpenseCategories(v.Year) {
+	for _, c := range cats {
 		kinds[c.Key] = c.Kind
 		catNames[c.Key] = c.Name
 	}
@@ -52,7 +54,7 @@ func (s *Server) handleExpenseList(w http.ResponseWriter, r *http.Request) {
 	}
 	summary, _ := s.app().TaxExpenseSummaryForYear(r.Context(), v.Year)
 	v.Data = expenseListData{
-		Expenses: rows, Kinds: kinds, CatNames: catNames, Receipts: receipts,
+		Expenses: rows, Kinds: kinds, CatNames: catNames, Categories: cats, Receipts: receipts,
 		TotalAmount: amt, TotalDeduct: ded, TaxSummary: summary,
 	}
 	s.renderer.Render(w, "expenses_list", v)

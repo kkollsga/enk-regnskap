@@ -17,26 +17,88 @@
       <span class="entry-amount num">{{nok $in.AmountNok}}</span>
     </summary>
     <div class="entry-detail">
-      <table class="kv">
-        <tr><td>Kategori</td><td>{{index $d.CatNames $in.Category}}</td></tr>
-        {{if $in.Client.Valid}}<tr><td>Klient</td><td>{{$in.Client.String}}</td></tr>{{end}}
-        <tr><td>Beløp</td><td>{{nok $in.AmountOrig}} {{$in.Currency}}{{if ne $in.Currency "NOK"}} → {{nok $in.AmountNok}}{{if $in.ExchangeRate.Valid}} <span class="muted">(kurs {{nok $in.ExchangeRate.Float64}} per {{$in.RateDate.String}})</span>{{end}}{{end}}</td></tr>
-        <tr><td>Kildeland</td><td>{{$in.CountryCode}}</td></tr>
-        {{if eq $in.ForeignTaxPaid 1}}<tr><td>Utenlandsk skatt</td><td>{{if $in.ForeignTaxNok.Valid}}{{nok $in.ForeignTaxNok.Float64}}{{end}} {{$in.ForeignTaxType.String}}</td></tr>{{end}}
-        {{if $in.Notes.Valid}}<tr><td>Notater</td><td>{{$in.Notes.String}}</td></tr>{{end}}
-      </table>
-      {{if $recs}}
-      <div class="attachments">
-        {{range $recs}}
-        <a class="attachment" href="/receipts/file/{{.ID}}" target="_blank" title="{{.OriginalName}}{{if .Description.Valid}} – {{.Description.String}}{{end}}">
-          <span class="attachment-icon">{{if eq .MimeType "application/pdf"}}📄{{else}}🖼{{end}}</span>
-          <span>{{if .Title.Valid}}{{.Title.String}}{{else}}{{.OriginalName}}{{end}}</span>
-        </a>
-        {{end}}
+      <div class="entry-view">
+        <table class="kv">
+          <tr><td>Kategori</td><td>{{index $d.CatNames $in.Category}}</td></tr>
+          {{if $in.Client.Valid}}<tr><td>Klient</td><td>{{$in.Client.String}}</td></tr>{{end}}
+          <tr><td>Beløp</td><td>{{nok $in.AmountOrig}} {{$in.Currency}}{{if ne $in.Currency "NOK"}} → {{nok $in.AmountNok}}{{if $in.ExchangeRate.Valid}} <span class="muted">(kurs {{nok $in.ExchangeRate.Float64}} per {{$in.RateDate.String}})</span>{{end}}{{end}}</td></tr>
+          <tr><td>Kildeland</td><td>{{$in.CountryCode}}</td></tr>
+          {{if eq $in.ForeignTaxPaid 1}}<tr><td>Utenlandsk skatt</td><td>{{if $in.ForeignTaxNok.Valid}}{{nok $in.ForeignTaxNok.Float64}}{{end}} {{$in.ForeignTaxType.String}}</td></tr>{{end}}
+          {{if $in.Notes.Valid}}<tr><td>Notater</td><td>{{$in.Notes.String}}</td></tr>{{end}}
+        </table>
+        {{if $recs}}{{template "attachment_list" $recs}}{{end}}
+        <div class="entry-actions">
+          <button type="button" class="btn btn-small js-edit-toggle">Rediger</button>
+        </div>
       </div>
-      {{end}}
-      <div class="entry-actions">
-        <a class="btn btn-small" href="/income/{{$in.ID}}/edit">Rediger</a>
+
+      <div class="entry-edit" hidden>
+        <form method="POST" action="/income/{{$in.ID}}" enctype="multipart/form-data" data-attach-form novalidate>
+          <div class="edit-grid">
+            <label class="edit-field">Dato
+              <input type="date" name="date" value="{{$in.Date}}">
+            </label>
+            <label class="edit-field">Beskrivelse
+              <input type="text" name="description" value="{{$in.Description}}" autocomplete="off">
+            </label>
+            <label class="edit-field">Klient
+              <input type="text" name="client" list="client-list-{{$in.ID}}" value="{{$in.Client.String}}" autocomplete="off">
+              <datalist id="client-list-{{$in.ID}}">{{range $d.Clients}}<option value="{{.}}">{{end}}</datalist>
+            </label>
+            <label class="edit-field">Kildeland
+              <select name="country_code">
+                {{range $d.Countries}}<option value="{{.Code}}" {{if eq .Code $in.CountryCode}}selected{{end}}>{{.Name}}</option>{{end}}
+              </select>
+            </label>
+            <label class="edit-field">Valuta
+              <select name="currency">
+                {{range $d.Currencies}}<option value="{{.}}" {{if eq . $in.Currency}}selected{{end}}>{{.}}</option>{{end}}
+              </select>
+            </label>
+            <label class="edit-field">Beløp
+              <input type="text" name="amount_orig" inputmode="decimal" value="{{printf "%g" $in.AmountOrig}}">
+            </label>
+            <label class="edit-field">Kategori
+              <select name="category">
+                {{range $d.Categories}}<option value="{{.Key}}" {{if eq .Key $in.Category}}selected{{end}}>{{.Name}}</option>{{end}}
+              </select>
+            </label>
+            <label class="edit-field edit-wide">Notater
+              <textarea name="notes" rows="2">{{$in.Notes.String}}</textarea>
+            </label>
+          </div>
+
+          <div class="foreign-block" hidden>
+            <div class="edit-field">Utenlandsk skatt trukket i kildelandet?
+              <div>
+                <label class="inline"><input type="radio" name="foreign_tax_paid" value="1" {{if eq $in.ForeignTaxPaid 1}}checked{{end}}> Ja</label>
+                <label class="inline"><input type="radio" name="foreign_tax_paid" value="0" {{if eq $in.ForeignTaxPaid 0}}checked{{end}}> Nei</label>
+                <label class="inline"><input type="radio" name="foreign_tax_paid" value="2" {{if eq $in.ForeignTaxPaid 2}}checked{{end}}> Vet ikke</label>
+              </div>
+            </div>
+            <div class="edit-grid">
+              <label class="edit-field">Betalt skatt (utenlandsk valuta)
+                <input type="text" name="foreign_tax_orig" inputmode="decimal" value="{{if $in.ForeignTaxOrig.Valid}}{{printf "%g" $in.ForeignTaxOrig.Float64}}{{end}}">
+              </label>
+              <label class="edit-field">Skattetype
+                <input type="text" name="foreign_tax_type" value="{{$in.ForeignTaxType.String}}" placeholder="f.eks. IRRF">
+              </label>
+            </div>
+          </div>
+
+          <div class="edit-attach">
+            <div class="dropzone" tabindex="0">
+              <input type="file" class="js-file-input" name="attachment" accept="image/*,application/pdf" multiple hidden>
+              <span class="dropzone-text">Dra og slipp filer her, eller <strong>klikk for å velge</strong></span>
+            </div>
+            <div class="attach-list"></div>
+          </div>
+          <div class="entry-actions">
+            <button type="submit" class="btn btn-small btn-primary">Lagre</button>
+            <button type="button" class="btn btn-small js-edit-cancel">Avbryt</button>
+          </div>
+        </form>
+        {{template "existing_attachments_inline" $recs}}
       </div>
     </div>
   </details>

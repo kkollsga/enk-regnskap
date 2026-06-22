@@ -27,10 +27,14 @@ type incomeFormData struct {
 
 // incomeListData er datamodellen for inntektslisten.
 type incomeListData struct {
-	Income   []db.Income
-	Total    float64
-	Receipts map[int64][]db.Receipt
-	CatNames map[string]string
+	Income     []db.Income
+	Total      float64
+	Receipts   map[int64][]db.Receipt
+	CatNames   map[string]string
+	Categories []core.Category      // for redigering i listen
+	Currencies []string             // for redigering i listen
+	Countries  []core.CountryOption // for redigering i listen
+	Clients    []string             // for redigering i listen
 }
 
 func (s *Server) handleIncomeList(w http.ResponseWriter, r *http.Request) {
@@ -46,11 +50,18 @@ func (s *Server) handleIncomeList(w http.ResponseWriter, r *http.Request) {
 		total += in.AmountNok
 		receipts[in.ID], _ = s.app().ReceiptsFor(r.Context(), "income", in.ID)
 	}
+	cats := core.IncomeCategories()
 	catNames := map[string]string{}
-	for _, c := range core.IncomeCategories() {
+	for _, c := range cats {
 		catNames[c.Key] = c.Name
 	}
-	v.Data = incomeListData{Income: rows, Total: total, Receipts: receipts, CatNames: catNames}
+	countries, _ := s.app().Countries(r.Context())
+	clients, _ := s.app().IncomeClients(r.Context())
+	v.Data = incomeListData{
+		Income: rows, Total: total, Receipts: receipts, CatNames: catNames,
+		Categories: cats, Currencies: core.SupportedCurrencies(),
+		Countries: countries, Clients: clients,
+	}
 	s.renderer.Render(w, "income_list", v)
 }
 

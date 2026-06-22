@@ -76,3 +76,46 @@
   <script src="/static/app.js"></script>
 </body>
 </html>
+{{define "attachment_list"}}
+<div class="attach-list-view">
+  {{range .}}
+  <a class="attach-row" href="/receipts/file/{{.ID}}" target="_blank" title="{{.OriginalName}}">
+    <span class="attach-thumb">
+      {{if eq .MimeType "application/pdf"}}<span class="attach-thumb-icon">📄</span>
+      {{else}}<img src="/receipts/file/{{.ID}}" alt="" loading="lazy">{{end}}
+    </span>
+    <span class="attach-text">
+      <span class="attach-title">{{if .Title.Valid}}{{.Title.String}}{{else}}{{.OriginalName}}{{end}}</span>
+      {{if .Description.Valid}}<span class="attach-sub">{{clip .Description.String}}</span>{{end}}
+    </span>
+  </a>
+  {{end}}
+</div>
+{{end}}
+
+{{define "existing_attachments_inline"}}
+{{if .}}
+<div class="existing-attachments">
+  {{range .}}
+  <div class="attach-item existing">
+    <a class="attach-name" href="/receipts/file/{{.ID}}" target="_blank">
+      <span class="attachment-icon">{{if eq .MimeType "application/pdf"}}📄{{else}}🖼{{end}}</span>
+      <span>{{if .Title.Valid}}{{.Title.String}}{{else}}{{.OriginalName}}{{end}}</span>
+    </a>
+    <button type="button" class="icon-btn js-edit-existing" title="Rediger vedlegg">✎</button>
+    <button type="button" class="icon-btn js-del-existing" title="Slett vedlegg">🗑</button>
+    <form class="attach-edit" method="POST" action="/receipts/{{.ID}}/meta" hidden>
+      <input type="text" name="title" value="{{if .Title.Valid}}{{.Title.String}}{{end}}" placeholder="Tittel">
+      <input type="text" name="description" value="{{if .Description.Valid}}{{.Description.String}}{{end}}" placeholder="Beskrivelse">
+      <button class="btn btn-small" type="submit">Lagre</button>
+    </form>
+    <form class="attach-confirm" method="POST" action="/receipts/{{.ID}}/delete" hidden>
+      <span>Slette vedlegget?</span>
+      <button class="btn btn-small btn-danger" type="submit">Ja, slett</button>
+      <button type="button" class="btn btn-small js-cancel-del">Avbryt</button>
+    </form>
+  </div>
+  {{end}}
+</div>
+{{end}}
+{{end}}

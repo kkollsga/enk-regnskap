@@ -32,3 +32,14 @@ func formatPct(v float64) string {
 	s = strings.Replace(s, ".", ",", 1)
 	return s + " %"
 }
+
+// clip gjør en tekst om til én linje (uten linjeskift) og kutter den til maks
+// 200 tegn, med ellipsis hvis den var lengre. Brukt for vedleggsbeskrivelser.
+func clip(s string) string {
+	s = strings.Join(strings.Fields(strings.ReplaceAll(s, "\n", " ")), " ")
+	r := []rune(s)
+	if len(r) > 200 {
+		return strings.TrimSpace(string(r[:200])) + "…"
+	}
+	return s
+}

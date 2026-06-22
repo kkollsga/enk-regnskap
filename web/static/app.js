@@ -27,11 +27,16 @@
   }
 
   // --- Vedlegg: drag-and-drop + per-fil rediger/slett (nye filer) ---
-  window.ENK.initAttachments = function () {
-    var dz = document.getElementById("dropzone");
-    var input = document.getElementById("file-input");
-    var list = document.getElementById("attach-list");
+  // root avgrenser oppslaget slik at flere skjemaer (f.eks. inline-redigering
+  // i listene) kan ha hver sin dropzone uten å kollidere på IDer.
+  window.ENK.initAttachments = function (root) {
+    root = root || document;
+    var dz = root.querySelector(".dropzone");
+    var input = root.querySelector(".js-file-input");
+    var list = root.querySelector(".attach-list");
     if (!dz || !input || !list) return;
+    if (dz.dataset.inited) return; // idempotent – trygt å kalle flere ganger
+    dz.dataset.inited = "1";
     var pending = []; // {file, title, desc}
 
     function syncInput() {
@@ -107,6 +112,45 @@
     } else if (e.target.classList.contains("js-cancel-del")) {
       var cf3 = item.querySelector(".attach-confirm");
       if (cf3) cf3.hidden = true;
+    }
+  });
+
+  // --- Inline-redigering av inntekt/utgift ---
+  function foreignVisibility(form) {
+    var cc = form.querySelector('select[name="country_code"]');
+    var block = form.querySelector(".foreign-block");
+    if (cc && block) block.hidden = cc.value === "NO";
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t.classList) return;
+    if (t.classList.contains("js-edit-toggle")) {
+      var detail = t.closest(".entry-detail");
+      if (!detail) return;
+      var view = detail.querySelector(".entry-view");
+      var edit = detail.querySelector(".entry-edit");
+      if (view) view.hidden = true;
+      if (edit) {
+        edit.hidden = false;
+        var form = edit.querySelector("[data-attach-form]");
+        if (form) {
+          window.ENK.initAttachments(form);
+          foreignVisibility(form);
+        }
+      }
+    } else if (t.classList.contains("js-edit-cancel")) {
+      var detail2 = t.closest(".entry-detail");
+      if (!detail2) return;
+      var edit2 = detail2.querySelector(".entry-edit");
+      var view2 = detail2.querySelector(".entry-view");
+      if (edit2) edit2.hidden = true;
+      if (view2) view2.hidden = false;
+    }
+  });
+  document.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.matches && t.matches('.entry-edit select[name="country_code"]')) {
+      foreignVisibility(t.closest("[data-attach-form]") || t.closest(".entry-edit"));
     }
   });
 
