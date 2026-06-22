@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS receipts (
   tax_year      INTEGER,                -- året kvitteringen ble lastet opp for
   uploaded_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE INDEX IF NOT EXISTS idx_receipts_parent ON receipts(parent_kind, parent_id);
+-- MERK: indeksen på (parent_kind, parent_id) opprettes i Go ETTER at
+-- kolonnene er lagt til (ensureColumn), slik at eldre databaser uten disse
+-- kolonnene ikke feiler her.
 
 -- Inntekter
 CREATE TABLE IF NOT EXISTS income (

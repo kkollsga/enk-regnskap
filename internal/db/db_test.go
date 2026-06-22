@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"path/filepath"
 	"testing"
 )
 
@@ -146,5 +147,53 @@ func TestMigrationsIdempotent(t *testing.T) {
 	// BR(5) + NO(3) = 8
 	if typeCount != 8 {
 		t.Errorf("country_tax_types count = %d, forventet 8", typeCount)
+	}
+}
+
+// TestMigrateOldReceiptsTable simulerer en eldre database der receipts mangler
+// parent-kolonnene, og verifiserer at migrasjonen legger dem til (og ikke
+// feiler på indeksen).
+func TestMigrateOldReceiptsTable(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "old.db")
+	conn, err := sql.Open("sqlite", "file:"+path+"?_pragma=foreign_keys(1)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.SetMaxOpenConns(1)
+	defer conn.Close()
+
+	// Gammel receipts-tabell (uten title/description/parent_*).
+	if _, err := conn.Exec(`CREATE TABLE receipts (
+		id INTEGER PRIMARY KEY, filename TEXT NOT NULL, original_name TEXT NOT NULL,
+		mime_type TEXT NOT NULL, tax_year INTEGER,
+		uploaded_at TEXT NOT NULL DEFAULT (datetime('now')))`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(`CREATE TABLE income (id INTEGER PRIMARY KEY, receipt_id INTEGER, tax_year INTEGER, country_code TEXT)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(`CREATE TABLE expenses (id INTEGER PRIMARY KEY, receipt_id INTEGER, tax_year INTEGER)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(`INSERT INTO receipts (id, filename, original_name, mime_type) VALUES (1, 'a.png', 'a.png', 'image/png')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(`INSERT INTO income (id, receipt_id, tax_year, country_code) VALUES (5, 1, 2025, 'NO')`); err != nil {
+		t.Fatal(err)
+	}
+
+	// Migrasjonen skal IKKE feile (det var feilen brukeren fikk).
+	if err := Migrate(conn); err != nil {
+		t.Fatalf("Migrate på gammel database feilet: %v", err)
+	}
+
+	// Kolonnene skal nå finnes, og koblingen være migrert.
+	var pk sql.NullString
+	var pid sql.NullInt64
+	if err := conn.QueryRow(`SELECT parent_kind, parent_id FROM receipts WHERE id=1`).Scan(&pk, &pid); err != nil {
+		t.Fatalf("nye kolonner mangler: %v", err)
+	}
+	if pk.String != "income" || pid.Int64 != 5 {
+		t.Errorf("kobling ikke migrert: parent_kind=%q parent_id=%d", pk.String, pid.Int64)
 	}
 }

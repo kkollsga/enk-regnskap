@@ -19,7 +19,8 @@ func Migrate(conn *sql.DB) error {
 	if _, err := conn.Exec(schemaSQL); err != nil {
 		return fmt.Errorf("kjor schema.sql: %w", err)
 	}
-	// Legg til nyere kolonner på eksisterende databaser (idempotent).
+	// Legg til nyere kolonner på eksisterende databaser (idempotent). Dette må
+	// skje FØR indeksen under, ellers feiler indeks på eldre databaser.
 	for _, c := range []struct{ table, column, def string }{
 		{"receipts", "title", "TEXT"},
 		{"receipts", "description", "TEXT"},
@@ -29,6 +30,10 @@ func Migrate(conn *sql.DB) error {
 		if err := ensureColumn(conn, c.table, c.column, c.def); err != nil {
 			return err
 		}
+	}
+	// Indeks på vedleggets parent-felter (etter at kolonnene finnes).
+	if _, err := conn.Exec(`CREATE INDEX IF NOT EXISTS idx_receipts_parent ON receipts(parent_kind, parent_id)`); err != nil {
+		return fmt.Errorf("opprett vedleggsindeks: %w", err)
 	}
 	// Migrer eksisterende enkeltkoblinger (income/expenses.receipt_id) til
 	// vedleggets parent-felter.
