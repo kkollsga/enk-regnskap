@@ -32,5 +32,12 @@
   "language": "Language",
   "generate_test_data": "Test data",
   "dummy_confirm": "Generate a fictional test dataset for the selected year?",
-  "dummy_hint": "Fill the app with fictional sample data for demo/testing"
+  "dummy_hint": "Fill the app with fictional sample data for demo/testing",
+  "topbar_add_income": "Income",
+  "topbar_add_expense": "Expense",
+  "more": "More",
+  "backup_download": "Download backup",
+  "mirror_rebuild": "Rebuild mirror copy",
+  "mirror_import": "Import mirror copy",
+  "mirror_import_confirm": "Import from the mirror copy? This REPLACES current data."
 }

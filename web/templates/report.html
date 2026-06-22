@@ -28,33 +28,7 @@
     <li><a class="btn" href="/reports/transactions.xlsx">Transaksjonslogg (Excel)</a></li>
     <li><a class="btn" href="/reports/transactions.csv">Transaksjonslogg (CSV)</a></li>
   </ul>
-</section>
-
-<section class="panel">
-  <h2>Sikkerhetskopi</h2>
-  <p class="muted small">
-    Komplett kopi av alt: hele databasen (alle transaksjoner, valutakurser,
-    konfigurasjon og endringslogg/angre-historikk) pluss alle kvitteringsfiler.
-    Gjenopprett ved aa pakke ut i en data-mappe.
-  </p>
-  <a class="btn btn-primary" href="/export/backup.zip">Last ned full sikkerhetskopi (.zip)</a>
-</section>
-
-<section class="panel">
-  <h2>Lesbar datakopi (mirror)</h2>
-  <p class="muted small">
-    En menneskelesbar speilkopi (JSON + kvitteringsfiler) oppdateres automatisk
-    ved hver endring – et ekstra sikkerhetsnett uten angre-historikk. Mappe:<br>
-    <strong>{{.MirrorDir}}</strong>
-  </p>
-  <form method="POST" action="/mirror/rebuild" style="display:inline;">
-    <button class="btn" type="submit">Bygg speilkopi paa nytt</button>
-  </form>
-  <form method="POST" action="/mirror/import" style="display:inline-block; margin-left:8px;"
-        onsubmit="return confirm('Importere fra speilkopi? Dette ERSTATTER naavaerende inntekter, utgifter og kvitteringer.');">
-    <input type="text" name="dir" placeholder="(standard: mirror-mappen)" style="width:auto; display:inline-block;">
-    <button class="btn" type="submit">Importer (sett tilstand)</button>
-  </form>
+  <p class="muted small">Full sikkerhetskopi og speilkopi finner du i «{{.Tr "more"}}»-menyen oppe til hoyre.</p>
 </section>
 
 <section class="panel">

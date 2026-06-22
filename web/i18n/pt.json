@@ -32,5 +32,12 @@
   "language": "Idioma",
   "generate_test_data": "Dados de teste",
   "dummy_confirm": "Gerar um conjunto de dados fictício para o ano selecionado?",
-  "dummy_hint": "Preencher o app com dados fictícios para demonstração/teste"
+  "dummy_hint": "Preencher o app com dados fictícios para demonstração/teste",
+  "topbar_add_income": "Receita",
+  "topbar_add_expense": "Despesa",
+  "more": "Mais",
+  "backup_download": "Baixar backup",
+  "mirror_rebuild": "Reconstruir cópia espelho",
+  "mirror_import": "Importar cópia espelho",
+  "mirror_import_confirm": "Importar da cópia espelho? Isso SUBSTITUI os dados atuais."
 }

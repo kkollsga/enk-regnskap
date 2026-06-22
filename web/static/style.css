@@ -43,6 +43,49 @@ a:hover { text-decoration: underline; }
 .mainnav a { color: var(--muted); font-weight: 500; padding: 4px 0; }
 .mainnav a:hover { color: var(--text); text-decoration: none; }
 .mainnav a.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+/* Overflow-meny ("Mer") - native <details>, ingen JS */
+details.menu { position: relative; }
+details.menu > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+details.menu > summary::-webkit-details-marker { display: none; }
+.menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 240px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+  padding: 6px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.menu-list a,
+.menu-list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.menu-list a:hover,
+.menu-list button:hover { background: var(--sep); text-decoration: none; }
+.menu-list form { margin: 0; }
+.menu-divider { height: 1px; background: var(--border); margin: 5px 4px; }
+
 .year-switch select {
   background: var(--sep);
   border: 1px solid var(--border);

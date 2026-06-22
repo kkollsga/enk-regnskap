@@ -18,27 +18,38 @@
       <a href="/foreign-tax" class="{{if eq .Active "foreign-tax"}}active{{end}}">{{.Tr "nav_foreign_tax"}}</a>
       <a href="/tax-info" class="{{if eq .Active "tax-info"}}active{{end}}">{{.Tr "nav_tax_info"}}</a>
       <a href="/reports" class="{{if eq .Active "reports"}}active{{end}}">{{.Tr "nav_reports"}}</a>
-      <a href="/changelog" class="{{if eq .Active "changelog"}}active{{end}}">{{.Tr "nav_changelog"}}</a>
     </nav>
-    <form class="year-switch" method="GET" action="/set-year">
-      <label class="visually-hidden" for="year-select">{{.Tr "common_year"}}</label>
-      <select id="year-select" name="year" onchange="this.form.submit()">
-        {{$y := .Year}}
-        {{range .Years}}<option value="{{.}}" {{if eq . $y}}selected{{end}}>{{.}}</option>{{end}}
-      </select>
-    </form>
-    <form class="year-switch" method="GET" action="/set-lang">
-      <label class="visually-hidden" for="lang-select">{{.Tr "language"}}</label>
-      <select id="lang-select" name="lang" onchange="this.form.submit()">
-        <option value="nb" {{if eq .Lang "nb"}}selected{{end}}>NB</option>
-        <option value="pt" {{if eq .Lang "pt"}}selected{{end}}>PT</option>
-        <option value="en" {{if eq .Lang "en"}}selected{{end}}>EN</option>
-      </select>
-    </form>
-    <form method="POST" action="/dev/dummy-data"
-          onsubmit="return confirm('{{.Tr "dummy_confirm"}}');">
-      <button class="btn btn-small" type="submit" title="{{.Tr "dummy_hint"}}">{{.Tr "generate_test_data"}}</button>
-    </form>
+    <div class="topbar-actions">
+      <a class="btn btn-primary btn-small" href="/income/new">+ {{.Tr "topbar_add_income"}}</a>
+      <a class="btn btn-small" href="/expenses/new">+ {{.Tr "topbar_add_expense"}}</a>
+      <form class="year-switch" method="GET" action="/set-year">
+        <label class="visually-hidden" for="year-select">{{.Tr "common_year"}}</label>
+        <select id="year-select" name="year" onchange="this.form.submit()">
+          {{$y := .Year}}
+          {{range .Years}}<option value="{{.}}" {{if eq . $y}}selected{{end}}>{{.}}</option>{{end}}
+        </select>
+      </form>
+      <form class="year-switch" method="GET" action="/set-lang">
+        <label class="visually-hidden" for="lang-select">{{.Tr "language"}}</label>
+        <select id="lang-select" name="lang" onchange="this.form.submit()">
+          <option value="nb" {{if eq .Lang "nb"}}selected{{end}}>NB</option>
+          <option value="pt" {{if eq .Lang "pt"}}selected{{end}}>PT</option>
+          <option value="en" {{if eq .Lang "en"}}selected{{end}}>EN</option>
+        </select>
+      </form>
+      <details class="menu">
+        <summary class="btn btn-small">{{.Tr "more"}} ▾</summary>
+        <div class="menu-list">
+          <a href="/changelog">{{.Tr "nav_changelog"}}</a>
+          <div class="menu-divider"></div>
+          <a href="/export/backup.zip">{{.Tr "backup_download"}}</a>
+          <form method="POST" action="/mirror/rebuild"><button type="submit">{{.Tr "mirror_rebuild"}}</button></form>
+          <form method="POST" action="/mirror/import" onsubmit="return confirm('{{.Tr "mirror_import_confirm"}}');"><button type="submit">{{.Tr "mirror_import"}}</button></form>
+          <div class="menu-divider"></div>
+          <form method="POST" action="/dev/dummy-data" onsubmit="return confirm('{{.Tr "dummy_confirm"}}');"><button type="submit" title="{{.Tr "dummy_hint"}}">{{.Tr "generate_test_data"}}</button></form>
+        </div>
+      </details>
+    </div>
     {{end}}
   </header>
   <main class="content">
