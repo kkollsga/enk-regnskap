@@ -16,11 +16,11 @@ type taxInfoData struct {
 func (s *Server) handleTaxInfo(w http.ResponseWriter, r *http.Request) {
 	v := s.view(r, "tax-info", s.tr(r, "nav_tax_info"))
 	data := taxInfoData{}
-	if rules, err := s.app.TaxRulesFor(v.Year); err == nil {
+	if rules, err := s.app().TaxRulesFor(v.Year); err == nil {
 		data.Rules = rules
 		data.HasRules = true
 	}
-	countries, err := s.app.CountryOverview(r.Context())
+	countries, err := s.app().CountryOverview(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

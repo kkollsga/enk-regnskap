@@ -39,5 +39,8 @@
   "backup_download": "Last ned sikkerhetskopi",
   "mirror_rebuild": "Bygg speilkopi paa nytt",
   "mirror_import": "Importer speilkopi",
-  "mirror_import_confirm": "Importere fra speilkopi? Dette ERSTATTER naavaerende data."
+  "mirror_import_confirm": "Importere fra speilkopi? Dette ERSTATTER naavaerende data.",
+  "import": "Importer",
+  "export": "Eksporter (sikkerhetskopi)",
+  "switch_project": "Bytt foretak"
 }

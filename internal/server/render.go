@@ -14,14 +14,16 @@ import (
 
 // View er datamodellen som sendes til hver mal.
 type View struct {
-	Lang      string
-	T         map[string]string // oversettelser for valgt sprak
-	Active    string            // aktiv navigasjonsside
-	Title     string
-	Year      int
-	Years     []int
-	MirrorDir string
-	Data      any // sidespesifikk data
+	Lang         string
+	T            map[string]string // oversettelser for valgt sprak
+	Active       string            // aktiv navigasjonsside
+	Title        string
+	Year         int
+	Years        []int
+	MirrorDir    string
+	ProjectName  string
+	MultiProject bool
+	Data         any // sidespesifikk data
 }
 
 // Tr slaar opp en oversettelse, med nokkelen som fallback.

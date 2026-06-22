@@ -39,5 +39,8 @@
   "backup_download": "Download backup",
   "mirror_rebuild": "Rebuild mirror copy",
   "mirror_import": "Import mirror copy",
-  "mirror_import_confirm": "Import from the mirror copy? This REPLACES current data."
+  "mirror_import_confirm": "Import from the mirror copy? This REPLACES current data.",
+  "import": "Import",
+  "export": "Export (backup)",
+  "switch_project": "Switch company"
 }

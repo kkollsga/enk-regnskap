@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"time"
 
@@ -22,31 +21,30 @@ import (
 
 func main() {
 	var (
-		dataDir = flag.String("data", defaultDataDir(), "mappe for database og kvitteringer (synkroniseres gjerne via OneDrive)")
+		home    = flag.String("home", core.DefaultBaseDir(), "basismappe for prosjekter (~/ENK-Regnskap). Hvert foretak er en undermappe.")
+		dataDir = flag.String("data", "", "valgfritt: bruk en enkelt prosjektmappe direkte (overstyrer -home)")
 		port    = flag.Int("port", 7331, "HTTP-port")
 		noOpen  = flag.Bool("no-open", false, "ikke apne nettleseren automatisk")
 		mcpMode = flag.Bool("mcp", false, "kjor som MCP-server over stdio (for AI-agenter)")
 	)
 	flag.Parse()
 
-	app, err := core.New(*dataDir, nil)
+	srv, label, closer, mcpApp, err := build(*home, *dataDir)
 	if err != nil {
 		log.Fatalf("kunne ikke starte: %v", err)
 	}
-	defer app.Close()
+	defer closer()
 
 	// MCP stdio-modus: ingen web-server, snakk JSON-RPC over stdin/stdout.
 	if *mcpMode {
 		log.SetOutput(os.Stderr)
-		if err := mcp.New(app).ServeStdio(context.Background(), os.Stdin, os.Stdout); err != nil {
+		if mcpApp == nil {
+			log.Fatalf("ingen aktivt prosjekt for MCP. Opprett et prosjekt i appen forst, eller bruk -data <mappe>.")
+		}
+		if err := mcp.New(mcpApp).ServeStdio(context.Background(), os.Stdin, os.Stdout); err != nil {
 			log.Fatalf("mcp stdio: %v", err)
 		}
 		return
-	}
-
-	srv, err := server.New(app)
-	if err != nil {
-		log.Fatalf("kunne ikke bygge server: %v", err)
 	}
 
 	ln, addr, err := listen(*port)
@@ -62,7 +60,7 @@ func main() {
 		}
 	}()
 
-	log.Printf("ENK Regnskap kjorer paa %s (data: %s)", url, *dataDir)
+	log.Printf("ENK Regnskap kjorer paa %s (%s)", url, label)
 	if !*noOpen {
 		waitUntilReady(url, 3*time.Second)
 		openBrowser(url)
@@ -70,6 +68,33 @@ func main() {
 
 	// Blokker til prosessen avsluttes.
 	select {}
+}
+
+// build setter opp serveren i enten enkeltprosjekt- (-data) eller
+// flerprosjekt-modus (-home). Returnerer ogsaa en eventuell App for MCP-stdio.
+func build(home, dataDir string) (*server.Server, string, func(), *core.App, error) {
+	if dataDir != "" {
+		app, err := core.New(dataDir, nil)
+		if err != nil {
+			return nil, "", nil, nil, err
+		}
+		srv, err := server.New(app)
+		if err != nil {
+			app.Close()
+			return nil, "", nil, nil, err
+		}
+		return srv, "data: " + dataDir, func() { app.Close() }, app, nil
+	}
+	ws, err := core.NewWorkspace(home, nil)
+	if err != nil {
+		return nil, "", nil, nil, err
+	}
+	srv, err := server.NewWithWorkspace(ws)
+	if err != nil {
+		ws.Close()
+		return nil, "", nil, nil, err
+	}
+	return srv, "prosjektmappe: " + home, func() { ws.Close() }, ws.Current(), nil
 }
 
 // listen prover oppgitt port, deretter de neste 10, og returnerer en lytter.
@@ -82,18 +107,6 @@ func listen(preferred int) (net.Listener, string, error) {
 		}
 	}
 	return nil, "", fmt.Errorf("ingen ledig port i %d-%d", preferred, preferred+10)
-}
-
-// defaultDataDir velger en fornuftig standardmappe ved siden av binaeren / hjemme.
-func defaultDataDir() string {
-	if v := os.Getenv("ENK_DATA_DIR"); v != "" {
-		return v
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "data"
-	}
-	return filepath.Join(home, "ENK-Regnskap", "data")
 }
 
 // waitUntilReady venter til serveren svarer paa /health, eller timeout.

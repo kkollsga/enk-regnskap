@@ -39,6 +39,18 @@ a:hover { text-decoration: underline; }
 }
 .brand { font-weight: 700; font-size: 17px; color: var(--primary); }
 .brand:hover { text-decoration: none; }
+.brand-project { color: var(--muted); font-weight: 600; font-size: 14px; padding-left: 4px; border-left: 1px solid var(--border); margin-left: 4px; padding-left: 12px; }
+
+.project-list { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.project-open {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  text-align: left; padding: 14px 16px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: #fff; cursor: pointer; font: inherit;
+}
+.project-open:hover { background: var(--sep); }
+.project-open.active { border-color: var(--primary); }
+.project-title { font-weight: 600; font-size: 16px; color: var(--text); }
+.project-row { margin: 0; }
 .mainnav { display: flex; gap: 20px; flex: 1; }
 .mainnav a { color: var(--muted); font-weight: 500; padding: 4px 0; }
 .mainnav a:hover { color: var(--text); text-decoration: none; }

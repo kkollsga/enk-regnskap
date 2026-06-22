@@ -11,24 +11,24 @@ import (
 
 func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 	v := s.view(r, "reports", s.tr(r, "nav_reports"))
-	rep, err := s.app.BuildReport(r.Context(), v.Year)
+	rep, err := s.app().BuildReport(r.Context(), v.Year)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	v.MirrorDir = s.app.MirrorDir()
+	v.MirrorDir = s.app().MirrorDir()
 	v.Data = rep
 	s.renderer.Render(w, "report", v)
 }
 
 // catNamer gir en funksjon som oversetter kategorinokler til navn for aaret.
 func (s *Server) catNamer(year int) func(string) string {
-	return func(key string) string { return s.app.CategoryDisplayName(year, key) }
+	return func(key string) string { return s.app().CategoryDisplayName(year, key) }
 }
 
 func (s *Server) buildReportFor(r *http.Request) (core.Report, error) {
-	year := s.app.ActiveYear(r.Context())
-	return s.app.BuildReport(r.Context(), year)
+	year := s.app().ActiveYear(r.Context())
+	return s.app().BuildReport(r.Context(), year)
 }
 
 func (s *Server) handleAnnualPDF(w http.ResponseWriter, r *http.Request) {

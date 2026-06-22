@@ -21,10 +21,10 @@ func (s *Server) handleReceiptsList(w http.ResponseWriter, r *http.Request) {
 	var rows []db.Receipt
 	var err error
 	if filter == "unlinked" {
-		rows, err = s.app.ListUnlinkedReceipts(r.Context())
+		rows, err = s.app().ListUnlinkedReceipts(r.Context())
 	} else {
 		filter = "all"
-		rows, err = s.app.ListReceipts(r.Context())
+		rows, err = s.app().ListReceipts(r.Context())
 	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -40,7 +40,7 @@ func (s *Server) handleReceiptUpload(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ugyldig opplasting", http.StatusBadRequest)
 		return
 	}
-	rid, err := s.maybeUploadReceipt(r, s.app.ActiveYear(r.Context()))
+	rid, err := s.maybeUploadReceipt(r, s.app().ActiveYear(r.Context()))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -68,7 +68,7 @@ func (s *Server) maybeUploadReceipt(r *http.Request, year int) (*int64, error) {
 		return nil, err
 	}
 	mime := header.Header.Get("Content-Type")
-	rec, err := s.app.SaveReceipt(r.Context(), core.ActorWeb, core.ReceiptInput{
+	rec, err := s.app().SaveReceipt(r.Context(), core.ActorWeb, core.ReceiptInput{
 		OriginalName: header.Filename,
 		MimeType:     mime,
 		Data:         data,
@@ -90,14 +90,14 @@ func (s *Server) handleReceiptFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ugyldig id", http.StatusBadRequest)
 		return
 	}
-	rec, err := s.app.GetReceipt(r.Context(), id)
+	rec, err := s.app().GetReceipt(r.Context(), id)
 	if err != nil {
 		http.Error(w, "ikke funnet", http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", rec.MimeType)
 	w.Header().Set("Content-Disposition", "inline; filename=\""+rec.OriginalName+"\"")
-	http.ServeFile(w, r, s.app.ReceiptPath(rec))
+	http.ServeFile(w, r, s.app().ReceiptPath(rec))
 }
 
 // handleReceiptLink knytter en kvittering til en transaksjon.
@@ -109,7 +109,7 @@ func (s *Server) handleReceiptLink(w http.ResponseWriter, r *http.Request) {
 	receiptID, _ := strconv.ParseInt(r.FormValue("receipt_id"), 10, 64)
 	txID, _ := strconv.ParseInt(r.FormValue("tx_id"), 10, 64)
 	kind := r.FormValue("kind")
-	if err := s.app.LinkReceipt(r.Context(), core.ActorWeb, kind, txID, receiptID); err != nil {
+	if err := s.app().LinkReceipt(r.Context(), core.ActorWeb, kind, txID, receiptID); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

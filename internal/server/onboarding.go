@@ -13,8 +13,19 @@ func (s *Server) onboardingGate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Path
 		exempt := p == "/welcome" || p == "/onboard" || p == "/health" ||
-			p == "/events" || p == "/mcp" || strings.HasPrefix(p, "/static/")
-		if !exempt && !s.app.IsOnboarded(r.Context()) {
+			p == "/events" || p == "/mcp" || p == "/projects" ||
+			p == "/projects/open" || p == "/projects/create" ||
+			strings.HasPrefix(p, "/static/")
+		if exempt {
+			next.ServeHTTP(w, r)
+			return
+		}
+		// Flerprosjekt: ingen aktiv prosjekt -> velg/opprett prosjekt.
+		if s.app() == nil {
+			http.Redirect(w, r, "/projects", http.StatusSeeOther)
+			return
+		}
+		if !s.app().IsOnboarded(r.Context()) {
 			http.Redirect(w, r, "/welcome", http.StatusSeeOther)
 			return
 		}
@@ -23,17 +34,26 @@ func (s *Server) onboardingGate(next http.Handler) http.Handler {
 }
 
 func (s *Server) handleWelcome(w http.ResponseWriter, r *http.Request) {
+	// Flerprosjekt uten aktiv prosjekt -> til prosjektvelgeren.
+	if s.app() == nil {
+		http.Redirect(w, r, "/projects", http.StatusSeeOther)
+		return
+	}
 	// Allerede ferdig? Gaa til dashbordet.
-	if s.app.IsOnboarded(r.Context()) {
+	if s.app().IsOnboarded(r.Context()) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 	v := s.view(r, "welcome", "Velkommen")
-	v.Data = map[string]string{"DataDir": s.app.DataDir}
+	v.Data = map[string]string{"DataDir": s.app().DataDir}
 	s.renderer.Render(w, "welcome", v)
 }
 
 func (s *Server) handleOnboard(w http.ResponseWriter, r *http.Request) {
+	if s.app() == nil {
+		http.Redirect(w, r, "/projects", http.StatusSeeOther)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "ugyldig skjema", http.StatusBadRequest)
 		return
@@ -43,7 +63,7 @@ func (s *Server) handleOnboard(w http.ResponseWriter, r *http.Request) {
 		OrgNr:        r.FormValue("org_nr"),
 		Language:     r.FormValue("language"),
 	}
-	if err := s.app.CompleteOnboarding(r.Context(), in); err != nil {
+	if err := s.app().CompleteOnboarding(r.Context(), in); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

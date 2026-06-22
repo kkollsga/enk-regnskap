@@ -18,20 +18,44 @@ import (
 	"github.com/kkollsga/enk-regnskap/web"
 )
 
+// AppSource gir den aktive core.App. Implementeres av et enkelt statisk
+// holder (én fast app, brukt i test/CLI) og av core.Workspace (flere
+// prosjekter med bytte i farten).
+type AppSource interface {
+	Current() *core.App
+}
+
+type staticSource struct{ app *core.App }
+
+func (s staticSource) Current() *core.App { return s.app }
+
 // Server binder core.App til HTTP-laget.
 type Server struct {
-	app      *core.App
+	src      AppSource
+	ws       *core.Workspace // valgfritt: flerprosjekt-stotte
 	renderer *Renderer
 	mux      http.Handler
 }
 
-// New lager en Server med parsede maler og ferdig router.
+// app returnerer den aktive App-instansen.
+func (s *Server) app() *core.App { return s.src.Current() }
+
+// New lager en Server for en enkelt app (test/CLI).
 func New(app *core.App) (*Server, error) {
+	return newServer(staticSource{app: app}, nil)
+}
+
+// NewWithWorkspace lager en Server med flerprosjekt-stotte.
+func NewWithWorkspace(ws *core.Workspace) (*Server, error) {
+	return newServer(ws, ws)
+}
+
+func newServer(src AppSource, ws *core.Workspace) (*Server, error) {
 	r, err := NewRenderer()
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{app: app, renderer: r}
+	s := &Server{src: src, ws: ws, renderer: r}
 	s.mux = s.routes()
 	return s, nil
 }
@@ -52,13 +76,23 @@ func (s *Server) routes() http.Handler {
 
 	r.Get("/welcome", s.handleWelcome)
 	r.Post("/onboard", s.handleOnboard)
+	r.Get("/projects", s.handleProjects)
+	r.Post("/projects/open", s.handleProjectOpen)
+	r.Post("/projects/create", s.handleProjectCreate)
 
 	r.Get("/health", s.handleHealth)
 	r.Get("/events", s.handleEvents)
 	r.Get("/api/exchange-rate", s.handleExchangeRate)
 
 	// MCP-endepunkt (in-process => agentens endringer oppdaterer UI-et live).
-	r.Post("/mcp", mcp.New(s.app).HTTPHandler())
+	// Bygges per kall slik at det alltid treffer aktivt prosjekt.
+	r.Post("/mcp", func(w http.ResponseWriter, req *http.Request) {
+		if s.app() == nil {
+			http.Error(w, "ingen aktiv prosjekt", http.StatusServiceUnavailable)
+			return
+		}
+		mcp.New(s.app()).HTTPHandler()(w, req)
+	})
 
 	r.Get("/", s.handleDashboard)
 	r.Get("/set-year", s.handleSetYear)
@@ -89,8 +123,8 @@ func (s *Server) routes() http.Handler {
 	r.Get("/reports/naeringsspesifikasjon.xlsx", s.handleNaeringsspesifikasjonXLSX)
 	r.Get("/reports/transactions.csv", s.handleTransactionsCSV)
 	r.Get("/export/backup.zip", s.handleBackup)
-	r.Post("/mirror/import", s.handleMirrorImport)
-	r.Post("/mirror/rebuild", s.handleMirrorRebuild)
+	r.Get("/import", s.handleImportPage)
+	r.Post("/import", s.handleImport)
 	r.Post("/dev/dummy-data", s.handleGenerateDummy)
 
 	r.Get("/changelog", s.handleChangelog)
@@ -100,17 +134,28 @@ func (s *Server) routes() http.Handler {
 }
 
 // view bygger en grunnleggende View med sprak, aar og oversettelser.
+// Er ingen prosjekt aktivt (flerprosjekt-modus) brukes trygge standarder.
 func (s *Server) view(r *http.Request, active, title string) View {
 	ctx := r.Context()
-	lang := s.app.Language(ctx)
-	return View{
+	lang := "nb"
+	year := time.Now().Year()
+	if app := s.app(); app != nil {
+		lang = app.Language(ctx)
+		year = app.ActiveYear(ctx)
+	}
+	v := View{
 		Lang:   lang,
 		T:      s.renderer.translations(lang),
 		Active: active,
 		Title:  title,
-		Year:   s.app.ActiveYear(ctx),
-		Years:  selectableYears(s.app.ActiveYear(ctx)),
+		Year:   year,
+		Years:  selectableYears(year),
 	}
+	if s.ws != nil {
+		v.MultiProject = true
+		v.ProjectName = s.ws.CurrentName()
+	}
+	return v
 }
 
 // selectableYears er registrerte skatteaar pluss aktivt aar (stigende, unikt).
@@ -131,7 +176,7 @@ func selectableYears(active int) []int {
 func (s *Server) handleSetLang(w http.ResponseWriter, r *http.Request) {
 	lang := r.URL.Query().Get("lang")
 	if lang == "nb" || lang == "pt" || lang == "en" {
-		_ = s.app.SetConfig(r.Context(), core.ConfigLanguage, lang)
+		_ = s.app().SetConfig(r.Context(), core.ConfigLanguage, lang)
 	}
 	dest := r.Header.Get("Referer")
 	if dest == "" {
@@ -144,7 +189,7 @@ func (s *Server) handleSetLang(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSetYear(w http.ResponseWriter, r *http.Request) {
 	year := parseInt(r.URL.Query().Get("year"))
 	if year >= 2000 && year <= 2100 {
-		_ = s.app.SetConfig(r.Context(), core.ConfigActiveYear, strconv.Itoa(year))
+		_ = s.app().SetConfig(r.Context(), core.ConfigActiveYear, strconv.Itoa(year))
 	}
 	dest := r.Header.Get("Referer")
 	if dest == "" {
@@ -155,7 +200,7 @@ func (s *Server) handleSetYear(w http.ResponseWriter, r *http.Request) {
 
 // tr returnerer en oversettelse for forespoerselens sprak.
 func (s *Server) tr(r *http.Request, key string) string {
-	m := s.renderer.translations(s.app.Language(r.Context()))
+	m := s.renderer.translations(s.app().Language(r.Context()))
 	if v, ok := m[key]; ok {
 		return v
 	}
@@ -168,7 +213,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	v := s.view(r, "dashboard", "")
-	d, err := s.app.Dashboard(r.Context(), v.Year)
+	d, err := s.app().Dashboard(r.Context(), v.Year)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -184,7 +229,7 @@ func (s *Server) handleExchangeRate(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "mangler currency eller date"})
 		return
 	}
-	rate, err := s.app.Currency.Rate(r.Context(), currency, date)
+	rate, err := s.app().Currency.Rate(r.Context(), currency, date)
 	if err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 		return
@@ -203,7 +248,7 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
-	ch, unsubscribe := s.app.Events.Subscribe()
+	ch, unsubscribe := s.app().Events.Subscribe()
 	defer unsubscribe()
 
 	// Innledende kommentar slik at klienten vet at strommen er aapen.

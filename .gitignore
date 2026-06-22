@@ -21,6 +21,10 @@ enk-regnskap.config.json
 dist/
 bin/
 tmp/
+/enk-regnskap
+/desktop
+*.app/
+assets/icon-1024.png
 
 # OS-filer
 .DS_Store

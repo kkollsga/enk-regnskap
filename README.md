@@ -62,12 +62,40 @@ go test ./...
 ```
 
 Appen starter en HTTP-server på `http://localhost:7331` og åpner den i
-standard nettleser. Ved første oppstart spør den hvor `data/`-mappen skal
-ligge (gjerne i OneDrive). Velg datamappe med `-data <sti>` (eller miljø-
-variabelen `ENK_DATA_DIR`).
+standard nettleser.
+
+### Frittstående macOS-app (anbefalt på Mac)
+
+```bash
+make mac-app        # bygger dist/EnkRegnskap.app
+open dist/EnkRegnskap.app
+```
+
+Dette gir et ekte macOS-vindu (native tittellinje) i stedet for en
+nettleserfane – HTTP-serveren kjører in-process. Flytt `EnkRegnskap.app` til
+`/Applications` om du vil ha den i Dock. (Bygges med WKWebView via CGo, kun
+macOS.)
+
+### Prosjekter (flere foretak)
+
+Alle data ligger under `~/ENK-Regnskap/`, og hvert foretak er en egen mappe:
+
+```
+~/ENK-Regnskap/
+  Acme AS - 999888777/      ← ett prosjekt
+    data.db
+    receipts/
+    mirror/
+  Fjord Design AS - 111222333/
+    ...
+```
+
+Ved første oppstart velger eller oppretter du et foretak (firmanavn +
+org.nr). Bytt foretak via «Mer → Bytt foretak». Endre basismappe med
+`-home <sti>`, eller bruk én konkret prosjektmappe direkte med `-data <sti>`.
 
 Vanlige `make`-mål: `make build`, `make run`, `make dev` (hot reload via
-`air`), `make test`, `make dist` (krysskompilering).
+`air`), `make test`, `make dist` (krysskompilering), `make mac-app`.
 
 ### AI-agent (MCP)
 

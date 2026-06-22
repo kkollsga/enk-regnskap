@@ -1,0 +1,27 @@
+{{define "content"}}
+<section class="welcome">
+  <h1>{{.Tr "import"}}</h1>
+  <div class="info-card warn">
+    Import ERSTATTER alle data i det aktive foretaket. Ta gjerne en eksport
+    forst («{{.Tr "more"}} → {{.Tr "export"}}»).
+  </div>
+
+  <form method="POST" action="/import" enctype="multipart/form-data" class="form"
+        onsubmit="return confirm('Importere og erstatte alle data i dette foretaket?');">
+    <div class="field">
+      <label for="file">Fra fil</label>
+      <input type="file" id="file" name="file" accept=".zip,.db,.sqlite">
+      <div class="rate-info" hidden></div>
+      <p class="muted small">Sikkerhetskopi (<code>.zip</code>) eller database (<code>.db</code> / <code>.sqlite</code>).</p>
+    </div>
+
+    <div class="field">
+      <label for="dir">… eller fra lesbar speilkopi-mappe</label>
+      <input type="text" id="dir" name="dir" placeholder="{{.MirrorDir}}" autocomplete="off">
+      <p class="muted small">Oppgi stien til en <code>mirror/</code>-mappe.</p>
+    </div>
+
+    <button class="btn btn-primary" type="submit">{{.Tr "import"}}</button>
+  </form>
+</section>
+{{end}}

@@ -23,7 +23,7 @@ type expenseListData struct {
 
 func (s *Server) handleExpenseList(w http.ResponseWriter, r *http.Request) {
 	v := s.view(r, "expenses", s.tr(r, "nav_expenses"))
-	rows, err := s.app.ListExpenses(r.Context(), v.Year)
+	rows, err := s.app().ListExpenses(r.Context(), v.Year)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -74,7 +74,7 @@ func (s *Server) handleExpenseCreate(w http.ResponseWriter, r *http.Request) {
 		in.ReceiptID = rid
 	}
 
-	_, err := s.app.AddExpense(r.Context(), core.ActorWeb, in)
+	_, err := s.app().AddExpense(r.Context(), core.ActorWeb, in)
 	if err != nil {
 		if ve, isVE := core.AsValidation(err); isVE {
 			s.renderExpenseError(w, r, ve.Fields)
@@ -106,7 +106,7 @@ func (s *Server) newExpenseForm(r *http.Request, year int) expenseFormData {
 			"date": time.Now().Format("2006-01-02"),
 		},
 		Errors:     map[string]string{},
-		Categories: s.app.ExpenseCategories(year),
+		Categories: s.app().ExpenseCategories(year),
 		Today:      time.Now().Format("2006-01-02"),
 	}
 }

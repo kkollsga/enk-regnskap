@@ -29,7 +29,7 @@ type incomeListData struct {
 
 func (s *Server) handleIncomeList(w http.ResponseWriter, r *http.Request) {
 	v := s.view(r, "income", s.tr(r, "nav_income"))
-	rows, err := s.app.ListIncome(r.Context(), v.Year)
+	rows, err := s.app().ListIncome(r.Context(), v.Year)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -68,7 +68,7 @@ func (s *Server) handleIncomeCreate(w http.ResponseWriter, r *http.Request) {
 	in.ForeignTaxPaid = parseInt(r.FormValue("foreign_tax_paid"))
 	in.ForeignTaxOrig = parseAmount(r.FormValue("foreign_tax_orig"))
 
-	_, err := s.app.AddIncome(r.Context(), core.ActorWeb, in)
+	_, err := s.app().AddIncome(r.Context(), core.ActorWeb, in)
 	if err != nil {
 		if ve, ok := core.AsValidation(err); ok {
 			// Vis feil inline, behold utfylte verdier.
@@ -88,8 +88,8 @@ func (s *Server) handleIncomeCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) newIncomeForm(r *http.Request) incomeFormData {
-	countries, _ := s.app.Countries(r.Context())
-	clients, _ := s.app.IncomeClients(r.Context())
+	countries, _ := s.app().Countries(r.Context())
+	clients, _ := s.app().IncomeClients(r.Context())
 	return incomeFormData{
 		Values: map[string]string{
 			"date":             time.Now().Format("2006-01-02"),

@@ -1,0 +1,45 @@
+{{define "content"}}
+{{$d := .Data}}
+<section class="welcome">
+  <h1>Velg foretak</h1>
+  <p class="muted">
+    Hvert foretak lagres som en egen mappe under<br><strong>{{$d.BaseDir}}</strong>.
+  </p>
+
+  {{if $d.Projects}}
+  <div class="project-list">
+    {{range $d.Projects}}
+    <form method="POST" action="/projects/open" class="project-row">
+      <input type="hidden" name="folder" value="{{.Folder}}">
+      <button type="submit" class="project-open {{if eq .Folder $d.Current}}active{{end}}">
+        <span class="project-title">{{if .Company}}{{.Company}}{{else}}{{.Folder}}{{end}}</span>
+        {{if .OrgNr}}<span class="muted small">Org.nr. {{.OrgNr}}</span>{{end}}
+        {{if eq .Folder $d.Current}}<span class="badge badge-ok">Aktiv</span>{{end}}
+      </button>
+    </form>
+    {{end}}
+  </div>
+  {{end}}
+
+  <h2 style="margin-top:30px;">Nytt foretak</h2>
+  <form method="POST" action="/projects/create" class="form">
+    <div class="field">
+      <label for="company">Firmanavn</label>
+      <input type="text" id="company" name="company" placeholder="Mitt Foretak AS" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="org_nr">Organisasjonsnummer</label>
+      <input type="text" id="org_nr" name="org_nr" inputmode="numeric" placeholder="999888777" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="language">{{.Tr "language"}}</label>
+      <select id="language" name="language">
+        <option value="nb">Norsk bokmaal</option>
+        <option value="pt">Portugues</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" type="submit">Opprett foretak</button>
+  </form>
+</section>
+{{end}}

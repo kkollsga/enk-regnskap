@@ -39,5 +39,8 @@
   "backup_download": "Baixar backup",
   "mirror_rebuild": "Reconstruir cópia espelho",
   "mirror_import": "Importar cópia espelho",
-  "mirror_import_confirm": "Importar da cópia espelho? Isso SUBSTITUI os dados atuais."
+  "mirror_import_confirm": "Importar da cópia espelho? Isso SUBSTITUI os dados atuais.",
+  "import": "Importar",
+  "export": "Exportar (backup)",
+  "switch_project": "Trocar empresa"
 }

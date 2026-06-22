@@ -14,7 +14,7 @@ type changelogData struct {
 
 func (s *Server) handleChangelog(w http.ResponseWriter, r *http.Request) {
 	v := s.view(r, "changelog", s.tr(r, "nav_changelog"))
-	entries, err := s.app.Q.ListChangeLog(r.Context(), 200)
+	entries, err := s.app().Q.ListChangeLog(r.Context(), 200)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -33,7 +33,7 @@ func (s *Server) handleRollback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ugyldig id", http.StatusBadRequest)
 		return
 	}
-	if err := s.app.Rollback(r.Context(), core.ActorWeb, id); err != nil {
+	if err := s.app().Rollback(r.Context(), core.ActorWeb, id); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

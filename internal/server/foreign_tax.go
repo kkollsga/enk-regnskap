@@ -25,14 +25,14 @@ func (s *Server) handleForeignTax(w http.ResponseWriter, r *http.Request) {
 	v := s.view(r, "foreign-tax", s.tr(r, "nav_foreign_tax"))
 	year := v.Year
 
-	overviews, err := s.app.ForeignTaxForYear(r.Context(), year)
+	overviews, err := s.app().ForeignTaxForYear(r.Context(), year)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	data := foreignTaxData{}
 	for _, ov := range overviews {
-		types, _ := s.app.CountryTaxTypes(r.Context(), ov.Credit.CountryCode, year)
+		types, _ := s.app().CountryTaxTypes(r.Context(), ov.Credit.CountryCode, year)
 		cv := foreignCountryView{
 			Overview:  ov,
 			TaxTypes:  types,
@@ -64,7 +64,7 @@ func (s *Server) handleForeignTaxUpdate(w http.ResponseWriter, r *http.Request) 
 		RF1147Ready:       r.FormValue("rf1147_ready") != "",
 		Notes:             r.FormValue("notes"),
 	}
-	if err := s.app.UpdateForeignTaxStatus(r.Context(), core.ActorWeb, in); err != nil {
+	if err := s.app().UpdateForeignTaxStatus(r.Context(), core.ActorWeb, in); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
