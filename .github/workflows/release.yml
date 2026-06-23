@@ -1,0 +1,58 @@
+name: Release
+
+# Bygger den native macOS-appen og publiserer DMG-installasjonsfiler på en
+# GitHub Release. Utløses når en versjonstag (vX.Y.Z) skyves.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  macos-app:
+    name: macOS-app (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14   # Apple Silicon
+            arch: arm64
+          - runner: macos-13   # Intel
+            arch: intel
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Bygg EnkRegnskap.app
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: make mac-app
+
+      - name: Ad-hoc-signer appen
+        run: codesign --force --deep --sign - dist/EnkRegnskap.app
+
+      - name: Pakk DMG
+        run: bash assets/make-dmg.sh dist/EnkRegnskap.app "dist/EnkRegnskap-${{ github.ref_name }}-${{ matrix.arch }}.dmg"
+
+      - name: Publiser til release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/EnkRegnskap-${{ github.ref_name }}-${{ matrix.arch }}.dmg
+          name: ENK Regnskap ${{ github.ref_name }}
+          body: |
+            Native macOS-app for ENK-regnskap.
+
+            ## Installasjon
+            1. Last ned riktig DMG: **arm64** for Apple Silicon (M1/M2/M3),
+               **intel** for eldre Intel-Macer.
+            2. Åpne DMG-en og dra **EnkRegnskap** til **Programmer/Applications**.
+            3. Appen er ikke signert med Apple Developer-ID eller notarisert
+               (beta). Første gang: høyreklikk appen → **Åpne**, eller kjør
+               `xattr -dr com.apple.quarantine /Applications/EnkRegnskap.app`.
+
+            Dataene dine lagres lokalt under `~/ENK-Regnskap/`.

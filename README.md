@@ -46,6 +46,23 @@ regnskapssystem.
 Bygges uten CGo og uten system-avhengigheter, og krysskompileres til
 `windows/amd64`, `darwin/arm64` og `linux/amd64`.
 
+## Installere (ferdigbygd macOS-app)
+
+Last ned siste **DMG** fra
+[Releases](https://github.com/kkollsga/enk-regnskap/releases) – `arm64` for
+Apple Silicon (M1/M2/M3), `intel` for eldre Intel-Macer. Åpne DMG-en og dra
+**EnkRegnskap** til **Programmer**.
+
+Appen er foreløpig ikke signert/notarisert (beta), så første gang må du
+høyreklikke appen → **Åpne**, eller fjerne karantenflagget:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/EnkRegnskap.app
+```
+
+En ny release lages ved å skyve en versjonstag, f.eks. `git tag v1.0.0 &&
+git push origin v1.0.0` – GitHub Actions bygger og laster opp DMG-ene.
+
 ## Bygge og kjøre lokalt
 
 Krever Go 1.22 eller nyere.
@@ -69,6 +86,8 @@ standard nettleser.
 ```bash
 make mac-app        # bygger dist/EnkRegnskap.app
 open dist/EnkRegnskap.app
+
+make dmg            # pakker appen i dist/EnkRegnskap.dmg (drag-til-Applications)
 ```
 
 Dette gir et ekte macOS-vindu (native tittellinje) i stedet for en

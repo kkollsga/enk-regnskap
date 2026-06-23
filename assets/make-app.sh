@@ -7,6 +7,10 @@ cd "$(dirname "$0")/.."
 
 APP="dist/EnkRegnskap.app"
 BIN="EnkRegnskap"
+# Versjon hentes fra VERSION-miljøvariabel (f.eks. release-tag "v1.2.3"),
+# uten ledende "v". Faller tilbake til 1.0 ved lokal bygging.
+VERSION="${VERSION:-1.0}"
+VERSION="${VERSION#v}"
 
 echo "Bygger desktop-binær (CGo + WebKit) ..."
 CGO_ENABLED=1 go build -o "/tmp/$BIN" ./cmd/desktop
@@ -26,8 +30,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleName</key>            <string>ENK Regnskap</string>
   <key>CFBundleDisplayName</key>     <string>ENK Regnskap</string>
   <key>CFBundleIdentifier</key>      <string>no.kkollsga.enk-regnskap</string>
-  <key>CFBundleVersion</key>         <string>1.0</string>
-  <key>CFBundleShortVersionString</key> <string>1.0</string>
+  <key>CFBundleVersion</key>         <string>$VERSION</string>
+  <key>CFBundleShortVersionString</key> <string>$VERSION</string>
   <key>CFBundleExecutable</key>      <string>$BIN</string>
   <key>CFBundleIconFile</key>        <string>icon</string>
   <key>CFBundlePackageType</key>     <string>APPL</string>

@@ -2,7 +2,7 @@ BINARY := enk-regnskap
 PKG := ./cmd/server
 DIST := dist
 
-.PHONY: build run dev test fmt sqlc dist clean
+.PHONY: build run dev test fmt sqlc dist mac-app dmg icon clean
 
 ## build: kompiler binær for denne plattformen
 build:
@@ -40,6 +40,10 @@ dist: clean
 ## mac-app: bygg den frittstående macOS-appen EnkRegnskap.app (native vindu)
 mac-app:
 	bash assets/make-app.sh
+
+## dmg: pakk EnkRegnskap.app i et drag-til-Applications DMG (krever mac-app)
+dmg: mac-app
+	bash assets/make-dmg.sh
 
 ## icon: regenerer app-ikonet (krever Chrome for rendering)
 icon:
