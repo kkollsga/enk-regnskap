@@ -38,7 +38,9 @@ jobs:
             exit 0
           fi
 
-          msg="$(git log -1 --pretty=%B)"
+          # Bare emnelinjen (ikke meldingskroppen), så prosa som forklarer
+          # markørene ikke utløser dem ved et uhell.
+          msg="$(git log -1 --pretty=%s)"
           if echo "$msg" | grep -qiE '\[(skip release|no release)\]'; then
             echo "Commit ber om å hoppe over release."
             echo "release=false" >> "$GITHUB_OUTPUT"
