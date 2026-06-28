@@ -125,6 +125,25 @@ func (a *App) ForeignTaxForYear(ctx context.Context, year int) ([]ForeignTaxOver
 	return out, nil
 }
 
+// EstimatedForeignTaxCredit anslår samlet kreditfradrag for et år: betalt
+// krediterbar utenlandsk skatt per land, begrenset til det estimerte taket
+// (§ 16-21). Konservativt anslag – ikke et endelig kreditfradrag.
+func (a *App) EstimatedForeignTaxCredit(ctx context.Context, year int) (float64, error) {
+	ovs, err := a.ForeignTaxForYear(ctx, year)
+	if err != nil {
+		return 0, err
+	}
+	var total float64
+	for _, ov := range ovs {
+		paid := ov.Credit.ForeignTaxNok
+		if paid > ov.MaxCreditEst {
+			paid = ov.MaxCreditEst
+		}
+		total += paid
+	}
+	return tax.Round2(total), nil
+}
+
 // CountryTaxTypes henter skattetypene for et land og inntektsår (sjekkliste).
 func (a *App) CountryTaxTypes(ctx context.Context, country string, year int) ([]db.CountryTaxType, error) {
 	return a.Q.ListCountryTaxTypes(ctx, db.ListCountryTaxTypesParams{

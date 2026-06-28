@@ -27,7 +27,12 @@
     <tr><td>Trygdeavgift</td><td class="num">{{nok .EstimatedTax.Trygdeavgift}}</td></tr>
     <tr><td>Trinnskatt</td><td class="num">{{nok .EstimatedTax.Trinnskatt}}</td></tr>
     <tr class="sum"><td>Sum estimert skatt</td><td class="num">{{nok .EstimatedTax.SumSkatt}}</td></tr>
+    {{if gt .ForeignTaxCredit 0.0}}
+    <tr><td>− Estimert kreditfradrag (utenlandsk skatt)</td><td class="num">−{{nok .ForeignTaxCredit}}</td></tr>
+    <tr class="sum"><td>Estimert skatt etter kreditfradrag</td><td class="num">{{nok .NetTax}}</td></tr>
+    {{end}}
   </table>
+  {{if gt .ForeignTaxCredit 0.0}}<p class="muted small">Kreditfradraget er et konservativt anslag (begrenset av maksimalt kreditfradrag, sktl. § 16-21) – se Utenlandsk skatt for detaljer.</p>{{end}}
   <p class="muted small">Dette er kun et estimat og ingen garanti for endelig skatteoppgjør.</p>
 </section>
 {{end}}

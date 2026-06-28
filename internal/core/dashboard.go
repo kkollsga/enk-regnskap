@@ -9,11 +9,13 @@ import (
 
 // Dashboard er nøkkeltallene på forsiden for et inntektsår.
 type Dashboard struct {
-	Year          int
-	IncomeYTD     float64
-	DeductibleYTD float64
-	Result        float64 // inntekt - fradragsberettigede utgifter
-	EstimatedTax  *tax.TaxEstimate
+	Year             int
+	IncomeYTD        float64
+	DeductibleYTD    float64
+	Result           float64 // inntekt - fradragsberettigede utgifter
+	EstimatedTax     *tax.TaxEstimate
+	ForeignTaxCredit float64 // estimert kreditfradrag (§ 16-20 flg.)
+	NetTax           float64 // estimert skatt etter kreditfradrag
 }
 
 // Dashboard beregner nøkkeltall for et gitt inntektsår.
@@ -46,6 +48,17 @@ func (a *App) Dashboard(ctx context.Context, year int) (Dashboard, error) {
 	if rules, err := tax.Load(year); err == nil {
 		est := rules.Estimate(result, result)
 		d.EstimatedTax = &est
+	}
+	// Estimert kreditfradrag trekkes fra estimert skatt -> netto.
+	if credit, err := a.EstimatedForeignTaxCredit(ctx, year); err == nil {
+		d.ForeignTaxCredit = credit
+	}
+	if d.EstimatedTax != nil {
+		net := d.EstimatedTax.SumSkatt - d.ForeignTaxCredit
+		if net < 0 {
+			net = 0
+		}
+		d.NetTax = tax.Round2(net)
 	}
 	return d, nil
 }
