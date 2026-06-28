@@ -19,9 +19,24 @@
 </div>
 {{end}}
 
-{{if $d.Expenses}}
+{{if $d.Rows}}
 <div class="entry-list">
-  {{range $e := $d.Expenses}}
+  {{range $row := $d.Rows}}
+  {{if $row.Linked}}{{$t := $row.Tax}}
+  <div class="entry linked-tax">
+    <div class="entry-row entry-row-2line">
+      <span class="entry-line1">
+        <span class="entry-date">{{$t.IncomeDate}}</span>
+        <span class="entry-desc">{{$t.TaxType}} <span class="muted">— {{$t.IncomeDescription}}</span></span>
+      </span>
+      <span class="entry-line2">
+        <span class="entry-meta">utenlandsk skatt · {{printf "%g" $t.AmountOrig}} {{$t.Currency}} · <a href="/income/{{$t.IncomeID}}/edit">rediger på inntekt →</a></span>
+        <span class="entry-amount num">{{nok $t.AmountNok}}</span>
+      </span>
+    </div>
+  </div>
+  {{else}}
+  {{$e := $row.Expense}}
   {{$kind := index $d.Kinds $e.Category}}
   {{$recs := index $d.Receipts $e.ID}}
   <details class="entry">
@@ -102,42 +117,16 @@
     </div>
   </details>
   {{end}}
+  {{end}}
 </div>
+{{if gt $d.LinkedTaxTotal 0.0}}
+<p class="muted small" style="margin-top:8px;">Rader merket gult er utenlandsk skatt ført som fradragsberettiget kostnad (sktl. § 6-15), registrert under en inntekt – rediger dem på inntekten.</p>
+{{end}}
 <div class="entry-total">
   <span>{{.Tr "common_total"}} (fradragsberettiget)</span>
-  <span class="num" data-live="expenses">{{nok $d.TotalDeduct}}</span>
+  <span class="num" data-live="expenses">{{nok $d.TotalDeductAll}}</span>
 </div>
 {{else}}
 <div class="empty">Ingen utgifter registrert for {{.Year}} enda. <a href="/expenses/new">Legg til den første</a>.</div>
-{{end}}
-
-{{if $d.LinkedTaxes}}
-<section class="panel" style="margin-top:28px;">
-  <h2>Utenlandsk skatt ført som fradrag <span class="muted small">(fra inntekter)</span></h2>
-  <p class="muted small" style="margin-top:4px;">
-    Registrert som skatt under en inntekt og behandlet som fradragsberettiget kostnad
-    (sktl. § 6-15). Skrivebeskyttet her – rediger på inntekten den hører til.
-  </p>
-  <div class="entry-list">
-    {{range $d.LinkedTaxes}}
-    <div class="entry linked-tax">
-      <div class="entry-row entry-row-2line">
-        <span class="entry-line1">
-          <span class="entry-date">{{.IncomeDate}}</span>
-          <span class="entry-desc">{{.TaxType}} <span class="muted">— {{.IncomeDescription}}</span></span>
-        </span>
-        <span class="entry-line2">
-          <span class="entry-meta">{{printf "%g" .AmountOrig}} {{.Currency}} · <a href="/income/{{.IncomeID}}/edit">rediger på inntekt →</a></span>
-          <span class="entry-amount num">{{nok .AmountNok}}</span>
-        </span>
-      </div>
-    </div>
-    {{end}}
-  </div>
-  <div class="entry-total">
-    <span>Sum utenlandsk skatt (fradrag)</span>
-    <span class="num">{{nok $d.LinkedTaxTotal}}</span>
-  </div>
-</section>
 {{end}}
 {{end}}

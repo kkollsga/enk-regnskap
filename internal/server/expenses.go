@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -36,6 +37,17 @@ type expenseListData struct {
 	TaxSummary     core.TaxExpenseSummary
 	LinkedTaxes    []core.LinkedForeignTax // utenlandsk skatt ført som fradrag, koblet til inntekt
 	LinkedTaxTotal float64
+	Rows           []expenseRow // utgifter + koblede skattefradrag, sortert på dato
+	TotalDeductAll float64      // TotalDeduct + LinkedTaxTotal
+}
+
+// expenseRow er en rad i den samlede fradragslisten: enten en vanlig utgift
+// (redigerbar) eller en koblet utenlandsk skattelinje (skrivebeskyttet).
+type expenseRow struct {
+	Linked  bool
+	Date    string
+	Expense db.Expense
+	Tax     core.LinkedForeignTax
 }
 
 func (s *Server) handleExpenseList(w http.ResponseWriter, r *http.Request) {
@@ -66,11 +78,21 @@ func (s *Server) handleExpenseList(w http.ResponseWriter, r *http.Request) {
 		linkedTotal += l.AmountNok
 	}
 	countries, _ := s.app().Countries(r.Context())
+	// Samlet fradragsliste: utgifter + koblede skattefradrag, sortert på dato.
+	combined := make([]expenseRow, 0, len(rows)+len(linked))
+	for _, e := range rows {
+		combined = append(combined, expenseRow{Date: e.Date, Expense: e})
+	}
+	for _, l := range linked {
+		combined = append(combined, expenseRow{Linked: true, Date: l.IncomeDate, Tax: l})
+	}
+	sort.SliceStable(combined, func(i, j int) bool { return combined[i].Date > combined[j].Date })
 	v.Data = expenseListData{
 		Expenses: rows, Kinds: kinds, CatNames: catNames, Categories: cats, Receipts: receipts,
 		Currencies: core.SupportedCurrencies(), Countries: countries,
 		TotalAmount: amt, TotalDeduct: ded, TaxSummary: summary,
 		LinkedTaxes: linked, LinkedTaxTotal: linkedTotal,
+		Rows: combined, TotalDeductAll: ded + linkedTotal,
 	}
 	s.renderer.Render(w, "expenses_list", v)
 }
