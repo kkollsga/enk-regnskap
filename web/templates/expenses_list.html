@@ -25,15 +25,16 @@
   {{$kind := index $d.Kinds $e.Category}}
   {{$recs := index $d.Receipts $e.ID}}
   <details class="entry">
-    <summary class="entry-row">
-      <span class="entry-date">{{$e.Date}}</span>
-      <span class="entry-desc">{{$e.Description}}</span>
-      <span class="entry-meta">
-        {{index $d.CatNames $e.Category}}
-        {{if eq $kind "creditable"}}<span class="badge badge-ok">Kreditberettiget</span>{{else if eq $kind "noncreditable"}}<span class="badge badge-warn">Overskytende</span>{{end}}
+    <summary class="entry-row entry-row-2line">
+      <span class="entry-line1">
+        <span class="entry-date">{{$e.Date}}</span>
+        <span class="entry-desc">{{$e.Description}}</span>
+        {{if $recs}}<span class="entry-clip" title="Vedlegg">📎 {{len $recs}}</span>{{end}}
       </span>
-      {{if $recs}}<span class="entry-clip" title="Vedlegg">📎 {{len $recs}}</span>{{end}}
-      <span class="entry-amount num">{{nok $e.AmountNok}}</span>
+      <span class="entry-line2">
+        <span class="entry-meta">{{index $d.CatNames $e.Category}}{{if eq $kind "creditable"}} <span class="badge badge-ok">Kreditberettiget</span>{{else if eq $kind "noncreditable"}} <span class="badge badge-warn">Overskytende</span>{{end}}{{if ne $e.Currency "NOK"}} · {{$e.Currency}}{{end}}</span>
+        <span class="entry-amount num">{{nok $e.AmountNok}}</span>
+      </span>
     </summary>
     <div class="entry-detail">
       <div class="entry-view">
