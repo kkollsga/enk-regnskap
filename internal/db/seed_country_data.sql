@@ -62,7 +62,13 @@ VALUES
    'omsetning', 0, 'brutto', 0.65, 2015, NULL),
   ('BR', 'COFINS', 'Contribuição para o Financiamento da Seguridade Social',
    'Bidragsskatt på omsetning til finansiering av sosial trygghet (ikke en inntektsskatt). Gir ikke kreditfradrag, men er normalt en fradragsberettiget kostnad i Norge (sktl. § 6-15).',
-   'omsetning', 0, 'brutto', 3.0, 2015, NULL)
+   'omsetning', 0, 'brutto', 3.0, 2015, NULL),
+  ('BR', 'IRPF', 'Imposto de Renda Pessoa Física',
+   'Brasiliansk inntektsskatt for personer (årlig ligning, bl.a. Carnê-Leão for selvstendige). Dette er en inntektsskatt og gir kreditfradrag i Norge.',
+   'inntekt', 1, 'netto', NULL, 2015, NULL),
+  ('BR', 'INSS', 'Instituto Nacional do Seguro Social',
+   'Brasiliansk trygdeavgift (sosial sikkerhet), ikke en inntektsskatt. Gir ikke kreditfradrag; behandles normalt som fradragsberettiget kostnad – vurder eventuell trygdeavtale.',
+   'personinntekt', 0, 'brutto', NULL, 2015, NULL)
 ON CONFLICT(country_code, tax_type_code, effective_from) DO UPDATE SET
   tax_type_name = excluded.tax_type_name,
   description = excluded.description,

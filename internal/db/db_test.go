@@ -144,9 +144,9 @@ func TestMigrationsIdempotent(t *testing.T) {
 	if err := conn.QueryRow(`SELECT COUNT(*) FROM country_tax_types`).Scan(&typeCount); err != nil {
 		t.Fatalf("tell country_tax_types: %v", err)
 	}
-	// BR(6: IRRF, ISS, CSLL<=2024, CSLL>=2025, PIS, COFINS) + NO(3) = 9
-	if typeCount != 9 {
-		t.Errorf("country_tax_types count = %d, forventet 9", typeCount)
+	// BR(8: IRRF, ISS, CSLL<=2024, CSLL>=2025, PIS, COFINS, IRPF, INSS) + NO(3) = 11
+	if typeCount != 11 {
+		t.Errorf("country_tax_types count = %d, forventet 11", typeCount)
 	}
 }
 

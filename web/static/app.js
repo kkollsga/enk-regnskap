@@ -244,10 +244,10 @@
       var item = document.createElement("div");
       item.className = "combobox-item" + (i === 0 ? " active" : "");
       item.dataset.code = o.code;
+      item.title = o.name || "";
       item.innerHTML = '<span class="ci-code">' + esc(o.code) + '</span>' +
-        '<span class="ci-name">' + esc(o.name || "") +
-        (o.creditable === false ? ' <span class="ci-noncredit">ikke krediterbar</span>' : '') + '</span>' +
-        (o.desc ? '<span class="ci-desc">' + esc(o.desc) + '</span>' : '');
+        '<span class="ci-name">' + esc(o.name || "") + '</span>' +
+        (o.creditable === false ? '<span class="ci-noncredit">ikke krediterbar</span>' : '');
       // mousedown (ikke click) slik at valget skjer før input mister fokus.
       item.addEventListener("mousedown", function (ev) {
         ev.preventDefault();
