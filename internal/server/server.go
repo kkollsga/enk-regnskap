@@ -120,6 +120,7 @@ func (s *Server) routes() http.Handler {
 	r.Post("/foreign-tax", s.handleForeignTaxUpdate)
 
 	r.Get("/tax-info", s.handleTaxInfo)
+	r.Get("/selvangivelse", s.handleSelvangivelse)
 
 	r.Get("/reports", s.handleReports)
 	r.Get("/reports/annual.pdf", s.handleAnnualPDF)

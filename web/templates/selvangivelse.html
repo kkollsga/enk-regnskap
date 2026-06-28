@@ -1,0 +1,122 @@
+{{define "content"}}
+{{$d := .Data}}
+{{$r := $d.Report}}
+<section class="page-head">
+  <h1>{{.Tr "nav_selvangivelse"}} <span class="muted">{{.Year}}</span></h1>
+</section>
+
+<p class="muted small" style="max-width:720px;">
+  En veiledet oversikt over hva du fører hvor i skattemeldingen for
+  enkeltpersonforetak. Tallene er hentet fra dataene dine – klikk hver del for å
+  se hva som skal fylles inn. Dette er hjelp til utfylling, ikke en innsending.
+</p>
+
+<!-- 1. Næringsspesifikasjon -->
+<section class="panel sa-section">
+  <div class="sa-head">
+    <h2>1. Næringsspesifikasjon</h2>
+    <span class="badge">erstatter RF-1175</span>
+  </div>
+  <table class="kv">
+    <tr><td>Sum driftsinntekter</td><td class="num">{{nok $r.TotalIncome}}</td></tr>
+    <tr><td>Sum fradragsberettigede kostnader</td><td class="num">{{nok $r.TotalDeductible}}</td></tr>
+    <tr class="sum"><td>Næringsresultat</td><td class="num">{{nok $r.Result}}</td></tr>
+  </table>
+  <details class="info-section">
+    <summary><h3>Slik fyller du ut</h3></summary>
+    <p class="ftax-list-label">Driftsinntekter</p>
+    <table class="kv">
+      {{range $r.IncomeByCategory}}<tr><td>{{index $d.CatNames .Category}}</td><td class="num">{{nok .Total}}</td></tr>{{end}}
+      <tr class="sum"><td>Sum</td><td class="num">{{nok $r.TotalIncome}}</td></tr>
+    </table>
+    <p class="ftax-list-label">Driftskostnader (fradrag)</p>
+    <table class="kv">
+      {{range $r.ExpenseByCategory}}<tr><td>{{index $d.CatNames .Category}}</td><td class="num">{{nok .Deductible}}</td></tr>{{end}}
+      <tr class="sum"><td>Sum fradrag</td><td class="num">{{nok $r.TotalDeductible}}</td></tr>
+    </table>
+    <ul class="muted small">
+      <li>Før driftsinntektene under salgsinntekt (tjenester) i næringsspesifikasjonen.</li>
+      <li>Før kostnadene på riktige kostnadsposter (kontorrekvisita, telefon, reise osv.).</li>
+      {{if gt $r.ForeignTaxDeductible 0.0}}<li>Utenlandsk skatt ført som fradragsberettiget kostnad ({{nok $r.ForeignTaxDeductible}}) inngår i kostnadene.</li>{{end}}
+      <li>Næringsresultatet overføres til skattemeldingen og danner grunnlag for personinntekt.</li>
+    </ul>
+  </details>
+</section>
+
+<!-- 2. Personinntekt -->
+<section class="panel sa-section">
+  <div class="sa-head">
+    <h2>2. Personinntekt fra enkeltpersonforetak</h2>
+    <span class="badge">RF-1224</span>
+  </div>
+  <table class="kv">
+    <tr><td>Beregnet personinntekt (utgangspunkt = næringsresultat)</td><td class="num">{{nok $r.Result}}</td></tr>
+    {{if $r.Tax}}
+    <tr><td>Trygdeavgift</td><td class="num">{{nok $r.Tax.Trygdeavgift}}</td></tr>
+    <tr><td>Trinnskatt</td><td class="num">{{nok $r.Tax.Trinnskatt}}</td></tr>
+    {{end}}
+  </table>
+  <details class="info-section">
+    <summary><h3>Slik fyller du ut</h3></summary>
+    <ul class="muted small">
+      <li>Personinntekt beregnes fra næringsresultatet (justert for ev. kapitalkostnader/-inntekter). Dette anslaget bruker næringsresultatet direkte.</li>
+      <li>Personinntekten danner grunnlag for <strong>trygdeavgift</strong> (11,1 % for selvstendige) og <strong>trinnskatt</strong>.</li>
+      <li>I Altinn fylles RF-1224 normalt ut automatisk fra næringsspesifikasjonen – kontroller at tallene stemmer.</li>
+    </ul>
+  </details>
+</section>
+
+{{if $d.HasForeign}}
+<!-- 3. Kreditfradrag for utenlandsk skatt -->
+<section class="panel sa-section">
+  <div class="sa-head">
+    <h2>3. Fradrag for skatt betalt i utlandet</h2>
+    <span class="badge">RF-1147</span>
+  </div>
+  <table class="kv">
+    {{range $d.Foreign}}{{$c := .Credit}}
+    <tr><td>{{$c.CountryName}} – inntekt</td><td class="num">{{nok $c.IncomeNok}}</td></tr>
+    <tr><td>{{$c.CountryName}} – betalt utenlandsk skatt</td><td class="num">{{nok $c.ForeignTaxNok}}</td></tr>
+    <tr><td>{{$c.CountryName}} – estimert maks kreditfradrag (§ 16-21)</td><td class="num">{{nok .MaxCreditEst}}</td></tr>
+    {{end}}
+    <tr class="sum"><td>Estimert kreditfradrag totalt</td><td class="num">{{nok $d.ForeignCreditEst}}</td></tr>
+  </table>
+  <details class="info-section">
+    <summary><h3>Slik fyller du ut</h3></summary>
+    <ul class="muted small">
+      <li>Lever <strong>RF-1147</strong> for å kreve kreditfradrag for inntektsskatt betalt i utlandet.</li>
+      <li>Per land: oppgi utenlandsk inntekt, betalt utenlandsk skatt og dokumentasjon.</li>
+      <li>Kreditfradraget er begrenset til norsk skatt som faller på den utenlandske inntekten (maks kreditfradrag, § 16-21).</li>
+      {{if gt $r.ForeignTaxReference 0.0}}<li class="warn-text">Utenlandsk skatt uten lettelse ({{nok $r.ForeignTaxReference}}, f.eks. INSS) føres <strong>ikke</strong> her – kun til referanse.</li>{{end}}
+      <li>Se siden <a href="/foreign-tax">Utenlandsk skatt</a> for detaljer og dokumentasjonsstatus.</li>
+    </ul>
+  </details>
+</section>
+{{end}}
+
+<!-- 4. Estimert skatt -->
+{{if $r.Tax}}
+<section class="panel sa-section">
+  <div class="sa-head">
+    <h2>4. Estimert skatt</h2>
+  </div>
+  <table class="kv">
+    <tr><td>Alminnelig inntektsskatt (22 %)</td><td class="num">{{nok $r.Tax.AlminneligInntektsskatt}}</td></tr>
+    <tr><td>Trygdeavgift</td><td class="num">{{nok $r.Tax.Trygdeavgift}}</td></tr>
+    <tr><td>Trinnskatt</td><td class="num">{{nok $r.Tax.Trinnskatt}}</td></tr>
+    <tr class="sum"><td>Sum estimert skatt</td><td class="num">{{nok $r.Tax.SumSkatt}}</td></tr>
+    {{if gt $d.ForeignCreditEst 0.0}}
+    <tr><td>− Estimert kreditfradrag (utenlandsk skatt)</td><td class="num">−{{nok $d.ForeignCreditEst}}</td></tr>
+    <tr class="sum"><td>Estimert skatt etter kreditfradrag</td><td class="num">{{nok $d.NetTax}}</td></tr>
+    {{end}}
+  </table>
+  <p class="muted small">Kun et estimat – ingen garanti for endelig skatteoppgjør.</p>
+</section>
+{{end}}
+
+<div class="info-card warn">
+  Dette er hjelp til å forstå og fylle ut skattemeldingen, ikke en innsending og
+  ikke skatterådgivning. Kontroller alltid mot Altinn/Skatteetaten, og bruk
+  rådgiver ved tvil.
+</div>
+{{end}}

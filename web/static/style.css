@@ -487,3 +487,10 @@ h3 { font-size: 15px; font-weight: 600; margin: 18px 0 8px; }
 .entry.linked-tax { border-left: 3px solid var(--gold); background: #fffdf7; }
 .entry.linked-tax .entry-row { padding-left: 10px; cursor: default; }
 .entry.linked-tax .entry-row:hover { background: transparent; }
+
+/* Selvangivelse-siden */
+.sa-section { margin-bottom: 18px; }
+.sa-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.sa-head h2 { margin: 0; }
+.sa-section .kv { max-width: 640px; }
+.warn-text { color: #8a5a00; }
