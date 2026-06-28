@@ -15,6 +15,7 @@ type selvangivelseData struct {
 	ForeignCreditEst float64
 	NetTax           float64
 	HasForeign       bool
+	TrygdeavgiftPct  float64 // næringssats for hjelpeteksten (unngår utdatert hardkoding)
 }
 
 func (s *Server) handleSelvangivelse(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +34,10 @@ func (s *Server) handleSelvangivelse(w http.ResponseWriter, r *http.Request) {
 	}
 	foreign, _ := s.app().ForeignTaxForYear(r.Context(), v.Year)
 	creditEst, _ := s.app().EstimatedForeignTaxCredit(r.Context(), v.Year)
+	trygdePct := 0.0
+	if rules, err := s.app().TaxRulesFor(v.Year); err == nil {
+		trygdePct = rules.TrygdeavgiftNaeringPct
+	}
 	netTax := 0.0
 	if rep.Tax != nil {
 		netTax = rep.Tax.SumSkatt - creditEst
@@ -47,6 +52,7 @@ func (s *Server) handleSelvangivelse(w http.ResponseWriter, r *http.Request) {
 		ForeignCreditEst: creditEst,
 		NetTax:           netTax,
 		HasForeign:       len(foreign) > 0,
+		TrygdeavgiftPct:  trygdePct,
 	}
 	s.renderer.Render(w, "selvangivelse", v)
 }

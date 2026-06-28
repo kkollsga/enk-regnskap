@@ -60,7 +60,7 @@
     <summary><h3>Slik fyller du ut</h3></summary>
     <ul class="muted small">
       <li>Personinntekt beregnes fra næringsresultatet (justert for ev. kapitalkostnader/-inntekter). Dette anslaget bruker næringsresultatet direkte.</li>
-      <li>Personinntekten danner grunnlag for <strong>trygdeavgift</strong> (11,1 % for selvstendige) og <strong>trinnskatt</strong>.</li>
+      <li>Personinntekten danner grunnlag for <strong>trygdeavgift</strong>{{if .Data.TrygdeavgiftPct}} ({{pct .Data.TrygdeavgiftPct}} for selvstendige){{end}} og <strong>trinnskatt</strong>.</li>
       <li>I Altinn fylles RF-1224 normalt ut automatisk fra næringsspesifikasjonen – kontroller at tallene stemmer.</li>
     </ul>
   </details>
