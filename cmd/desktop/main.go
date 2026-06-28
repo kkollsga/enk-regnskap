@@ -38,6 +38,7 @@ func main() {
 	// <input type="file"> ingenting i WKWebView. Gir også iPhone-import.
 	enableFileOpenPanel(w.Window())
 	w.Run()
+	core.RemoveMCPEndpoint(core.DefaultBaseDir())
 }
 
 // startServer setter opp workspace + HTTP-server og returnerer URL-en.
@@ -59,7 +60,13 @@ func startServer() (string, error) {
 			log.Printf("server stoppet: %v", err)
 		}
 	}()
-	return "http://" + ln.Addr().String(), nil
+	url := "http://" + ln.Addr().String()
+	// Gjor adressen synlig for en lokal AI-agent (MCP over POST /mcp). Uten
+	// dette er den tilfeldige porten umulig å finne.
+	if err := core.WriteMCPEndpoint(core.DefaultBaseDir(), url); err != nil {
+		log.Printf("kunne ikke skrive MCP-endepunkt: %v", err)
+	}
+	return url, nil
 }
 
 // errorPage gir en pen, lesbar feilside i stedet for en hard krasj.

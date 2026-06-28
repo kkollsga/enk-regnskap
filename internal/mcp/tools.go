@@ -86,6 +86,43 @@ func toJSON(v any) string {
 	return string(b)
 }
 
+// incomeInputFromArgs bygger en IncomeInput fra verktoyargumentene (delt av
+// add_income og update_income).
+func incomeInputFromArgs(a Args) core.IncomeInput {
+	return core.IncomeInput{
+		Date: a.str("date"), Description: a.str("description"),
+		Category: a.str("category"), Client: a.str("client"),
+		CountryCode: a.str("country_code"), Currency: a.str("currency"),
+		AmountOrig: a.num("amount"), TaxYear: a.intval("tax_year"),
+		Notes: a.str("notes"), ForeignTaxPaid: a.intval("foreign_tax_paid"),
+		ForeignTaxes: parseForeignTaxes(a),
+	}
+}
+
+// expenseInputFromArgs bygger en ExpenseInput fra verktoyargumentene (delt av
+// add_expense og update_expense).
+func expenseInputFromArgs(a Args) core.ExpenseInput {
+	amount := a.num("amount")
+	if amount == 0 {
+		amount = a.num("amount_nok") // bakoverkompatibelt alias
+	}
+	in := core.ExpenseInput{
+		Date: a.str("date"), Description: a.str("description"),
+		Category: a.str("category"), AmountOrig: amount,
+		Currency: a.str("currency"), CountryCode: a.str("country_code"),
+		TaxYear: a.intval("tax_year"), Notes: a.str("notes"),
+	}
+	if v := a.intval("income_id"); v > 0 {
+		id := int64(v)
+		in.IncomeID = &id
+	}
+	if _, ok := a["deductible_pct"]; ok {
+		in.DeductiblePct = a.num("deductible_pct")
+		in.HasDeductiblePct = true
+	}
+	return in
+}
+
 func (s *Server) buildTools() []Tool {
 	app := s.app
 	return []Tool{
@@ -117,15 +154,7 @@ func (s *Server) buildTools() []Tool {
 				"notes":              prop("string", "Notater"),
 			}, "date", "description", "amount", "category"),
 			Run: func(ctx context.Context, a Args) (string, error) {
-				in := core.IncomeInput{
-					Date: a.str("date"), Description: a.str("description"),
-					Category: a.str("category"), Client: a.str("client"),
-					CountryCode: a.str("country_code"), Currency: a.str("currency"),
-					AmountOrig: a.num("amount"), TaxYear: a.intval("tax_year"),
-					Notes: a.str("notes"), ForeignTaxPaid: a.intval("foreign_tax_paid"),
-					ForeignTaxes: parseForeignTaxes(a),
-				}
-				res, err := app.AddIncome(ctx, core.ActorMCP, in)
+				res, err := app.AddIncome(ctx, core.ActorMCP, incomeInputFromArgs(a))
 				if err != nil {
 					return "", err
 				}
@@ -146,31 +175,129 @@ func (s *Server) buildTools() []Tool {
 				"country_code":   prop("string", "Land ISO 3166-1 (default NO). Styrer landspesifikke kategorier."),
 				"category":       prop("string", "Fradragskategori (se tax_info for gyldige nøkler)"),
 				"deductible_pct": prop("number", "Fradragsprosent (valgfritt; default fra kategori)"),
+				"income_id":      prop("integer", "Knytt utgiften til en inntekt (valgfritt, kun gruppering; samme land+valuta kreves)"),
 				"tax_year":       prop("integer", "Inntektsar (default fra dato)"),
 				"notes":          prop("string", "Notater"),
 			}, "date", "description", "amount", "category"),
 			Run: func(ctx context.Context, a Args) (string, error) {
-				amount := a.num("amount")
-				if amount == 0 {
-					amount = a.num("amount_nok") // bakoverkompatibelt alias
-				}
-				in := core.ExpenseInput{
-					Date: a.str("date"), Description: a.str("description"),
-					Category: a.str("category"), AmountOrig: amount,
-					Currency: a.str("currency"), CountryCode: a.str("country_code"),
-					TaxYear: a.intval("tax_year"), Notes: a.str("notes"),
-				}
-				if _, ok := a["deductible_pct"]; ok {
-					in.DeductiblePct = a.num("deductible_pct")
-					in.HasDeductiblePct = true
-				}
-				exp, err := app.AddExpense(ctx, core.ActorMCP, in)
+				exp, err := app.AddExpense(ctx, core.ActorMCP, expenseInputFromArgs(a))
 				if err != nil {
 					return "", err
 				}
 				return toJSON(map[string]any{
 					"id": exp.ID, "deductible_nok": exp.DeductibleNok, "deductible_pct": exp.DeductiblePct,
 				}), nil
+			},
+		},
+		{
+			Name:        "get_income",
+			Description: "Hent en enkelt inntekt med id.",
+			InputSchema: obj(map[string]any{"id": prop("integer", "Inntekts-id")}, "id"),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				in, err := app.GetIncome(ctx, int64(a.intval("id")))
+				if err != nil {
+					return "", err
+				}
+				return toJSON(in), nil
+			},
+		},
+		{
+			Name:        "update_income",
+			Description: "Endre en eksisterende inntekt (id). Feltene fra add_income gjelder; oppgitte verdier erstatter de gamle. foreign_taxes settes på nytt.",
+			InputSchema: obj(map[string]any{
+				"id":               prop("integer", "Inntekts-id som skal endres"),
+				"date":             prop("string", "Dato (AAAA-MM-DD)"),
+				"description":      prop("string", "Beskrivelse"),
+				"amount":           prop("number", "Beløp i valgt valuta"),
+				"currency":         prop("string", "Valutakode (NOK, USD, EUR, BRL, ...)"),
+				"country_code":     prop("string", "Kildeland ISO 3166-1"),
+				"category":         prop("string", "Inntektskategori"),
+				"client":           prop("string", "Klient"),
+				"foreign_tax_paid": prop("integer", "0=nei, 1=ja, 2=vet ikke"),
+				"foreign_taxes": map[string]any{
+					"type":        "array",
+					"description": "Utenlandsk skatt per type: {type, amount, currency?, treatment?}. Erstatter eksisterende linjer.",
+					"items": obj(map[string]any{
+						"type":      prop("string", "Skattetype, f.eks. IRRF, ISS, CSLL"),
+						"amount":    prop("number", "Beløp i utenlandsk valuta"),
+						"currency":  prop("string", "Valuta (default = inntektens valuta)"),
+						"treatment": prop("string", "credit|deduct|none (tom = utled fra katalog)"),
+					}, "type", "amount"),
+				},
+				"tax_year": prop("integer", "Inntektsar"),
+				"notes":    prop("string", "Notater"),
+			}, "id", "date", "description", "amount", "category"),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				res, err := app.UpdateIncome(ctx, core.ActorMCP, int64(a.intval("id")), incomeInputFromArgs(a))
+				if err != nil {
+					return "", err
+				}
+				return toJSON(map[string]any{
+					"id": res.Income.ID, "amount_nok": res.Income.AmountNok,
+					"rate_used": res.RateUsed, "rate_date": res.RateDate,
+				}), nil
+			},
+		},
+		{
+			Name:        "delete_income",
+			Description: "Slett en inntekt med id (kan rulles tilbake via list_changes/rollback).",
+			InputSchema: obj(map[string]any{"id": prop("integer", "Inntekts-id")}, "id"),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				id := int64(a.intval("id"))
+				if err := app.DeleteIncome(ctx, core.ActorMCP, id); err != nil {
+					return "", err
+				}
+				return fmt.Sprintf("Inntekt #%d slettet.", id), nil
+			},
+		},
+		{
+			Name:        "get_expense",
+			Description: "Hent en enkelt utgift med id.",
+			InputSchema: obj(map[string]any{"id": prop("integer", "Utgifts-id")}, "id"),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				e, err := app.GetExpense(ctx, int64(a.intval("id")))
+				if err != nil {
+					return "", err
+				}
+				return toJSON(e), nil
+			},
+		},
+		{
+			Name:        "update_expense",
+			Description: "Endre en eksisterende utgift (id). Feltene fra add_expense gjelder; oppgitte verdier erstatter de gamle. income_id=0 fjerner koblingen.",
+			InputSchema: obj(map[string]any{
+				"id":             prop("integer", "Utgifts-id som skal endres"),
+				"date":           prop("string", "Dato (AAAA-MM-DD)"),
+				"description":    prop("string", "Beskrivelse"),
+				"amount":         prop("number", "Beløp i valgt valuta"),
+				"currency":       prop("string", "Valutakode"),
+				"country_code":   prop("string", "Land ISO 3166-1"),
+				"category":       prop("string", "Fradragskategori"),
+				"deductible_pct": prop("number", "Fradragsprosent"),
+				"income_id":      prop("integer", "Knytt til inntekt (0 = ingen kobling)"),
+				"tax_year":       prop("integer", "Inntektsar"),
+				"notes":          prop("string", "Notater"),
+			}, "id", "date", "description", "amount", "category"),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				exp, err := app.UpdateExpense(ctx, core.ActorMCP, int64(a.intval("id")), expenseInputFromArgs(a))
+				if err != nil {
+					return "", err
+				}
+				return toJSON(map[string]any{
+					"id": exp.ID, "deductible_nok": exp.DeductibleNok, "deductible_pct": exp.DeductiblePct,
+				}), nil
+			},
+		},
+		{
+			Name:        "delete_expense",
+			Description: "Slett en utgift med id (kan rulles tilbake via list_changes/rollback).",
+			InputSchema: obj(map[string]any{"id": prop("integer", "Utgifts-id")}, "id"),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				id := int64(a.intval("id"))
+				if err := app.DeleteExpense(ctx, core.ActorMCP, id); err != nil {
+					return "", err
+				}
+				return fmt.Sprintf("Utgift #%d slettet.", id), nil
 			},
 		},
 		{

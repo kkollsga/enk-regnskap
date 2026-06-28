@@ -53,6 +53,12 @@ func main() {
 	}
 	url := "http://" + addr
 
+	// Gjor adressen synlig for en lokal AI-agent (MCP over POST /mcp).
+	if err := core.WriteMCPEndpoint(*home, url); err != nil {
+		log.Printf("kunne ikke skrive MCP-endepunkt: %v", err)
+	}
+	defer core.RemoveMCPEndpoint(*home)
+
 	httpSrv := &http.Server{Handler: srv}
 	go func() {
 		if err := httpSrv.Serve(ln); err != nil && err != http.ErrServerClosed {
