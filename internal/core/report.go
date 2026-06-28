@@ -21,22 +21,22 @@ type CategorySum struct {
 // Report er all data som trengs for årsrapport, næringsspesifikasjon og
 // transaksjonslogg for ett inntektsår.
 type Report struct {
-	Year              int
-	BusinessName      string
-	OrgNr             string
-	Income            []db.Income
-	Expenses          []db.Expense
-	IncomeByCategory  []CategorySum
-	ExpenseByCategory []CategorySum
-	ForeignCredits    []db.ForeignTaxCredit
-	ForeignTaxByIncome map[int64]float64 // income_id -> sum utenlandsk skatt (NOK)
-	ForeignTaxDeductible float64          // utenlandsk skatt behandlet som fradragsberettiget kostnad
-	ForeignTaxReference  float64          // utenlandsk skatt uten lettelse (kun referanse)
-	TotalIncome       float64
-	TotalExpenses     float64
-	TotalDeductible   float64
-	Result            float64 // TotalIncome - TotalDeductible
-	Tax               *tax.TaxEstimate
+	Year                 int
+	BusinessName         string
+	OrgNr                string
+	Income               []db.Income
+	Expenses             []db.Expense
+	IncomeByCategory     []CategorySum
+	ExpenseByCategory    []CategorySum
+	ForeignCredits       []db.ForeignTaxCredit
+	ForeignTaxByIncome   map[int64]float64 // income_id -> sum utenlandsk skatt (NOK)
+	ForeignTaxDeductible float64           // utenlandsk skatt behandlet som fradragsberettiget kostnad
+	ForeignTaxReference  float64           // utenlandsk skatt uten lettelse (kun referanse)
+	TotalIncome          float64
+	TotalExpenses        float64
+	TotalDeductible      float64
+	Result               float64 // TotalIncome - TotalDeductible
+	Tax                  *tax.TaxEstimate
 }
 
 // BuildReport samler alle tall for et inntektsår.

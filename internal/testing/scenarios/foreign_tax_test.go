@@ -23,8 +23,8 @@ func TestNonCreditableTaxExcludedFromCredit(t *testing.T) {
 		CountryCode: "BR", AmountOrig: 10000, Category: "tjenesteinntekt", TaxYear: 2025,
 		ForeignTaxPaid: core.ForeignTaxYes,
 		ForeignTaxes: []core.ForeignTaxLine{
-			{Type: "IRRF", AmountOrig: 1500, Currency: "BRL"},   // krediterbar
-			{Type: "COFINS", AmountOrig: 500, Currency: "BRL"},  // ikke krediterbar
+			{Type: "IRRF", AmountOrig: 1500, Currency: "BRL"},  // krediterbar
+			{Type: "COFINS", AmountOrig: 500, Currency: "BRL"}, // ikke krediterbar
 		},
 	})
 	if err != nil {
@@ -87,8 +87,8 @@ func TestDeductibleForeignTaxLinkedToExpenses(t *testing.T) {
 		AmountOrig: 10000, Category: "tjenesteinntekt", TaxYear: 2025,
 		ForeignTaxPaid: core.ForeignTaxYes,
 		ForeignTaxes: []core.ForeignTaxLine{
-			{Type: "IRRF", AmountOrig: 1500, Currency: "BRL"},   // credit
-			{Type: "COFINS", AmountOrig: 500, Currency: "BRL"},  // deduct
+			{Type: "IRRF", AmountOrig: 1500, Currency: "BRL"},  // credit
+			{Type: "COFINS", AmountOrig: 500, Currency: "BRL"}, // deduct
 		},
 	})
 	if err != nil {

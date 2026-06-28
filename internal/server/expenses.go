@@ -21,14 +21,14 @@ type expenseFormData struct {
 }
 
 type expenseListData struct {
-	Expenses    []db.Expense
-	Kinds       map[string]string // kategorinøkkel -> TaxKind
-	CatNames    map[string]string
-	Categories  []core.ExpenseCategory // for redigering i listen
-	Receipts    map[int64][]db.Receipt
-	TotalAmount float64
-	TotalDeduct float64
-	TaxSummary  core.TaxExpenseSummary
+	Expenses       []db.Expense
+	Kinds          map[string]string // kategorinøkkel -> TaxKind
+	CatNames       map[string]string
+	Categories     []core.ExpenseCategory // for redigering i listen
+	Receipts       map[int64][]db.Receipt
+	TotalAmount    float64
+	TotalDeduct    float64
+	TaxSummary     core.TaxExpenseSummary
 	LinkedTaxes    []core.LinkedForeignTax // utenlandsk skatt ført som fradrag, koblet til inntekt
 	LinkedTaxTotal float64
 }
