@@ -102,6 +102,27 @@ func (s *Server) callTool(ctx context.Context, params json.RawMessage) (any, *rp
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, &rpcError{Code: -32602, Message: "ugyldige parametre: " + err.Error()}
 	}
+	// Per-kall foretak: hvis 'company' oppgis (og det ikke er et
+	// foretaks-verktoy), bytt aktivt foretak til det og kjor kallet der. UI-et
+	// får beskjed om å navigere før byttet (mens klienten enda er abonnent på
+	// det gamle prosjektet).
+	if s.ws != nil && !isCompanyMgmt(p.Name) {
+		if ident := Args(p.Arguments).str("company"); ident != "" {
+			folder, err := resolveCompanyFolder(s.ws, ident)
+			if err != nil {
+				return toolErr(err), nil
+			}
+			if folder != s.ws.CurrentName() {
+				if cur := s.ws.Current(); cur != nil {
+					cur.Events.Broadcast(core.Event{Type: "navigate", Path: "/"})
+				}
+				if _, err := s.ws.Open(folder); err != nil {
+					return toolErr(err), nil
+				}
+				return New(s.ws.Current(), s.ws).callTool(ctx, params)
+			}
+		}
+	}
 	tool, ok := s.byName[p.Name]
 	if !ok {
 		return nil, &rpcError{Code: -32602, Message: "ukjent verktoy: " + p.Name}

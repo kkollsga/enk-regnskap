@@ -82,12 +82,21 @@ Rows when you must: `list_income` / `list_expenses {year, country_code?, categor
 - Everything is auditable: `list_changes {limit?}` then `rollback {change_id}` to undo.
 - `set_active_year {year}` changes the year the UI shows.
 
-## 5. Set up a company (only if none exists yet)
-In workspace mode you can bootstrap from nothing — `/mcp` accepts calls even before a company exists:
+## 5. Set up / switch company (workspace mode)
+You can bootstrap from nothing — `/mcp` accepts calls even before a company exists:
 - `list_companies`
-- `create_company {company, org_nr?, language?}` — creates, activates, and onboards it; afterwards the income/expense tools operate on it.
-- `open_company {folder}` — switch active company.
+- `create_company {company, org_nr?, language?}` — creates, activates, and onboards it.
+- `open_company {company}` — switch active company by **name, org.nr, or folder** (exact or partial).
+- **Per‑call company:** any data/read tool accepts an optional `company` to target a specific company for that call without a separate `open_company`.
 - `generate_dummy_data` — fill a demo dataset for the active year.
+
+Switching the active company **navigates the app window** to it automatically.
+
+## 6. Drive the app window (live)
+You can change what the user sees in real time (the open window updates via SSE):
+- `navigate {page}` — `dashboard | income | expenses | foreign-tax | tax-info | selvangivelse | reports | new-income | new-expense`, or any `/`‑path.
+- `set_language {lang}` — `nb | pt | en`.
+- `ui_toggle {selector, mode?}` — expand/collapse `<details>` by CSS selector (`details.entry`, `.estimate-details`); `mode` = `toggle | open | close`.
 
 ## Conventions
 - All money is NOK unless a foreign `currency` is given; rates are Norges Bank for the transaction date (weekends fall back to the prior business day).

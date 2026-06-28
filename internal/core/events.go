@@ -9,11 +9,14 @@ import (
 // slik at UI-et kan oppdatere seg live når data endres - også når
 // endringen kommer fra MCP-agenten.
 type Event struct {
-	Type   string `json:"type"`   // f.eks. "income", "expense", "rollback"
-	Action string `json:"action"` // "created", "updated", "deleted"
+	Type   string `json:"type"`   // f.eks. "income", "expense", "rollback", "navigate", "ui"
+	Action string `json:"action"` // "created"/"updated"/"deleted"; for "ui": "toggle"/"open"/"close"
 	Entity string `json:"entity"` // tabellnavn
 	ID     int64  `json:"id"`     // rad-id (0 hvis ikke relevant)
 	Year   int    `json:"year"`   // berort inntektsår (0 hvis ikke relevant)
+	// UI-styring (en agent kan endre visningen live):
+	Path     string `json:"path,omitempty"`     // type "navigate": sti å vise
+	Selector string `json:"selector,omitempty"` // type "ui": CSS-selektor som slås av/på
 }
 
 // Hub er en enkel SSE-kringkaster. Abonnenter registrerer en kanal og får

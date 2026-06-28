@@ -694,6 +694,7 @@ func (s *Server) buildTools() []Tool {
 			},
 		},
 	}
+	tools = append(tools, s.uiTools()...)
 	if s.ws != nil {
 		tools = append(tools, s.companyTools()...)
 	}

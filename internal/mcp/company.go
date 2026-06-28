@@ -7,6 +7,25 @@ import (
 	"github.com/kkollsga/enk-regnskap/internal/core"
 )
 
+// isCompanyMgmt er sann for verktoy som ikke skal trigge per-kall foretaksbytte
+// via 'company'-argumentet (create_company sin 'company' er det nye navnet).
+func isCompanyMgmt(name string) bool {
+	switch name {
+	case "create_company", "open_company", "list_companies":
+		return true
+	}
+	return false
+}
+
+// broadcastNavigateHome ber et eventuelt åpent vindu navigere til forsiden, slik
+// at det viser det nye aktive foretaket. Må kalles FØR foretaket byttes (mens
+// klienten enda abonnerer på det gjeldende prosjektet).
+func broadcastNavigateHome(ws *core.Workspace) {
+	if cur := ws.Current(); cur != nil {
+		cur.Events.Broadcast(core.Event{Type: "navigate", Path: "/"})
+	}
+}
+
 // companyTools er kun tilgjengelige i flerprosjekt-modus (s.ws != nil). De lar
 // en agent liste, opprette og åpne foretak uten å gå via nettgrensesnittet –
 // så agenten kan starte fra null.
@@ -53,6 +72,7 @@ func (s *Server) companyTools() []Tool {
 				if core.ProjectFolderName(company, orgnr) == "" {
 					return "", fmt.Errorf("oppgi firmanavn og/eller organisasjonsnummer")
 				}
+				broadcastNavigateHome(ws) // be vinduet følge med til det nye foretaket
 				proj, err := ws.CreateProject(company, orgnr)
 				if err != nil {
 					return "", err
@@ -73,10 +93,21 @@ func (s *Server) companyTools() []Tool {
 		},
 		{
 			Name:        "open_company",
-			Description: "Bytt aktivt foretak til prosjektmappen 'folder' (se list_companies).",
-			InputSchema: obj(map[string]any{"folder": prop("string", "Prosjektmappenavn fra list_companies")}, "folder"),
+			Description: "Bytt aktivt foretak. 'company' kan være mappenavn, org.nr eller firmanavn (eksakt eller delvis). Appens vindu navigerer til det nye foretaket.",
+			InputSchema: obj(map[string]any{
+				"company": prop("string", "Mappenavn, org.nr eller firmanavn"),
+				"folder":  prop("string", "Alias for company (mappenavn)"),
+			}, "company"),
 			Run: func(ctx context.Context, a Args) (string, error) {
-				folder := a.str("folder")
+				ident := a.str("company")
+				if ident == "" {
+					ident = a.str("folder")
+				}
+				folder, err := resolveCompanyFolder(ws, ident)
+				if err != nil {
+					return "", err
+				}
+				broadcastNavigateHome(ws) // før byttet, mens klienten enda abonnerer
 				if _, err := ws.Open(folder); err != nil {
 					return "", err
 				}

@@ -441,7 +441,23 @@
       } catch (_) {
         return;
       }
-      if (ev && ev.type === "ping") return;
+      if (!ev || ev.type === "ping") return;
+      // Agent-styrt navigasjon: bytt side uten full reload-loop.
+      if (ev.type === "navigate" && ev.path) {
+        window.location.href = ev.path;
+        return;
+      }
+      // Agent-styrt visningstilstand: slå utvidbare seksjoner av/på.
+      if (ev.type === "ui") {
+        if (ev.selector) {
+          document.querySelectorAll(ev.selector).forEach(function (el) {
+            if (ev.action === "open") el.setAttribute("open", "");
+            else if (ev.action === "close") el.removeAttribute("open");
+            else el.toggleAttribute("open");
+          });
+        }
+        return;
+      }
       // Enhver datamutasjon oppdaterer visningen.
       scheduleReload();
     };

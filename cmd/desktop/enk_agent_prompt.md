@@ -40,6 +40,8 @@ Quick cheat‑sheet (call `guide` for the rest):
 - Add: `enk add_income '{...}'`, `enk add_expense '{...}'` (foreign `currency` auto‑converts via Norges Bank).
 - Edit (partial — only supplied fields change): `enk update_income '{"id":1,"description":"…"}'`. Append one foreign tax: `enk add_foreign_tax '{"income_id":1,"type":"IRRF","amount":7500,"treatment":"credit"}'`.
 - Docs: `enk attach_receipt '{"parent_kind":"income","parent_id":1,"filename":"x.pdf","content_base64":"…"}'`.
+- Companies: `enk list_companies '{}'`, `enk open_company '{"company":"Acme"}'` (name/org.nr/folder); any tool also takes `"company"` to target one per call.
+- Drive the window: `enk navigate '{"page":"selvangivelse"}'`, `enk set_language '{"lang":"en"}'`, `enk ui_toggle '{"selector":"details.entry","mode":"open"}'`.
 - Undo: `enk list_changes '{}'` then `enk rollback '{"change_id":N}'`.
 
 ## 3. Conventions

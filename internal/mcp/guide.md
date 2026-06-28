@@ -5,7 +5,8 @@ You are connected to a running ENK Regnskap app (Norwegian sole‑proprietorship
 ## State model (important)
 - The app has ONE **active company** and ONE **active income year** at a time.
 - Most tools take `year` explicitly — pass it. Some default to the active year.
-- Company is **not** a per‑call argument: operations target the active company. Call `status` to see it; `set_active_year` / `open_company` to change state.
+- Call `status` to see the active company/year; `set_active_year {year}` and `open_company` change state.
+- **Per‑call company:** any data/read tool also accepts an optional `company` (company name, org.nr, or folder). If given and different from the active one, the app switches to it (and its window navigates there) for that call and onward. Lets you target a company without a separate `open_company`.
 
 ## Retrieving figures (prefer these over listing rows)
 - `status` — active company, year, and income/expense counts. Call this first to orient.
@@ -44,7 +45,14 @@ Each `foreign_taxes` line has a `treatment`:
 Every mutation is logged: `list_changes {limit?}` then `rollback {change_id}` (restores deleted rows too).
 
 ## Companies (workspace mode)
-`list_companies`, `create_company {company, org_nr?, language?}` (creates + activates + onboards), `open_company {folder}`. `/mcp` accepts calls even before a company exists, so you can bootstrap from nothing.
+`list_companies`, `create_company {company, org_nr?, language?}` (creates + activates + onboards), `open_company {company}` (name / org.nr / folder — switches the active company **and** navigates the app window to it). `/mcp` accepts calls even before a company exists, so you can bootstrap from nothing.
+
+## Driving the app window (live)
+You can change what the user sees, in real time:
+- `navigate {page}` — switch the visible page. `page` = `dashboard | income | expenses | foreign-tax | tax-info | selvangivelse | reports | new-income | new-expense`, or any path starting with `/`.
+- `set_language {lang}` — `nb` | `pt` | `en`.
+- `ui_toggle {selector, mode?}` — expand/collapse `<details>` sections by CSS selector (e.g. `selector:"details.entry"` for all entries, `".estimate-details"` for the tax breakdown). `mode` = `toggle` (default) | `open` | `close`.
+- Switching the active company (`open_company`, `create_company`, or a per‑call `company`) navigates the window to the new company automatically.
 
 ## Conventions
 Money is NOK unless a foreign `currency` is given. Dates are `YYYY-MM-DD` and must fall in the entry's `tax_year`. Output is compact snake_case JSON. Rates/figures are for the requested income year (2025: 22% general income, 10.9% trygdeavgift on business income).
