@@ -130,6 +130,20 @@ func (a *App) BuildReport(ctx context.Context, year int) (Report, error) {
 	return rep, nil
 }
 
+// IncomeByCategoryForYear gir brutto næringsinntekt per kategori (NOK) for et
+// inntektsår – brukt i den trinnvise skatteberegningen.
+func (a *App) IncomeByCategoryForYear(ctx context.Context, year int) ([]CategorySum, error) {
+	rows, err := a.Q.SumIncomeByCategory(ctx, int64(year))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]CategorySum, 0, len(rows))
+	for _, c := range rows {
+		out = append(out, CategorySum{Category: c.Category, Total: tax.Round2(toFloat(c.Total))})
+	}
+	return out, nil
+}
+
 // CategoryDisplayName gir et lesbart navn for en kategorinøkkel for et år.
 func (a *App) CategoryDisplayName(year int, key string) string {
 	if key == CategoryForeignTaxDeductible {

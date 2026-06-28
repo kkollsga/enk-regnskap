@@ -375,6 +375,31 @@ form input:focus, form select:focus, form textarea:focus { outline: 2px solid va
 .estimate-details[open] > summary::before { content: "▾ "; }
 .estimate-details .kv { margin-top: 12px; max-width: 520px; }
 
+/* Trinnvis skatteberegning (utvidbare linjer, native <details>) */
+.calc { margin-top: 14px; max-width: 560px; }
+.calc-row { display: block; border-bottom: 1px solid var(--sep); }
+.calc-row > summary,
+.calc-row.calc-subtotal,
+.calc-row.calc-total {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 14px;
+  padding: 11px 4px;
+}
+details.calc-row > summary { cursor: pointer; list-style: none; }
+details.calc-row > summary::-webkit-details-marker { display: none; }
+details.calc-row > summary:hover { background: var(--sep); }
+details.calc-row > summary .calc-lbl::before { content: "▸ "; color: var(--muted); }
+details.calc-row[open] > summary .calc-lbl::before { content: "▾ "; }
+details.calc-row[open] > summary { background: var(--sep); }
+.calc-lbl { font-weight: 600; }
+.calc-num { font-variant-numeric: tabular-nums; font-weight: 600; }
+.calc-sub { margin: 4px 0 14px 20px; max-width: 500px; }
+.calc-sub td, .calc-sub th { color: var(--muted); font-weight: 400; }
+.calc-sub th { font-size: 12px; text-align: left; }
+.calc-sub th.num { text-align: right; }
+.calc-subtotal, .calc-total { border-top: 2px solid var(--border); border-bottom: none; }
+.calc-subtotal .calc-lbl, .calc-subtotal .calc-num { font-weight: 700; }
+.calc-total .calc-lbl, .calc-total .calc-num { font-weight: 800; color: var(--primary); }
+
 .info-section { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; padding: 0 18px; }
 .info-section > summary { cursor: pointer; list-style: none; padding: 4px 0; }
 .info-section > summary::-webkit-details-marker { display: none; }

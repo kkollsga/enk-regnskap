@@ -8,20 +8,75 @@
 {{if .EstimatedTax}}
 <section class="estimate-hero">
   <div class="estimate-main">
-    <div class="estimate-label">Foreløpig skatteberegning {{.Year}}</div>
-    <div class="estimate-sum">{{nok .EstimatedTax.SumSkatt}}</div>
-    <div class="muted small">Basert på et resultat på {{nok .Result}}. Kun et estimat – ikke et endelig skatteoppgjør.</div>
+    <div class="estimate-label">Foreløpig beregnet skatt {{$.Year}}</div>
+    <div class="estimate-sum">{{if gt .ForeignTaxCredit 0.0}}{{nok .NetTax}}{{else}}{{nok .EstimatedTax.SumSkatt}}{{end}}</div>
+    <div class="muted small">Basert på et næringsresultat på {{nok .Result}}. Kun et estimat – ikke et endelig skatteoppgjør.</div>
   </div>
-  <details class="estimate-details">
+  <details class="estimate-details" open>
     <summary>Vis hvordan skatten er beregnet</summary>
-    <table class="kv">
-      <tr><td>Næringsresultat</td><td class="num">{{nok .Result}}</td></tr>
-      <tr><td>Alminnelig inntektsskatt (22 %)</td><td class="num">{{nok .EstimatedTax.AlminneligInntektsskatt}}</td></tr>
-      <tr><td>Trygdeavgift</td><td class="num">{{nok .EstimatedTax.Trygdeavgift}}</td></tr>
-      <tr><td>Trinnskatt</td><td class="num">{{nok .EstimatedTax.Trinnskatt}}</td></tr>
-      <tr class="sum"><td>Sum estimert skatt</td><td class="num">{{nok .EstimatedTax.SumSkatt}}</td></tr>
-    </table>
-    <p class="muted small">For et lite ENK settes personinntekt ≈ næringsresultat. Trygdeavgift har en nedre grense, og trinnskatt slår først inn over et innslagspunkt – se satsene under.</p>
+
+    <div class="calc">
+      <details class="calc-row">
+        <summary>
+          <span class="calc-lbl">Driftsinntekter (brutto)</span>
+          <span class="calc-num num">{{nok $d.IncomeTotal}}</span>
+        </summary>
+        <table class="kv calc-sub">
+          {{range $d.IncomeLines}}<tr><td>{{.Label}}</td><td class="num">{{nok .NOK}}</td></tr>{{end}}
+          {{if not $d.IncomeLines}}<tr><td class="muted">Ingen inntekter ført</td><td></td></tr>{{end}}
+        </table>
+      </details>
+
+      <details class="calc-row">
+        <summary>
+          <span class="calc-lbl">− Fradragsberettigede kostnader</span>
+          <span class="calc-num num">−{{nok $d.DeductibleTotal}}</span>
+        </summary>
+        <table class="kv calc-sub">
+          {{range $d.Deductions}}{{if gt .DeductibleNOK 0.0}}<tr><td>{{.Name}}</td><td class="num">{{nok .DeductibleNOK}}</td></tr>{{end}}{{end}}
+          {{if gt $d.ForeignDeductible 0.0}}<tr><td>Utenlandsk skatt (fradragsberettiget kostnad)</td><td class="num">{{nok $d.ForeignDeductible}}</td></tr>{{end}}
+          {{if not $d.DeductibleTotal}}<tr><td class="muted">Ingen fradrag ført</td><td></td></tr>{{end}}
+        </table>
+      </details>
+
+      <div class="calc-row calc-subtotal">
+        <span class="calc-lbl">= Næringsresultat</span>
+        <span class="calc-num num">{{nok .Result}}</span>
+      </div>
+
+      <details class="calc-row">
+        <summary>
+          <span class="calc-lbl">Beregnet skatt av næringsresultatet</span>
+          <span class="calc-num num">{{nok .EstimatedTax.SumSkatt}}</span>
+        </summary>
+        <table class="kv calc-sub">
+          <tr><td>Alminnelig inntektsskatt{{if $d.HasRules}} ({{pct $d.Rules.AlminneligInntektsskattPct}}){{end}}</td><td class="num">{{nok .EstimatedTax.AlminneligInntektsskatt}}</td></tr>
+          <tr><td>Trygdeavgift{{if $d.HasRules}} ({{pct $d.Rules.TrygdeavgiftNaeringPct}}){{end}}</td><td class="num">{{nok .EstimatedTax.Trygdeavgift}}</td></tr>
+          <tr><td>Trinnskatt</td><td class="num">{{nok .EstimatedTax.Trinnskatt}}</td></tr>
+        </table>
+      </details>
+
+      {{if gt .ForeignTaxCredit 0.0}}
+      <details class="calc-row">
+        <summary>
+          <span class="calc-lbl">− Kreditfradrag for skatt betalt i utlandet</span>
+          <span class="calc-num num">−{{nok .ForeignTaxCredit}}</span>
+        </summary>
+        <table class="kv calc-sub">
+          <thead><tr><th>Land</th><th class="num">Krediterbar skatt</th><th class="num">Maks (§ 16-21)</th><th class="num">Kredit</th></tr></thead>
+          <tbody>{{range $d.ForeignLines}}<tr><td>{{.Name}}</td><td class="num">{{nok .Paid}}</td><td class="num">{{nok .MaxEst}}</td><td class="num">{{nok .Applied}}</td></tr>{{end}}</tbody>
+        </table>
+        <p class="muted small">«Krediterbar skatt» er utenlandsk inntektsskatt som kan krediteres; indirekte skatter (f.eks. ISS) føres i stedet som fradragsberettiget kostnad over. Kreditfradraget er begrenset til norsk skatt som forholdsmessig faller på utenlandsinntekten (sktl. § 16-21). Konservativt anslag – se <a href="/foreign-tax">Utenlandsk skatt</a>.</p>
+      </details>
+      {{end}}
+
+      <div class="calc-row calc-total">
+        <span class="calc-lbl">= Foreløpig beregnet skatt</span>
+        <span class="calc-num num">{{if gt .ForeignTaxCredit 0.0}}{{nok .NetTax}}{{else}}{{nok .EstimatedTax.SumSkatt}}{{end}}</span>
+      </div>
+    </div>
+
+    <p class="muted small">Skatten beregnes av næringsresultatet (etter fradrag). For et lite ENK settes personinntekt ≈ næringsresultat. Trygdeavgift har en nedre grense, og trinnskatt slår først inn over et innslagspunkt – se satsene under. Anslaget tar <strong>ikke</strong> med personfradrag eller andre personlige fradrag, så endelig utlignet skatt blir normalt noe lavere.</p>
   </details>
 </section>
 {{end}}
