@@ -21,9 +21,11 @@ case "$(uname -m)" in
 esac
 
 say "Finner siste versjon av ENK Regnskap ($ARCH) ..."
-URL=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \
+RELEASE="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest")"
+TAG="$(printf '%s' "$RELEASE" | grep -o '"tag_name"[^,]*' | head -1 | sed -E 's/.*: *"([^"]+)".*/\1/')"
+URL="$(printf '%s' "$RELEASE" \
   | grep -o "https://github.com/$REPO/releases/download/[^\"]*-$ARCH\.dmg" \
-  | head -1)
+  | head -1)"
 
 if [[ -z "${URL:-}" ]]; then
   die "Fant ingen $ARCH-DMG i siste release. Se https://github.com/$REPO/releases – eller bygg fra kilde med 'make dmg'."
@@ -33,7 +35,7 @@ TMP="$(mktemp -d)"
 trap 'hdiutil detach "$MOUNT" >/dev/null 2>&1 || true; rm -rf "$TMP"' EXIT
 DMG="$TMP/EnkRegnskap.dmg"
 
-say "Laster ned ..."
+say "Laster ned ${TAG:-siste versjon} ..."
 curl -fsSL "$URL" -o "$DMG"
 
 say "Monterer diskbildet ..."
@@ -54,5 +56,5 @@ cp -R "$MOUNT/$APP" "$DEST/"
 # curl setter ikke karanteneflagg, men vi rydder for sikkerhets skyld.
 xattr -dr com.apple.quarantine "$DEST/$APP" 2>/dev/null || true
 
-say "Ferdig! ENK Regnskap er installert i $DEST."
+say "Ferdig! ENK Regnskap ${TAG:-} er installert i $DEST."
 open "$DEST/$APP" 2>/dev/null || true
