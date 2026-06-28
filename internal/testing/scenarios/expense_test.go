@@ -175,3 +175,22 @@ func itoa(n int64) string {
 	}
 	return string(b[i:])
 }
+
+// TestExpenseSaveSwitchesToEntryYear sikrer at en nylagret post alltid vises:
+// hvis datoen er i et annet år enn det aktive, byttes aktivt år til postens år
+// (ellers «forsvant» posten fra lista).
+func TestExpenseSaveSwitchesToEntryYear(t *testing.T) {
+	h := apptest.Start(t)
+	ctx := h.Context()
+	h.App.SetConfig(ctx, core.ConfigActiveYear, "2025")
+	h.Browser().Get("/expenses/new").Form("/expenses").
+		Set("date", "2026-06-28").Set("description", "Kontorrekvisita").
+		Set("amount_nok", "500").Set("category", "kontorrekvisita").Submit()
+	if y := h.App.ActiveYear(ctx); y != 2026 {
+		t.Errorf("aktivt år etter lagring = %d, forventet 2026 (postens år)", y)
+	}
+	rows, _ := h.App.ListExpenses(ctx, h.App.ActiveYear(ctx))
+	if len(rows) != 1 {
+		t.Errorf("forventet 1 utgift i aktivt år etter lagring, fikk %d", len(rows))
+	}
+}

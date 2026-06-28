@@ -165,6 +165,8 @@ func (s *Server) saveIncome(w http.ResponseWriter, r *http.Request, id int64) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// Bytt til postens år så den nettopp lagrede inntekten faktisk vises.
+	_ = s.app().SetConfig(r.Context(), core.ConfigActiveYear, strconv.Itoa(int(res.Income.TaxYear)))
 	http.Redirect(w, r, "/income?saved=1", http.StatusSeeOther)
 }
 
@@ -173,7 +175,7 @@ func (s *Server) newIncomeForm(r *http.Request) incomeFormData {
 	clients, _ := s.app().IncomeClients(r.Context())
 	return incomeFormData{
 		Values: map[string]string{
-			"date":             time.Now().Format("2006-01-02"),
+			"date":             entryDefaultDate(s.app().ActiveYear(r.Context())),
 			"currency":         "NOK",
 			"country_code":     "NO",
 			"foreign_tax_paid": "0",

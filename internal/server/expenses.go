@@ -157,12 +157,26 @@ func (s *Server) saveExpense(w http.ResponseWriter, r *http.Request, id int64) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// Bytt til postens år, slik at den nettopp lagrede posten faktisk vises
+	// (ellers «forsvinner» den hvis datoen er i et annet år enn det aktive).
+	_ = s.app().SetConfig(r.Context(), core.ConfigActiveYear, strconv.Itoa(int(exp.TaxYear)))
 	http.Redirect(w, r, "/expenses?saved=1", http.StatusSeeOther)
+}
+
+// entryDefaultDate gir standard dato for en ny post: i dag hvis vi er i det
+// aktive året, ellers samme dag/måned i det aktive året (så posten ikke havner
+// i feil år ved et uhell).
+func entryDefaultDate(activeYear int) string {
+	now := time.Now()
+	if now.Year() == activeYear {
+		return now.Format("2006-01-02")
+	}
+	return time.Date(activeYear, now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).Format("2006-01-02")
 }
 
 func (s *Server) newExpenseForm(r *http.Request, year int) expenseFormData {
 	values := map[string]string{
-		"date": time.Now().Format("2006-01-02"),
+		"date": entryDefaultDate(year),
 	}
 	if cat := r.URL.Query().Get("category"); cat != "" {
 		values["category"] = cat
