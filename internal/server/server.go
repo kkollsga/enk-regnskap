@@ -152,12 +152,13 @@ func (s *Server) view(r *http.Request, active, title string) View {
 		orgnr = app.GetConfig(ctx, core.ConfigOrgNr, "")
 	}
 	v := View{
-		Lang:   lang,
-		T:      s.renderer.translations(lang),
-		Active: active,
-		Title:  title,
-		Year:   year,
-		Years:  selectableYears(year),
+		Lang:    lang,
+		T:       s.renderer.translations(lang),
+		Active:  active,
+		Title:   title,
+		Year:    year,
+		Years:   selectableYears(year),
+		Version: core.Version,
 	}
 	if s.ws != nil {
 		v.MultiProject = true

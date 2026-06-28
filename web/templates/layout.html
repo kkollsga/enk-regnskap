@@ -11,8 +11,11 @@
 <body class="{{if $chrome}}has-chrome{{end}}">
   <header class="topbar">
     <a class="brand-mark" href="/">
-      <span class="brand-enk">ENK</span>
-      <span class="brand-reg">Regnskap</span>
+      <span class="brand-text">
+        <span class="brand-enk">ENK</span>
+        <span class="brand-reg">Regnskap</span>
+      </span>
+      {{if .Version}}<span class="brand-version">v{{.Version}}</span>{{end}}
     </a>
     {{if and $chrome .ProjectCompany}}
     <a class="company-block" href="/projects" title="Bytt foretak">
@@ -91,6 +94,25 @@
   </a>
   {{end}}
 </div>
+{{end}}
+
+{{define "tax_row"}}
+<div class="tax-row">
+  <div class="combobox">
+    <input type="text" name="tax_type" class="tax-type-input" autocomplete="off" placeholder="Skattetype" value="{{.TaxType}}">
+    <div class="combobox-menu" hidden></div>
+    <div class="tax-type-desc" hidden></div>
+  </div>
+  <input type="text" name="tax_amount" class="tax-amount-input" inputmode="decimal" placeholder="0,00" value="{{if gt .AmountOrig 0.0}}{{printf "%g" .AmountOrig}}{{end}}">
+  <button type="button" class="icon-btn tax-remove" title="Fjern skattetype" tabindex="-1">🗑</button>
+</div>
+{{end}}
+
+{{define "tax_lines_block"}}
+<div class="tax-lines" data-tax-lines>
+  {{range .}}{{template "tax_row" .}}{{end}}
+</div>
+<button type="button" class="btn btn-small tax-add">+ Legg til skattetype</button>
 {{end}}
 
 {{define "existing_attachments_inline"}}

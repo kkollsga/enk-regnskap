@@ -18,6 +18,14 @@ const (
 	ForeignTaxUnknown = 2 // vet ikke enna
 )
 
+// ForeignTaxLine er én betalt utenlandsk skatt av en bestemt type (f.eks. IRRF)
+// på en inntekt. En inntekt kan ha flere slike linjer.
+type ForeignTaxLine struct {
+	Type       string  // f.eks. 'IRRF', 'ISS', 'CSLL'
+	AmountOrig float64 // beløp i utenlandsk valuta
+	Currency   string  // default = inntektens valuta
+}
+
 // IncomeInput er brukerens/agentens innspill for en ny inntekt.
 type IncomeInput struct {
 	Date        string
@@ -30,10 +38,8 @@ type IncomeInput struct {
 	TaxYear     int     // 0 = utled fra dato
 	Notes       string
 
-	ForeignTaxPaid     int     // 0/1/2
-	ForeignTaxOrig     float64 // betalt skatt i utenlandsk valuta
-	ForeignTaxCurrency string  // default = Currency
-	ForeignTaxType     string  // f.eks. 'IRRF'
+	ForeignTaxPaid int              // 0/1/2
+	ForeignTaxes   []ForeignTaxLine // betalt utenlandsk skatt, brutt ned per type
 
 	ReceiptID *int64
 }
@@ -45,20 +51,26 @@ type IncomeResult struct {
 	RateDate string
 }
 
+// resolvedTaxLine er en skattelinje med beregnet NOK-beløp, klar for lagring.
+type resolvedTaxLine struct {
+	taxType    string
+	amountOrig float64
+	currency   string
+	amountNOK  float64
+	creditable bool
+}
+
 // resolvedIncome er ferdig beregnede DB-verdier for en inntekt.
 type resolvedIncome struct {
 	exchangeRate sql.NullFloat64
 	rateDate     sql.NullString
 	amountNOK    float64
-	ftOrig       sql.NullFloat64
-	ftNOK        sql.NullFloat64
-	ftCurrency   sql.NullString
-	ftType       sql.NullString
+	taxes        []resolvedTaxLine
 	usedRate     float64
 	usedRateDate string
 }
 
-// resolveIncome henter valutakurs og beregner NOK-beløp + utenlandsk skatt.
+// resolveIncome henter valutakurs og beregner NOK-beløp + utenlandske skatter.
 func (a *App) resolveIncome(ctx context.Context, in IncomeInput) (resolvedIncome, error) {
 	res := resolvedIncome{amountNOK: in.AmountOrig, usedRate: 1.0, usedRateDate: in.Date}
 	if in.Currency != "NOK" {
@@ -74,29 +86,62 @@ func (a *App) resolveIncome(ctx context.Context, in IncomeInput) (resolvedIncome
 		res.exchangeRate = sql.NullFloat64{Float64: r.RateNOK, Valid: true}
 		res.rateDate = sql.NullString{String: r.Date, Valid: true}
 	}
-	if in.ForeignTaxPaid == ForeignTaxYes && in.ForeignTaxOrig > 0 {
-		ftCur := in.ForeignTaxCurrency
-		if ftCur == "" {
-			ftCur = in.Currency
-		}
-		nok := in.ForeignTaxOrig
-		if ftCur != "NOK" {
-			r, err := a.Currency.Rate(ctx, ftCur, in.Date)
-			if err != nil {
-				ve := newValidation()
-				ve.add("foreign_tax_orig", "kunne ikke hente kurs for utenlandsk skatt: "+err.Error())
-				return res, ve
+	if in.ForeignTaxPaid == ForeignTaxYes {
+		creditable := a.creditabilityMap(ctx, in.CountryCode, in.TaxYear)
+		for _, line := range in.ForeignTaxes {
+			if line.AmountOrig <= 0 {
+				continue
 			}
-			nok = tax.Round2(in.ForeignTaxOrig * r.RateNOK)
-		}
-		res.ftOrig = sql.NullFloat64{Float64: in.ForeignTaxOrig, Valid: true}
-		res.ftNOK = sql.NullFloat64{Float64: nok, Valid: true}
-		res.ftCurrency = sql.NullString{String: ftCur, Valid: true}
-		if in.ForeignTaxType != "" {
-			res.ftType = sql.NullString{String: in.ForeignTaxType, Valid: true}
+			cur := line.Currency
+			if cur == "" {
+				cur = in.Currency
+			}
+			nok := line.AmountOrig
+			switch {
+			case cur == "NOK":
+				// allerede NOK
+			case cur == in.Currency && res.exchangeRate.Valid:
+				nok = tax.Round2(line.AmountOrig * res.usedRate)
+			default:
+				r, err := a.Currency.Rate(ctx, cur, in.Date)
+				if err != nil {
+					ve := newValidation()
+					ve.add("foreign_tax_orig", "kunne ikke hente kurs for utenlandsk skatt: "+err.Error())
+					return res, ve
+				}
+				nok = tax.Round2(line.AmountOrig * r.RateNOK)
+			}
+			res.taxes = append(res.taxes, resolvedTaxLine{
+				taxType: line.Type, amountOrig: line.AmountOrig, currency: cur, amountNOK: nok,
+				creditable: isCreditable(creditable, line.Type),
+			})
 		}
 	}
 	return res, nil
+}
+
+// creditabilityMap gir et oppslag fra skattetype-kode til om typen gir
+// kreditfradrag i Norge, for et land og inntektsår. Tom hvis landet/året mangler.
+func (a *App) creditabilityMap(ctx context.Context, country string, year int) map[string]bool {
+	rows, err := a.CountryTaxTypes(ctx, country, year)
+	if err != nil {
+		return nil
+	}
+	m := make(map[string]bool, len(rows))
+	for _, r := range rows {
+		m[strings.ToUpper(r.TaxTypeCode)] = r.IsCreditableInNorway.Int64 == 1
+	}
+	return m
+}
+
+// isCreditable slår opp en skattetype i kreditbarhetskartet. Ukjente typer
+// (ikke i katalogen) regnes som krediterbare, slik at brukeren ikke taper
+// kredit på en egendefinert kode.
+func isCreditable(m map[string]bool, taxType string) bool {
+	if v, ok := m[strings.ToUpper(strings.TrimSpace(taxType))]; ok {
+		return v
+	}
+	return true
 }
 
 // AddIncome validerer, henter valutakurs, beregner NOK-beløp, lagrer inntekten,
@@ -110,16 +155,27 @@ func (a *App) AddIncome(ctx context.Context, actor string, in IncomeInput) (*Inc
 	if err != nil {
 		return nil, err
 	}
-	created, err := a.Q.CreateIncome(ctx, db.CreateIncomeParams{
+	tx, err := a.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	qtx := a.Q.WithTx(tx)
+	created, err := qtx.CreateIncome(ctx, db.CreateIncomeParams{
 		Date: in.Date, Description: in.Description, AmountOrig: in.AmountOrig,
 		Currency: in.Currency, ExchangeRate: res.exchangeRate, RateDate: res.rateDate,
 		AmountNok: res.amountNOK, Category: in.Category, Client: nullString(in.Client),
 		CountryCode: in.CountryCode, ForeignTaxPaid: int64(in.ForeignTaxPaid),
-		ForeignTaxOrig: res.ftOrig, ForeignTaxCurrency: res.ftCurrency, ForeignTaxNok: res.ftNOK,
-		ForeignTaxType: res.ftType, ReceiptID: nullInt(in.ReceiptID),
-		TaxYear: int64(in.TaxYear), Notes: nullString(in.Notes),
+		ReceiptID: nullInt(in.ReceiptID),
+		TaxYear:   int64(in.TaxYear), Notes: nullString(in.Notes),
 	})
 	if err != nil {
+		return nil, fmt.Errorf("lagre inntekt: %w", err)
+	}
+	if err := insertTaxLines(ctx, qtx, created.ID, res.taxes); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("lagre inntekt: %w", err)
 	}
 	after, _ := a.snapshotRow(ctx, "income", created.ID)
@@ -149,15 +205,30 @@ func (a *App) UpdateIncome(ctx context.Context, actor string, id int64, in Incom
 	if err != nil {
 		return nil, err
 	}
-	updated, err := a.Q.UpdateIncome(ctx, db.UpdateIncomeParams{
+	tx, err := a.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	qtx := a.Q.WithTx(tx)
+	updated, err := qtx.UpdateIncome(ctx, db.UpdateIncomeParams{
 		ID: id, Date: in.Date, Description: in.Description, AmountOrig: in.AmountOrig,
 		Currency: in.Currency, ExchangeRate: res.exchangeRate, RateDate: res.rateDate,
 		AmountNok: res.amountNOK, Category: in.Category, Client: nullString(in.Client),
 		CountryCode: in.CountryCode, ForeignTaxPaid: int64(in.ForeignTaxPaid),
-		ForeignTaxOrig: res.ftOrig, ForeignTaxCurrency: res.ftCurrency, ForeignTaxNok: res.ftNOK,
-		ForeignTaxType: res.ftType, TaxYear: int64(in.TaxYear), Notes: nullString(in.Notes),
+		TaxYear: int64(in.TaxYear), Notes: nullString(in.Notes),
 	})
 	if err != nil {
+		return nil, fmt.Errorf("oppdater inntekt: %w", err)
+	}
+	// Erstatt skattelinjene (slett + sett inn på nytt).
+	if err := qtx.DeleteIncomeForeignTaxesByIncome(ctx, id); err != nil {
+		return nil, fmt.Errorf("oppdater inntekt: %w", err)
+	}
+	if err := insertTaxLines(ctx, qtx, id, res.taxes); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("oppdater inntekt: %w", err)
 	}
 	after, _ := a.snapshotRow(ctx, "income", id)
@@ -176,6 +247,29 @@ func (a *App) UpdateIncome(ctx context.Context, actor string, id int64, in Incom
 // GetIncome henter en inntekt.
 func (a *App) GetIncome(ctx context.Context, id int64) (db.Income, error) {
 	return a.Q.GetIncome(ctx, id)
+}
+
+// IncomeForeignTaxes henter de utenlandske skattelinjene for en inntekt.
+func (a *App) IncomeForeignTaxes(ctx context.Context, id int64) ([]db.IncomeForeignTax, error) {
+	return a.Q.ListIncomeForeignTaxes(ctx, id)
+}
+
+// insertTaxLines lagrer skattelinjene for en inntekt via den gitte spørreren
+// (typisk en transaksjon).
+func insertTaxLines(ctx context.Context, q *db.Queries, incomeID int64, lines []resolvedTaxLine) error {
+	for _, l := range lines {
+		creditable := int64(0)
+		if l.creditable {
+			creditable = 1
+		}
+		if _, err := q.CreateIncomeForeignTax(ctx, db.CreateIncomeForeignTaxParams{
+			IncomeID: incomeID, TaxType: l.taxType, AmountOrig: l.amountOrig,
+			Currency: l.currency, AmountNok: l.amountNOK, Creditable: creditable,
+		}); err != nil {
+			return fmt.Errorf("lagre skattelinje: %w", err)
+		}
+	}
+	return nil
 }
 
 // DeleteIncome sletter en inntekt med revisjonsspor og live-hendelse.
@@ -240,8 +334,17 @@ func (in *IncomeInput) normalize() {
 	if in.CountryCode == "" {
 		in.CountryCode = "NO"
 	}
-	in.ForeignTaxCurrency = strings.ToUpper(strings.TrimSpace(in.ForeignTaxCurrency))
-	in.ForeignTaxType = strings.TrimSpace(in.ForeignTaxType)
+	// Normaliser og behold bare skattelinjer med en type og et beløp > 0.
+	lines := in.ForeignTaxes[:0]
+	for _, line := range in.ForeignTaxes {
+		line.Type = strings.TrimSpace(line.Type)
+		line.Currency = strings.ToUpper(strings.TrimSpace(line.Currency))
+		if line.Type == "" || line.AmountOrig <= 0 {
+			continue
+		}
+		lines = append(lines, line)
+	}
+	in.ForeignTaxes = lines
 	if in.TaxYear == 0 {
 		in.TaxYear = yearFromDate(in.Date)
 	}

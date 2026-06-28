@@ -11,13 +11,21 @@ import (
 )
 
 const aggregateForeignIncomeByYear = `-- name: AggregateForeignIncomeByYear :many
-SELECT country_code,
-       COALESCE(SUM(amount_nok), 0) AS income_nok,
-       COALESCE(SUM(foreign_tax_orig), 0) AS foreign_tax_orig,
-       COALESCE(SUM(foreign_tax_nok), 0) AS foreign_tax_nok
-FROM income
-WHERE tax_year = ? AND country_code <> 'NO'
-GROUP BY country_code
+SELECT i.country_code,
+       COALESCE(SUM(i.amount_nok), 0) AS income_nok,
+       COALESCE(SUM(t.tax_orig), 0) AS foreign_tax_orig,
+       COALESCE(SUM(t.tax_nok), 0) AS foreign_tax_nok
+FROM income i
+LEFT JOIN (
+  SELECT income_id,
+         SUM(amount_orig) AS tax_orig,
+         SUM(amount_nok) AS tax_nok
+  FROM income_foreign_taxes
+  WHERE creditable = 1
+  GROUP BY income_id
+) t ON t.income_id = i.id
+WHERE i.tax_year = ? AND i.country_code <> 'NO'
+GROUP BY i.country_code
 `
 
 type AggregateForeignIncomeByYearRow struct {
@@ -59,33 +67,28 @@ const createIncome = `-- name: CreateIncome :one
 INSERT INTO income (
   date, description, amount_orig, currency, exchange_rate, rate_date,
   amount_nok, category, client, country_code,
-  foreign_tax_paid, foreign_tax_orig, foreign_tax_currency, foreign_tax_nok,
-  foreign_tax_type, receipt_id, tax_year, notes
+  foreign_tax_paid, receipt_id, tax_year, notes
 ) VALUES (
-  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
-RETURNING id, date, description, amount_orig, currency, exchange_rate, rate_date, amount_nok, category, client, country_code, foreign_tax_paid, foreign_tax_orig, foreign_tax_currency, foreign_tax_nok, foreign_tax_type, receipt_id, tax_year, notes, created_at
+RETURNING id, date, description, amount_orig, currency, exchange_rate, rate_date, amount_nok, category, client, country_code, foreign_tax_paid, receipt_id, tax_year, notes, created_at
 `
 
 type CreateIncomeParams struct {
-	Date               string          `json:"date"`
-	Description        string          `json:"description"`
-	AmountOrig         float64         `json:"amount_orig"`
-	Currency           string          `json:"currency"`
-	ExchangeRate       sql.NullFloat64 `json:"exchange_rate"`
-	RateDate           sql.NullString  `json:"rate_date"`
-	AmountNok          float64         `json:"amount_nok"`
-	Category           string          `json:"category"`
-	Client             sql.NullString  `json:"client"`
-	CountryCode        string          `json:"country_code"`
-	ForeignTaxPaid     int64           `json:"foreign_tax_paid"`
-	ForeignTaxOrig     sql.NullFloat64 `json:"foreign_tax_orig"`
-	ForeignTaxCurrency sql.NullString  `json:"foreign_tax_currency"`
-	ForeignTaxNok      sql.NullFloat64 `json:"foreign_tax_nok"`
-	ForeignTaxType     sql.NullString  `json:"foreign_tax_type"`
-	ReceiptID          sql.NullInt64   `json:"receipt_id"`
-	TaxYear            int64           `json:"tax_year"`
-	Notes              sql.NullString  `json:"notes"`
+	Date           string          `json:"date"`
+	Description    string          `json:"description"`
+	AmountOrig     float64         `json:"amount_orig"`
+	Currency       string          `json:"currency"`
+	ExchangeRate   sql.NullFloat64 `json:"exchange_rate"`
+	RateDate       sql.NullString  `json:"rate_date"`
+	AmountNok      float64         `json:"amount_nok"`
+	Category       string          `json:"category"`
+	Client         sql.NullString  `json:"client"`
+	CountryCode    string          `json:"country_code"`
+	ForeignTaxPaid int64           `json:"foreign_tax_paid"`
+	ReceiptID      sql.NullInt64   `json:"receipt_id"`
+	TaxYear        int64           `json:"tax_year"`
+	Notes          sql.NullString  `json:"notes"`
 }
 
 func (q *Queries) CreateIncome(ctx context.Context, arg CreateIncomeParams) (Income, error) {
@@ -101,10 +104,6 @@ func (q *Queries) CreateIncome(ctx context.Context, arg CreateIncomeParams) (Inc
 		arg.Client,
 		arg.CountryCode,
 		arg.ForeignTaxPaid,
-		arg.ForeignTaxOrig,
-		arg.ForeignTaxCurrency,
-		arg.ForeignTaxNok,
-		arg.ForeignTaxType,
 		arg.ReceiptID,
 		arg.TaxYear,
 		arg.Notes,
@@ -123,14 +122,48 @@ func (q *Queries) CreateIncome(ctx context.Context, arg CreateIncomeParams) (Inc
 		&i.Client,
 		&i.CountryCode,
 		&i.ForeignTaxPaid,
-		&i.ForeignTaxOrig,
-		&i.ForeignTaxCurrency,
-		&i.ForeignTaxNok,
-		&i.ForeignTaxType,
 		&i.ReceiptID,
 		&i.TaxYear,
 		&i.Notes,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createIncomeForeignTax = `-- name: CreateIncomeForeignTax :one
+INSERT INTO income_foreign_taxes (
+  income_id, tax_type, amount_orig, currency, amount_nok, creditable
+) VALUES (?, ?, ?, ?, ?, ?)
+RETURNING id, income_id, tax_type, amount_orig, currency, amount_nok, creditable
+`
+
+type CreateIncomeForeignTaxParams struct {
+	IncomeID   int64   `json:"income_id"`
+	TaxType    string  `json:"tax_type"`
+	AmountOrig float64 `json:"amount_orig"`
+	Currency   string  `json:"currency"`
+	AmountNok  float64 `json:"amount_nok"`
+	Creditable int64   `json:"creditable"`
+}
+
+func (q *Queries) CreateIncomeForeignTax(ctx context.Context, arg CreateIncomeForeignTaxParams) (IncomeForeignTax, error) {
+	row := q.db.QueryRowContext(ctx, createIncomeForeignTax,
+		arg.IncomeID,
+		arg.TaxType,
+		arg.AmountOrig,
+		arg.Currency,
+		arg.AmountNok,
+		arg.Creditable,
+	)
+	var i IncomeForeignTax
+	err := row.Scan(
+		&i.ID,
+		&i.IncomeID,
+		&i.TaxType,
+		&i.AmountOrig,
+		&i.Currency,
+		&i.AmountNok,
+		&i.Creditable,
 	)
 	return i, err
 }
@@ -141,6 +174,15 @@ DELETE FROM income WHERE id = ?
 
 func (q *Queries) DeleteIncome(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, deleteIncome, id)
+	return err
+}
+
+const deleteIncomeForeignTaxesByIncome = `-- name: DeleteIncomeForeignTaxesByIncome :exec
+DELETE FROM income_foreign_taxes WHERE income_id = ?
+`
+
+func (q *Queries) DeleteIncomeForeignTaxesByIncome(ctx context.Context, incomeID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteIncomeForeignTaxesByIncome, incomeID)
 	return err
 }
 
@@ -174,7 +216,7 @@ func (q *Queries) DistinctClients(ctx context.Context) ([]sql.NullString, error)
 }
 
 const getIncome = `-- name: GetIncome :one
-SELECT id, date, description, amount_orig, currency, exchange_rate, rate_date, amount_nok, category, client, country_code, foreign_tax_paid, foreign_tax_orig, foreign_tax_currency, foreign_tax_nok, foreign_tax_type, receipt_id, tax_year, notes, created_at FROM income WHERE id = ?
+SELECT id, date, description, amount_orig, currency, exchange_rate, rate_date, amount_nok, category, client, country_code, foreign_tax_paid, receipt_id, tax_year, notes, created_at FROM income WHERE id = ?
 `
 
 func (q *Queries) GetIncome(ctx context.Context, id int64) (Income, error) {
@@ -193,10 +235,6 @@ func (q *Queries) GetIncome(ctx context.Context, id int64) (Income, error) {
 		&i.Client,
 		&i.CountryCode,
 		&i.ForeignTaxPaid,
-		&i.ForeignTaxOrig,
-		&i.ForeignTaxCurrency,
-		&i.ForeignTaxNok,
-		&i.ForeignTaxType,
 		&i.ReceiptID,
 		&i.TaxYear,
 		&i.Notes,
@@ -206,7 +244,7 @@ func (q *Queries) GetIncome(ctx context.Context, id int64) (Income, error) {
 }
 
 const listAllIncome = `-- name: ListAllIncome :many
-SELECT id, date, description, amount_orig, currency, exchange_rate, rate_date, amount_nok, category, client, country_code, foreign_tax_paid, foreign_tax_orig, foreign_tax_currency, foreign_tax_nok, foreign_tax_type, receipt_id, tax_year, notes, created_at FROM income ORDER BY date DESC, id DESC
+SELECT id, date, description, amount_orig, currency, exchange_rate, rate_date, amount_nok, category, client, country_code, foreign_tax_paid, receipt_id, tax_year, notes, created_at FROM income ORDER BY date DESC, id DESC
 `
 
 func (q *Queries) ListAllIncome(ctx context.Context) ([]Income, error) {
@@ -231,10 +269,6 @@ func (q *Queries) ListAllIncome(ctx context.Context) ([]Income, error) {
 			&i.Client,
 			&i.CountryCode,
 			&i.ForeignTaxPaid,
-			&i.ForeignTaxOrig,
-			&i.ForeignTaxCurrency,
-			&i.ForeignTaxNok,
-			&i.ForeignTaxType,
 			&i.ReceiptID,
 			&i.TaxYear,
 			&i.Notes,
@@ -253,8 +287,43 @@ func (q *Queries) ListAllIncome(ctx context.Context) ([]Income, error) {
 	return items, nil
 }
 
+const listAllIncomeForeignTaxes = `-- name: ListAllIncomeForeignTaxes :many
+SELECT id, income_id, tax_type, amount_orig, currency, amount_nok, creditable FROM income_foreign_taxes ORDER BY income_id, id
+`
+
+func (q *Queries) ListAllIncomeForeignTaxes(ctx context.Context) ([]IncomeForeignTax, error) {
+	rows, err := q.db.QueryContext(ctx, listAllIncomeForeignTaxes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []IncomeForeignTax{}
+	for rows.Next() {
+		var i IncomeForeignTax
+		if err := rows.Scan(
+			&i.ID,
+			&i.IncomeID,
+			&i.TaxType,
+			&i.AmountOrig,
+			&i.Currency,
+			&i.AmountNok,
+			&i.Creditable,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listIncomeByCountryYear = `-- name: ListIncomeByCountryYear :many
-SELECT id, date, description, amount_orig, currency, exchange_rate, rate_date, amount_nok, category, client, country_code, foreign_tax_paid, foreign_tax_orig, foreign_tax_currency, foreign_tax_nok, foreign_tax_type, receipt_id, tax_year, notes, created_at FROM income WHERE country_code = ? AND tax_year = ? ORDER BY date
+SELECT id, date, description, amount_orig, currency, exchange_rate, rate_date, amount_nok, category, client, country_code, foreign_tax_paid, receipt_id, tax_year, notes, created_at FROM income WHERE country_code = ? AND tax_year = ? ORDER BY date
 `
 
 type ListIncomeByCountryYearParams struct {
@@ -284,10 +353,6 @@ func (q *Queries) ListIncomeByCountryYear(ctx context.Context, arg ListIncomeByC
 			&i.Client,
 			&i.CountryCode,
 			&i.ForeignTaxPaid,
-			&i.ForeignTaxOrig,
-			&i.ForeignTaxCurrency,
-			&i.ForeignTaxNok,
-			&i.ForeignTaxType,
 			&i.ReceiptID,
 			&i.TaxYear,
 			&i.Notes,
@@ -307,7 +372,7 @@ func (q *Queries) ListIncomeByCountryYear(ctx context.Context, arg ListIncomeByC
 }
 
 const listIncomeByYear = `-- name: ListIncomeByYear :many
-SELECT id, date, description, amount_orig, currency, exchange_rate, rate_date, amount_nok, category, client, country_code, foreign_tax_paid, foreign_tax_orig, foreign_tax_currency, foreign_tax_nok, foreign_tax_type, receipt_id, tax_year, notes, created_at FROM income WHERE tax_year = ? ORDER BY date DESC, id DESC
+SELECT id, date, description, amount_orig, currency, exchange_rate, rate_date, amount_nok, category, client, country_code, foreign_tax_paid, receipt_id, tax_year, notes, created_at FROM income WHERE tax_year = ? ORDER BY date DESC, id DESC
 `
 
 func (q *Queries) ListIncomeByYear(ctx context.Context, taxYear int64) ([]Income, error) {
@@ -332,14 +397,45 @@ func (q *Queries) ListIncomeByYear(ctx context.Context, taxYear int64) ([]Income
 			&i.Client,
 			&i.CountryCode,
 			&i.ForeignTaxPaid,
-			&i.ForeignTaxOrig,
-			&i.ForeignTaxCurrency,
-			&i.ForeignTaxNok,
-			&i.ForeignTaxType,
 			&i.ReceiptID,
 			&i.TaxYear,
 			&i.Notes,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listIncomeForeignTaxes = `-- name: ListIncomeForeignTaxes :many
+SELECT id, income_id, tax_type, amount_orig, currency, amount_nok, creditable FROM income_foreign_taxes WHERE income_id = ? ORDER BY id
+`
+
+func (q *Queries) ListIncomeForeignTaxes(ctx context.Context, incomeID int64) ([]IncomeForeignTax, error) {
+	rows, err := q.db.QueryContext(ctx, listIncomeForeignTaxes, incomeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []IncomeForeignTax{}
+	for rows.Next() {
+		var i IncomeForeignTax
+		if err := rows.Scan(
+			&i.ID,
+			&i.IncomeID,
+			&i.TaxType,
+			&i.AmountOrig,
+			&i.Currency,
+			&i.AmountNok,
+			&i.Creditable,
 		); err != nil {
 			return nil, err
 		}
@@ -403,31 +499,26 @@ const updateIncome = `-- name: UpdateIncome :one
 UPDATE income SET
   date = ?, description = ?, amount_orig = ?, currency = ?, exchange_rate = ?,
   rate_date = ?, amount_nok = ?, category = ?, client = ?, country_code = ?,
-  foreign_tax_paid = ?, foreign_tax_orig = ?, foreign_tax_currency = ?,
-  foreign_tax_nok = ?, foreign_tax_type = ?, tax_year = ?, notes = ?
+  foreign_tax_paid = ?, tax_year = ?, notes = ?
 WHERE id = ?
-RETURNING id, date, description, amount_orig, currency, exchange_rate, rate_date, amount_nok, category, client, country_code, foreign_tax_paid, foreign_tax_orig, foreign_tax_currency, foreign_tax_nok, foreign_tax_type, receipt_id, tax_year, notes, created_at
+RETURNING id, date, description, amount_orig, currency, exchange_rate, rate_date, amount_nok, category, client, country_code, foreign_tax_paid, receipt_id, tax_year, notes, created_at
 `
 
 type UpdateIncomeParams struct {
-	Date               string          `json:"date"`
-	Description        string          `json:"description"`
-	AmountOrig         float64         `json:"amount_orig"`
-	Currency           string          `json:"currency"`
-	ExchangeRate       sql.NullFloat64 `json:"exchange_rate"`
-	RateDate           sql.NullString  `json:"rate_date"`
-	AmountNok          float64         `json:"amount_nok"`
-	Category           string          `json:"category"`
-	Client             sql.NullString  `json:"client"`
-	CountryCode        string          `json:"country_code"`
-	ForeignTaxPaid     int64           `json:"foreign_tax_paid"`
-	ForeignTaxOrig     sql.NullFloat64 `json:"foreign_tax_orig"`
-	ForeignTaxCurrency sql.NullString  `json:"foreign_tax_currency"`
-	ForeignTaxNok      sql.NullFloat64 `json:"foreign_tax_nok"`
-	ForeignTaxType     sql.NullString  `json:"foreign_tax_type"`
-	TaxYear            int64           `json:"tax_year"`
-	Notes              sql.NullString  `json:"notes"`
-	ID                 int64           `json:"id"`
+	Date           string          `json:"date"`
+	Description    string          `json:"description"`
+	AmountOrig     float64         `json:"amount_orig"`
+	Currency       string          `json:"currency"`
+	ExchangeRate   sql.NullFloat64 `json:"exchange_rate"`
+	RateDate       sql.NullString  `json:"rate_date"`
+	AmountNok      float64         `json:"amount_nok"`
+	Category       string          `json:"category"`
+	Client         sql.NullString  `json:"client"`
+	CountryCode    string          `json:"country_code"`
+	ForeignTaxPaid int64           `json:"foreign_tax_paid"`
+	TaxYear        int64           `json:"tax_year"`
+	Notes          sql.NullString  `json:"notes"`
+	ID             int64           `json:"id"`
 }
 
 func (q *Queries) UpdateIncome(ctx context.Context, arg UpdateIncomeParams) (Income, error) {
@@ -443,10 +534,6 @@ func (q *Queries) UpdateIncome(ctx context.Context, arg UpdateIncomeParams) (Inc
 		arg.Client,
 		arg.CountryCode,
 		arg.ForeignTaxPaid,
-		arg.ForeignTaxOrig,
-		arg.ForeignTaxCurrency,
-		arg.ForeignTaxNok,
-		arg.ForeignTaxType,
 		arg.TaxYear,
 		arg.Notes,
 		arg.ID,
@@ -465,10 +552,6 @@ func (q *Queries) UpdateIncome(ctx context.Context, arg UpdateIncomeParams) (Inc
 		&i.Client,
 		&i.CountryCode,
 		&i.ForeignTaxPaid,
-		&i.ForeignTaxOrig,
-		&i.ForeignTaxCurrency,
-		&i.ForeignTaxNok,
-		&i.ForeignTaxType,
 		&i.ReceiptID,
 		&i.TaxYear,
 		&i.Notes,

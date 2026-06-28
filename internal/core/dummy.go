@@ -61,11 +61,14 @@ func (a *App) GenerateDummyData(ctx context.Context, actor string) (int, error) 
 
 	count := 0
 	for _, in := range incomes {
+		var taxes []ForeignTaxLine
+		if in.ftPaid == ForeignTaxYes && in.ftAmount > 0 {
+			taxes = []ForeignTaxLine{{Type: in.ftType, AmountOrig: in.ftAmount, Currency: in.cur}}
+		}
 		_, err := a.AddIncome(ctx, actor, IncomeInput{
 			Date: d(in.mmdd), Description: in.desc, Currency: in.cur, CountryCode: in.country,
 			Category: in.cat, Client: in.client, AmountOrig: in.amount, TaxYear: year,
-			ForeignTaxPaid: in.ftPaid, ForeignTaxOrig: in.ftAmount, ForeignTaxCurrency: "BRL",
-			ForeignTaxType: in.ftType,
+			ForeignTaxPaid: in.ftPaid, ForeignTaxes: taxes,
 		})
 		if err != nil {
 			return count, fmt.Errorf("testinntekt %q: %w", in.desc, err)

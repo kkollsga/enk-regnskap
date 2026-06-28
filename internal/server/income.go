@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,28 +15,32 @@ import (
 
 // incomeFormData er datamodellen for inntektsskjemaet.
 type incomeFormData struct {
-	Values     map[string]string
-	Errors     map[string]string
-	Categories []core.Category
-	Currencies []string
-	Countries  []core.CountryOption
-	Clients    []string
-	Today      string
-	EditID     int64        // 0 = ny
-	Action     string       // hvor skjemaet postes
-	Receipts   []db.Receipt // eksisterende vedlegg (ved redigering)
+	Values         map[string]string
+	Errors         map[string]string
+	Categories     []core.Category
+	Currencies     []string
+	Countries      []core.CountryOption
+	Clients        []string
+	TaxLines       []db.IncomeForeignTax // eksisterende/innsendte skattelinjer
+	TaxSuggestions string                // JSON: {landkode: [{code,name,desc}]}
+	Today          string
+	EditID         int64        // 0 = ny
+	Action         string       // hvor skjemaet postes
+	Receipts       []db.Receipt // eksisterende vedlegg (ved redigering)
 }
 
 // incomeListData er datamodellen for inntektslisten.
 type incomeListData struct {
-	Income     []db.Income
-	Total      float64
-	Receipts   map[int64][]db.Receipt
-	CatNames   map[string]string
-	Categories []core.Category      // for redigering i listen
-	Currencies []string             // for redigering i listen
-	Countries  []core.CountryOption // for redigering i listen
-	Clients    []string             // for redigering i listen
+	Income         []db.Income
+	Total          float64
+	Receipts       map[int64][]db.Receipt
+	TaxLines       map[int64][]db.IncomeForeignTax
+	TaxSuggestions string // JSON: {landkode: [{code,name,desc}]}
+	CatNames       map[string]string
+	Categories     []core.Category      // for redigering i listen
+	Currencies     []string             // for redigering i listen
+	Countries      []core.CountryOption // for redigering i listen
+	Clients        []string             // for redigering i listen
 }
 
 func (s *Server) handleIncomeList(w http.ResponseWriter, r *http.Request) {
@@ -46,9 +52,13 @@ func (s *Server) handleIncomeList(w http.ResponseWriter, r *http.Request) {
 	}
 	var total float64
 	receipts := map[int64][]db.Receipt{}
+	taxLines := map[int64][]db.IncomeForeignTax{}
 	for _, in := range rows {
 		total += in.AmountNok
 		receipts[in.ID], _ = s.app().ReceiptsFor(r.Context(), "income", in.ID)
+		if in.ForeignTaxPaid == core.ForeignTaxYes {
+			taxLines[in.ID], _ = s.app().IncomeForeignTaxes(r.Context(), in.ID)
+		}
 	}
 	cats := core.IncomeCategories()
 	catNames := map[string]string{}
@@ -58,7 +68,8 @@ func (s *Server) handleIncomeList(w http.ResponseWriter, r *http.Request) {
 	countries, _ := s.app().Countries(r.Context())
 	clients, _ := s.app().IncomeClients(r.Context())
 	v.Data = incomeListData{
-		Income: rows, Total: total, Receipts: receipts, CatNames: catNames,
+		Income: rows, Total: total, Receipts: receipts, TaxLines: taxLines,
+		TaxSuggestions: s.taxSuggestionsJSON(r.Context()), CatNames: catNames,
 		Categories: cats, Currencies: core.SupportedCurrencies(),
 		Countries: countries, Clients: clients,
 	}
@@ -83,6 +94,7 @@ func (s *Server) handleIncomeEdit(w http.ResponseWriter, r *http.Request) {
 	form.EditID = id
 	form.Action = "/income/" + strconv.FormatInt(id, 10)
 	form.Values = incomeToValues(inc)
+	form.TaxLines, _ = s.app().IncomeForeignTaxes(r.Context(), id)
 	form.Receipts, _ = s.app().ReceiptsFor(r.Context(), "income", id)
 	v.Data = form
 	s.renderer.Render(w, "income_form", v)
@@ -101,18 +113,16 @@ func (s *Server) handleIncomeUpdate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) saveIncome(w http.ResponseWriter, r *http.Request, id int64) {
 	_ = r.ParseMultipartForm(32 << 20)
 	in := core.IncomeInput{
-		Date:               r.FormValue("date"),
-		Description:        r.FormValue("description"),
-		Category:           r.FormValue("category"),
-		Client:             r.FormValue("client"),
-		CountryCode:        r.FormValue("country_code"),
-		Currency:           r.FormValue("currency"),
-		AmountOrig:         parseAmount(r.FormValue("amount_orig")),
-		Notes:              r.FormValue("notes"),
-		ForeignTaxType:     r.FormValue("foreign_tax_type"),
-		ForeignTaxCurrency: r.FormValue("foreign_tax_currency"),
-		ForeignTaxPaid:     parseInt(r.FormValue("foreign_tax_paid")),
-		ForeignTaxOrig:     parseAmount(r.FormValue("foreign_tax_orig")),
+		Date:           r.FormValue("date"),
+		Description:    r.FormValue("description"),
+		Category:       r.FormValue("category"),
+		Client:         r.FormValue("client"),
+		CountryCode:    r.FormValue("country_code"),
+		Currency:       r.FormValue("currency"),
+		AmountOrig:     parseAmount(r.FormValue("amount_orig")),
+		Notes:          r.FormValue("notes"),
+		ForeignTaxPaid: parseInt(r.FormValue("foreign_tax_paid")),
+		ForeignTaxes:   parseForeignTaxLines(r),
 	}
 
 	render := func(errs map[string]string) {
@@ -120,6 +130,7 @@ func (s *Server) saveIncome(w http.ResponseWriter, r *http.Request, id int64) {
 		form := s.newIncomeForm(r)
 		form.Values = formValues(r)
 		form.Errors = errs
+		form.TaxLines = taxLinesFromForm(r)
 		if id > 0 {
 			form.EditID = id
 			form.Action = "/income/" + strconv.FormatInt(id, 10)
@@ -167,41 +178,85 @@ func (s *Server) newIncomeForm(r *http.Request) incomeFormData {
 			"country_code":     "NO",
 			"foreign_tax_paid": "0",
 		},
-		Errors:     map[string]string{},
-		Categories: core.IncomeCategories(),
-		Currencies: core.SupportedCurrencies(),
-		Countries:  countries,
-		Clients:    clients,
-		Today:      time.Now().Format("2006-01-02"),
-		Action:     "/income",
+		Errors:         map[string]string{},
+		Categories:     core.IncomeCategories(),
+		Currencies:     core.SupportedCurrencies(),
+		Countries:      countries,
+		Clients:        clients,
+		TaxSuggestions: s.taxSuggestionsJSON(r.Context()),
+		Today:          time.Now().Format("2006-01-02"),
+		Action:         "/income",
 	}
+}
+
+// taxSuggestionsJSON returnerer skattetype-forslag per land som JSON-streng for
+// inntektsskjemaets combobox. Feiler det, returneres et tomt objekt.
+func (s *Server) taxSuggestionsJSON(ctx context.Context) string {
+	m, err := s.app().TaxTypeSuggestions(ctx)
+	if err != nil {
+		return "{}"
+	}
+	b, err := json.Marshal(m)
+	if err != nil {
+		return "{}"
+	}
+	return string(b)
 }
 
 // incomeToValues fyller skjemaverdier fra en eksisterende inntekt.
 func incomeToValues(in db.Income) map[string]string {
-	v := map[string]string{
+	return map[string]string{
 		"date": in.Date, "description": in.Description, "category": in.Category,
 		"client": in.Client.String, "country_code": in.CountryCode, "currency": in.Currency,
 		"amount_orig": strconv.FormatFloat(in.AmountOrig, 'f', -1, 64), "notes": in.Notes.String,
 		"foreign_tax_paid": strconv.FormatInt(in.ForeignTaxPaid, 10),
-		"foreign_tax_type": in.ForeignTaxType.String, "foreign_tax_currency": in.ForeignTaxCurrency.String,
 	}
-	if in.ForeignTaxOrig.Valid {
-		v["foreign_tax_orig"] = strconv.FormatFloat(in.ForeignTaxOrig.Float64, 'f', -1, 64)
-	}
-	return v
 }
 
 // formValues plukker ut innsendte verdier for gjenvisning ved feil.
 func formValues(r *http.Request) map[string]string {
 	keys := []string{"date", "description", "client", "country_code", "currency",
-		"amount_orig", "category", "notes", "foreign_tax_paid", "foreign_tax_orig",
-		"foreign_tax_type", "foreign_tax_currency"}
+		"amount_orig", "category", "notes", "foreign_tax_paid"}
 	m := make(map[string]string, len(keys))
 	for _, k := range keys {
 		m[k] = r.FormValue(k)
 	}
 	return m
+}
+
+// parseForeignTaxLines leser de gjentatte skattelinje-feltene (tax_type[] +
+// tax_amount[]) fra skjemaet til core-modellen.
+func parseForeignTaxLines(r *http.Request) []core.ForeignTaxLine {
+	types := r.Form["tax_type"]
+	amounts := r.Form["tax_amount"]
+	var out []core.ForeignTaxLine
+	for i := range types {
+		amt := 0.0
+		if i < len(amounts) {
+			amt = parseAmount(amounts[i])
+		}
+		out = append(out, core.ForeignTaxLine{Type: types[i], AmountOrig: amt})
+	}
+	return out
+}
+
+// taxLinesToValues bygger gjenvisningsverdier for innsendte skattelinjer ved
+// valideringsfeil (parallelle arrayer).
+func taxLinesFromForm(r *http.Request) []db.IncomeForeignTax {
+	types := r.Form["tax_type"]
+	amounts := r.Form["tax_amount"]
+	var out []db.IncomeForeignTax
+	for i := range types {
+		if strings.TrimSpace(types[i]) == "" {
+			continue
+		}
+		amt := 0.0
+		if i < len(amounts) {
+			amt = parseAmount(amounts[i])
+		}
+		out = append(out, db.IncomeForeignTax{TaxType: types[i], AmountOrig: amt})
+	}
+	return out
 }
 
 // parseAmount tolker et beløp som kan bruke komma som desimalskille.

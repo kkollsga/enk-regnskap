@@ -15,11 +15,13 @@ type Querier interface {
 	CreateChangeLog(ctx context.Context, arg CreateChangeLogParams) (ChangeLog, error)
 	CreateExpense(ctx context.Context, arg CreateExpenseParams) (Expense, error)
 	CreateIncome(ctx context.Context, arg CreateIncomeParams) (Income, error)
+	CreateIncomeForeignTax(ctx context.Context, arg CreateIncomeForeignTaxParams) (IncomeForeignTax, error)
 	CreateReceipt(ctx context.Context, arg CreateReceiptParams) (Receipt, error)
 	DeleteConfig(ctx context.Context, key string) error
 	DeleteExpense(ctx context.Context, id int64) error
 	DeleteForeignTaxCredit(ctx context.Context, id int64) error
 	DeleteIncome(ctx context.Context, id int64) error
+	DeleteIncomeForeignTaxesByIncome(ctx context.Context, incomeID int64) error
 	DeleteReceipt(ctx context.Context, id int64) error
 	DistinctClients(ctx context.Context) ([]sql.NullString, error)
 	GetChangeLog(ctx context.Context, id int64) (ChangeLog, error)
@@ -35,6 +37,7 @@ type Querier interface {
 	ListAllExpenses(ctx context.Context) ([]Expense, error)
 	ListAllForeignTaxCredits(ctx context.Context) ([]ForeignTaxCredit, error)
 	ListAllIncome(ctx context.Context) ([]Income, error)
+	ListAllIncomeForeignTaxes(ctx context.Context) ([]IncomeForeignTax, error)
 	ListChangeLog(ctx context.Context, limit int64) ([]ChangeLog, error)
 	ListConfig(ctx context.Context) ([]Config, error)
 	ListCountryCodes(ctx context.Context) ([]ListCountryCodesRow, error)
@@ -45,6 +48,7 @@ type Querier interface {
 	ListForeignTaxCreditsByYear(ctx context.Context, taxYear int64) ([]ForeignTaxCredit, error)
 	ListIncomeByCountryYear(ctx context.Context, arg ListIncomeByCountryYearParams) ([]Income, error)
 	ListIncomeByYear(ctx context.Context, taxYear int64) ([]Income, error)
+	ListIncomeForeignTaxes(ctx context.Context, incomeID int64) ([]IncomeForeignTax, error)
 	ListReceipts(ctx context.Context) ([]Receipt, error)
 	ListReceiptsByParent(ctx context.Context, arg ListReceiptsByParentParams) ([]Receipt, error)
 	MarkChangeRolledBack(ctx context.Context, id int64) error

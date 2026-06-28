@@ -1,5 +1,6 @@
 {{define "content"}}
 {{$d := .Data}}
+<div id="tax-data" data-suggestions="{{$d.TaxSuggestions}}" hidden></div>
 <section class="page-head">
   <h1>{{.Tr "nav_income"}} <span class="muted">{{.Year}}</span></h1>
 </section>
@@ -9,21 +10,25 @@
   {{range $in := $d.Income}}
   {{$recs := index $d.Receipts $in.ID}}
   <details class="entry">
-    <summary class="entry-row">
-      <span class="entry-date">{{$in.Date}}</span>
-      <span class="entry-desc">{{$in.Description}}</span>
-      <span class="entry-meta">{{index $d.CatNames $in.Category}}{{if $in.Client.Valid}} · {{$in.Client.String}}{{end}}</span>
-      {{if $recs}}<span class="entry-clip" title="Vedlegg">📎 {{len $recs}}</span>{{end}}
-      <span class="entry-amount num">{{nok $in.AmountNok}}</span>
+    <summary class="entry-row entry-row-2line">
+      <span class="entry-line1">
+        <span class="entry-date">{{$in.Date}}</span>
+        <span class="entry-desc">{{$in.Description}}</span>
+        {{if $recs}}<span class="entry-clip" title="Vedlegg">📎 {{len $recs}}</span>{{end}}
+      </span>
+      <span class="entry-line2">
+        <span class="entry-meta">{{index $d.CatNames $in.Category}}{{if $in.Client.Valid}} · {{$in.Client.String}}{{end}}</span>
+        <span class="entry-amount num">{{nok $in.AmountNok}}</span>
+      </span>
     </summary>
     <div class="entry-detail">
       <div class="entry-view">
         <table class="kv">
           <tr><td>Kategori</td><td>{{index $d.CatNames $in.Category}}</td></tr>
           {{if $in.Client.Valid}}<tr><td>Klient</td><td>{{$in.Client.String}}</td></tr>{{end}}
-          <tr><td>Beløp</td><td>{{nok $in.AmountOrig}} {{$in.Currency}}{{if ne $in.Currency "NOK"}} → {{nok $in.AmountNok}}{{if $in.ExchangeRate.Valid}} <span class="muted">(kurs {{nok $in.ExchangeRate.Float64}} per {{$in.RateDate.String}})</span>{{end}}{{end}}</td></tr>
+          <tr><td>Beløp</td><td>{{nok $in.AmountOrig}} {{$in.Currency}}{{if ne $in.Currency "NOK"}} → {{nok $in.AmountNok}}{{if $in.ExchangeRate.Valid}} <span class="muted">(kurs {{kurs $in.ExchangeRate.Float64}} per {{$in.RateDate.String}})</span>{{end}}{{end}}</td></tr>
           <tr><td>Kildeland</td><td>{{$in.CountryCode}}</td></tr>
-          {{if eq $in.ForeignTaxPaid 1}}<tr><td>Utenlandsk skatt</td><td>{{if $in.ForeignTaxNok.Valid}}{{nok $in.ForeignTaxNok.Float64}}{{end}} {{$in.ForeignTaxType.String}}</td></tr>{{end}}
+          {{if eq $in.ForeignTaxPaid 1}}{{$lines := index $d.TaxLines $in.ID}}<tr><td>Utenlandsk skatt</td><td>{{range $lines}}<div><strong>{{.TaxType}}</strong> — {{nok .AmountNok}} <span class="muted">({{printf "%g" .AmountOrig}} {{.Currency}})</span>{{if eq .Creditable 0}} <span class="tax-noncredit">ikke krediterbar</span>{{end}}</div>{{else}}<span class="muted">–</span>{{end}}</td></tr>{{end}}
           {{if $in.Notes.Valid}}<tr><td>Notater</td><td>{{$in.Notes.String}}</td></tr>{{end}}
         </table>
         {{if $recs}}{{template "attachment_list" $recs}}{{end}}
@@ -38,8 +43,8 @@
             <label class="edit-field">Dato
               <input type="date" name="date" value="{{$in.Date}}">
             </label>
-            <label class="edit-field">Beskrivelse
-              <input type="text" name="description" value="{{$in.Description}}" autocomplete="off">
+            <label class="edit-field edit-wide">Beskrivelse
+              <textarea name="description" rows="2" autocomplete="off">{{$in.Description}}</textarea>
             </label>
             <label class="edit-field">Klient
               <input type="text" name="client" list="client-list-{{$in.ID}}" value="{{$in.Client.String}}" autocomplete="off">
@@ -76,13 +81,9 @@
                 <label class="inline"><input type="radio" name="foreign_tax_paid" value="2" {{if eq $in.ForeignTaxPaid 2}}checked{{end}}> Vet ikke</label>
               </div>
             </div>
-            <div class="edit-grid">
-              <label class="edit-field">Betalt skatt (utenlandsk valuta)
-                <input type="text" name="foreign_tax_orig" inputmode="decimal" value="{{if $in.ForeignTaxOrig.Valid}}{{printf "%g" $in.ForeignTaxOrig.Float64}}{{end}}">
-              </label>
-              <label class="edit-field">Skattetype
-                <input type="text" name="foreign_tax_type" value="{{$in.ForeignTaxType.String}}" placeholder="f.eks. IRRF">
-              </label>
+            <div class="tax-amount-block tax-lines-editor" {{if ne $in.ForeignTaxPaid 1}}hidden{{end}}>
+              <label>Betalt utenlandsk skatt per skattetype</label>
+              {{template "tax_lines_block" (index $d.TaxLines $in.ID)}}
             </div>
           </div>
 

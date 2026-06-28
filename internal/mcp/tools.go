@@ -35,6 +35,30 @@ func (a Args) num(key string) float64 {
 
 func (a Args) intval(key string) int { return int(a.num(key)) }
 
+// parseForeignTaxes leser utenlandske skattelinjer fra foreign_taxes-arrayet,
+// med fallback til den enkle foreign_tax_amount/foreign_tax_type-varianten.
+func parseForeignTaxes(a Args) []core.ForeignTaxLine {
+	var out []core.ForeignTaxLine
+	if raw, ok := a["foreign_taxes"].([]any); ok {
+		for _, it := range raw {
+			m, ok := it.(map[string]any)
+			if !ok {
+				continue
+			}
+			la := Args(m)
+			out = append(out, core.ForeignTaxLine{
+				Type: la.str("type"), AmountOrig: la.num("amount"), Currency: la.str("currency"),
+			})
+		}
+	}
+	if len(out) == 0 && a.num("foreign_tax_amount") > 0 {
+		out = append(out, core.ForeignTaxLine{
+			Type: a.str("foreign_tax_type"), AmountOrig: a.num("foreign_tax_amount"), Currency: a.str("currency"),
+		})
+	}
+	return out
+}
+
 // Tool er et MCP-verktoy.
 type Tool struct {
 	Name        string
@@ -76,8 +100,17 @@ func (s *Server) buildTools() []Tool {
 				"category":           prop("string", "Inntektskategori (tjenesteinntekt, honorar, konsulent, royalty, annet)"),
 				"client":             prop("string", "Klient (valgfritt)"),
 				"foreign_tax_paid":   prop("integer", "0=nei, 1=ja, 2=vet ikke (utenlandsk kildeskatt)"),
-				"foreign_tax_amount": prop("number", "Betalt utenlandsk skatt i utenlandsk valuta"),
-				"foreign_tax_type":   prop("string", "Skattetype, f.eks. IRRF"),
+				"foreign_taxes": map[string]any{
+					"type":        "array",
+					"description": "Utenlandsk skatt brutt ned per type. Hvert element: {type, amount, currency?}. Currency default = inntektens valuta.",
+					"items": obj(map[string]any{
+						"type":     prop("string", "Skattetype, f.eks. IRRF, ISS, CSLL"),
+						"amount":   prop("number", "Beløp i utenlandsk valuta"),
+						"currency": prop("string", "Valuta (default = inntektens valuta)"),
+					}, "type", "amount"),
+				},
+				"foreign_tax_amount": prop("number", "Enkel variant (én skattetype): beløp i utenlandsk valuta. Bruk foreign_taxes for flere."),
+				"foreign_tax_type":   prop("string", "Enkel variant (én skattetype): skattetype, f.eks. IRRF"),
 				"tax_year":           prop("integer", "Inntektsar (default utledes fra dato)"),
 				"notes":              prop("string", "Notater"),
 			}, "date", "description", "amount", "category"),
@@ -88,7 +121,7 @@ func (s *Server) buildTools() []Tool {
 					CountryCode: a.str("country_code"), Currency: a.str("currency"),
 					AmountOrig: a.num("amount"), TaxYear: a.intval("tax_year"),
 					Notes: a.str("notes"), ForeignTaxPaid: a.intval("foreign_tax_paid"),
-					ForeignTaxOrig: a.num("foreign_tax_amount"), ForeignTaxType: a.str("foreign_tax_type"),
+					ForeignTaxes: parseForeignTaxes(a),
 				}
 				res, err := app.AddIncome(ctx, core.ActorMCP, in)
 				if err != nil {

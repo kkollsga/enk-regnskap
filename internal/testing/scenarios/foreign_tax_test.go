@@ -9,14 +9,65 @@ import (
 
 // Steg 4: utenlandsk skatt.
 
+// TestNonCreditableTaxExcludedFromCredit verifiserer at en ikke-krediterbar
+// skattetype (f.eks. COFINS) lagres for referanse, men holdes utenfor
+// kreditfradraget, mens en krediterbar type (IRRF) teller med.
+func TestNonCreditableTaxExcludedFromCredit(t *testing.T) {
+	h := apptest.Start(t)
+	ctx := h.Context()
+	h.App.SetConfig(ctx, core.ConfigActiveYear, "2025")
+	h.Mock.AddRate("BRL", "2025-03-10", 2.00)
+
+	res, err := h.App.AddIncome(ctx, core.ActorWeb, core.IncomeInput{
+		Date: "2025-03-10", Description: "Brasil med to skattetyper", Currency: "BRL",
+		CountryCode: "BR", AmountOrig: 10000, Category: "tjenesteinntekt", TaxYear: 2025,
+		ForeignTaxPaid: core.ForeignTaxYes,
+		ForeignTaxes: []core.ForeignTaxLine{
+			{Type: "IRRF", AmountOrig: 1500, Currency: "BRL"},   // krediterbar
+			{Type: "COFINS", AmountOrig: 500, Currency: "BRL"},  // ikke krediterbar
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lines, _ := h.App.IncomeForeignTaxes(ctx, res.Income.ID)
+	if len(lines) != 2 {
+		t.Fatalf("forventet 2 skattelinjer, fikk %d", len(lines))
+	}
+	byType := map[string]int64{}
+	for _, l := range lines {
+		byType[l.TaxType] = l.Creditable
+	}
+	if byType["IRRF"] != 1 {
+		t.Errorf("IRRF creditable = %d, forventet 1", byType["IRRF"])
+	}
+	if byType["COFINS"] != 0 {
+		t.Errorf("COFINS creditable = %d, forventet 0", byType["COFINS"])
+	}
+
+	// Kreditfradraget skal kun inkludere IRRF: 1500 BRL * 2.00 = 3000 NOK.
+	credit, err := h.App.ForeignTaxForYear(ctx, 2025)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(credit) != 1 {
+		t.Fatalf("forventet 1 kreditfradrag, fikk %d", len(credit))
+	}
+	if credit[0].Credit.ForeignTaxNok != 3000 {
+		t.Errorf("kreditert utenlandsk skatt = %v, forventet 3000 (COFINS skal være ekskludert)",
+			credit[0].Credit.ForeignTaxNok)
+	}
+}
+
 func seedBrazilIncome(t *testing.T, h *apptest.Harness, year int, date string, amount, tax float64) {
 	t.Helper()
 	h.Mock.AddRate("BRL", date, 2.00)
 	_, err := h.App.AddIncome(h.Context(), core.ActorWeb, core.IncomeInput{
 		Date: date, Description: "Brasiliansk inntekt", Currency: "BRL",
 		CountryCode: "BR", AmountOrig: amount, Category: "tjenesteinntekt",
-		TaxYear: year, ForeignTaxPaid: core.ForeignTaxYes, ForeignTaxOrig: tax,
-		ForeignTaxCurrency: "BRL", ForeignTaxType: "IRRF",
+		TaxYear: year, ForeignTaxPaid: core.ForeignTaxYes,
+		ForeignTaxes: []core.ForeignTaxLine{{Type: "IRRF", AmountOrig: tax, Currency: "BRL"}},
 	})
 	if err != nil {
 		t.Fatal(err)

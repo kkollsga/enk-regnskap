@@ -225,6 +225,27 @@
 
   <section class="block">
     <div class="container" style="max-width:720px">
+      <div class="center" style="max-width:600px">
+        <span class="eyebrow">Oppdater</span>
+        <h2>Oppdater til siste versjon</h2>
+        <p class="section-sub center">Kjør den samme kommandoen for å oppdatere – den henter siste versjon og erstatter den installerte appen. Dataene dine i <code>~/ENK-Regnskap/</code> berøres ikke.</p>
+      </div>
+      <div class="install">
+        <div class="terminal">
+          <div class="term-bar"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="term-title">bash — Oppdater</span></div>
+          <div class="term-body">
+            <span class="pr">$</span>
+            <code id="cmd-update">curl -fsSL https://kkollsga.github.io/enk-regnskap/install.sh | bash</code>
+            <button class="copy" onclick="copyCmd('cmd-update', this)">Kopier</button>
+          </div>
+        </div>
+        <p class="install-note">Avslutt ENK Regnskap før du oppdaterer.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container" style="max-width:720px">
       <span class="eyebrow">Alternativer</span>
       <h2>Foretrekker du å klikke?</h2>
 
@@ -252,12 +273,13 @@
   </footer>
 
   <script>
-    function copyCmd(){
-      var text=document.getElementById("cmd").textContent.trim();
-      var btn=document.getElementById("copy");
+    function copyCmd(id, btn){
+      id = id || "cmd"; btn = btn || document.getElementById("copy");
+      var node = document.getElementById(id);
+      var text = node.textContent.trim();
       function ok(){btn.textContent="Kopiert ✓";btn.classList.add("done");setTimeout(function(){btn.textContent="Kopier";btn.classList.remove("done");},2000);}
+      function fb(){var r=document.createRange();r.selectNode(node);var s=window.getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand("copy");ok();}catch(e){}s.removeAllRanges();}
       if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok,fb);}else{fb();}
-      function fb(){var r=document.createRange();r.selectNode(document.getElementById("cmd"));var s=window.getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand("copy");ok();}catch(e){}s.removeAllRanges();}
     }
   </script>
 </body>

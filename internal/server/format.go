@@ -12,6 +12,12 @@ func formatNOK(v float64) string {
 	return core.FormatNOK(v)
 }
 
+// formatRate formaterer en valutakurs med 4 desimaler: "1,2345". Fire desimaler
+// gjør det lettere å kvalitetssikre mot Norges Banks offisielle kurser.
+func formatRate(v float64) string {
+	return core.FormatThousands(v, 4)
+}
+
 // formatOrgNr grupperer et 9-sifret organisasjonsnummer: "999 888 777".
 func formatOrgNr(s string) string {
 	digits := strings.Map(func(r rune) rune {

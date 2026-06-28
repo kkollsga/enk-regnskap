@@ -134,6 +134,38 @@ func (a *App) CountryTaxTypes(ctx context.Context, country string, year int) ([]
 	})
 }
 
+// TaxTypeOption er et forslag i skattetype-comboboksen på inntektsskjemaet.
+type TaxTypeOption struct {
+	Code       string `json:"code"`
+	Name       string `json:"name"`
+	Desc       string `json:"desc"`
+	Creditable bool   `json:"creditable"`
+}
+
+// TaxTypeSuggestions returnerer skattetype-forslag gruppert per kildeland, til
+// bruk i inntektsskjemaets combobox. Duplikater (samme kode, ulike perioder)
+// slås sammen.
+func (a *App) TaxTypeSuggestions(ctx context.Context) (map[string][]TaxTypeOption, error) {
+	rows, err := a.Q.ListAllCountryTaxTypes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string][]TaxTypeOption{}
+	seen := map[string]bool{}
+	for _, r := range rows {
+		key := r.CountryCode + "|" + r.TaxTypeCode
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		out[r.CountryCode] = append(out[r.CountryCode], TaxTypeOption{
+			Code: r.TaxTypeCode, Name: r.TaxTypeName, Desc: nsVal(r.Description),
+			Creditable: r.IsCreditableInNorway.Int64 == 1,
+		})
+	}
+	return out, nil
+}
+
 // ForeignTaxStatusInput er brukerens oppdatering av dokumentasjonsstatus.
 type ForeignTaxStatusInput struct {
 	Year              int

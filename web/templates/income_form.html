@@ -14,7 +14,7 @@
 
   <div class="field {{if index $d.Errors "description"}}has-error{{end}}">
     <label for="description">{{.Tr "common_description"}}</label>
-    <input type="text" id="description" name="description" value="{{index $d.Values "description"}}" autocomplete="off">
+    <textarea id="description" name="description" rows="2" autocomplete="off">{{index $d.Values "description"}}</textarea>
     {{with index $d.Errors "description"}}<div class="field-error">{{.}}</div>{{end}}
   </div>
 
@@ -70,19 +70,14 @@
         <label class="inline"><input type="radio" name="foreign_tax_paid" value="2" {{if eq (index $d.Values "foreign_tax_paid") "2"}}checked{{end}}> Vet ikke ennå</label>
       </div>
     </div>
-    <div id="foreign-amount" hidden>
-      <div class="field {{if index $d.Errors "foreign_tax_orig"}}has-error{{end}}">
-        <label for="foreign_tax_orig">Betalt utenlandsk skatt (i utenlandsk valuta)</label>
-        <input type="text" id="foreign_tax_orig" name="foreign_tax_orig" inputmode="decimal" value="{{index $d.Values "foreign_tax_orig"}}" placeholder="0,00">
-        {{with index $d.Errors "foreign_tax_orig"}}<div class="field-error">{{.}}</div>{{end}}
-      </div>
-      <div class="field">
-        <label for="foreign_tax_type">Skattetype</label>
-        <input type="text" id="foreign_tax_type" name="foreign_tax_type" value="{{index $d.Values "foreign_tax_type"}}" placeholder="f.eks. IRRF">
-      </div>
-      <input type="hidden" id="foreign_tax_currency" name="foreign_tax_currency" value="{{index $d.Values "foreign_tax_currency"}}">
+    <div id="foreign-amount" class="tax-lines-editor" hidden>
+      <label>Betalt utenlandsk skatt (i utenlandsk valuta), per skattetype</label>
+      {{template "tax_lines_block" $d.TaxLines}}
+      {{with index $d.Errors "foreign_tax_orig"}}<div class="field-error">{{.}}</div>{{end}}
     </div>
   </div>
+
+  <div id="tax-data" data-suggestions="{{$d.TaxSuggestions}}" hidden></div>
 
   <div class="field">
     <label>Legg til vedlegg</label>
@@ -113,8 +108,8 @@
   var country = document.getElementById("country_code");
   var ftBlock = document.getElementById("foreign-tax-block");
   var ftAmount = document.getElementById("foreign-amount");
-  var ftCurrency = document.getElementById("foreign_tax_currency");
   function fmt(n) { return n.toLocaleString("nb-NO", {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+  function fmtRate(n) { return n.toLocaleString("nb-NO", {minimumFractionDigits: 4, maximumFractionDigits: 4}); }
   async function updateRate() {
     var cur = currency.value;
     if (cur === "NOK" || !date.value) { rateInfo.hidden = true; return; }
@@ -123,16 +118,17 @@
       var data = await res.json();
       if (data.error) { rateInfo.textContent = "Kunne ikke hente kurs: " + data.error; rateInfo.hidden = false; return; }
       var amt = parseFloat((amount.value || "0").replace(/\s/g, "").replace(",", ".")) || 0;
-      rateInfo.innerHTML = "Kurs " + fmt(data.rate_nok) + " (per " + data.date + ") &rarr; <strong>" + fmt(amt * data.rate_nok) + " kr</strong>";
+      rateInfo.innerHTML = "Kurs " + fmtRate(data.rate_nok) + " (per " + data.date + ") &rarr; <strong>" + fmt(amt * data.rate_nok) + " kr</strong>";
       rateInfo.hidden = false;
     } catch (e) { rateInfo.hidden = true; }
   }
   function updateForeign() {
     var foreign = country.value !== "NO";
     ftBlock.hidden = !foreign;
-    if (ftCurrency && currency.value !== "NOK") ftCurrency.value = currency.value;
     var yes = document.querySelector('input[name="foreign_tax_paid"]:checked');
-    ftAmount.hidden = !(foreign && yes && yes.value === "1");
+    var show = foreign && yes && yes.value === "1";
+    ftAmount.hidden = !show;
+    if (show && window.ENK && window.ENK.ensureTaxRow) window.ENK.ensureTaxRow(ftAmount);
   }
   currency.addEventListener("change", function () { updateRate(); updateForeign(); });
   amount.addEventListener("input", updateRate);
@@ -140,6 +136,7 @@
   country.addEventListener("change", updateForeign);
   document.querySelectorAll('input[name="foreign_tax_paid"]').forEach(function (el) { el.addEventListener("change", updateForeign); });
   updateRate(); updateForeign();
+  if (window.ENK && window.ENK.initTaxLines) window.ENK.initTaxLines(document);
   if (window.ENK && window.ENK.initAttachments) window.ENK.initAttachments();
 })();
 </script>

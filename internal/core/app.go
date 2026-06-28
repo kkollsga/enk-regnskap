@@ -16,6 +16,9 @@ import (
 	"github.com/kkollsga/enk-regnskap/internal/db"
 )
 
+// Version er appens versjonsnummer (vises diskret i toppbaren).
+const Version = "0.1.0"
+
 // App samler delte avhengigheter for hele applikasjonen.
 type App struct {
 	DB       *sql.DB

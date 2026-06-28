@@ -83,11 +83,14 @@ func (h *Harness) LoadFixtures(t *testing.T) {
 		if in.currency == "BRL" {
 			h.Mock.AddRate("BRL", in.date, FixtureBRLRate)
 		}
+		var taxes []core.ForeignTaxLine
+		if in.ftPaid == core.ForeignTaxYes && in.ftAmount > 0 {
+			taxes = []core.ForeignTaxLine{{Type: in.ftType, AmountOrig: in.ftAmount, Currency: in.currency}}
+		}
 		_, err := h.App.AddIncome(ctx, core.ActorSystem, core.IncomeInput{
 			Date: in.date, Description: in.desc, Currency: in.currency,
 			CountryCode: in.country, Category: in.category, AmountOrig: in.amount,
-			TaxYear: FixtureYear, ForeignTaxPaid: in.ftPaid, ForeignTaxOrig: in.ftAmount,
-			ForeignTaxCurrency: "BRL", ForeignTaxType: in.ftType,
+			TaxYear: FixtureYear, ForeignTaxPaid: in.ftPaid, ForeignTaxes: taxes,
 		})
 		if err != nil {
 			t.Fatalf("fixture inntekt %q: %v", in.desc, err)

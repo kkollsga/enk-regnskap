@@ -25,7 +25,8 @@ type View struct {
 	ProjectCompany string
 	ProjectOrgNr   string
 	MultiProject   bool
-	Data           any // sidespesifikk data
+	Version        string // appversjon, vises som hover under tittelen
+	Data           any    // sidespesifikk data
 }
 
 // Tr slår opp en oversettelse, med nøkkelen som fallback.
@@ -94,6 +95,7 @@ func (r *Renderer) loadTemplates() error {
 	}
 	funcs := template.FuncMap{
 		"nok":   formatNOK,
+		"kurs":  formatRate,
 		"pct":   formatPct,
 		"orgnr": formatOrgNr,
 		"clip":  clip,

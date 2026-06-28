@@ -25,6 +25,7 @@ type Report struct {
 	IncomeByCategory  []CategorySum
 	ExpenseByCategory []CategorySum
 	ForeignCredits    []db.ForeignTaxCredit
+	ForeignTaxByIncome map[int64]float64 // income_id -> sum utenlandsk skatt (NOK)
 	TotalIncome       float64
 	TotalExpenses     float64
 	TotalDeductible   float64
@@ -43,6 +44,22 @@ func (a *App) BuildReport(ctx context.Context, year int) (Report, error) {
 		return rep, err
 	}
 	rep.Income = income
+
+	// Sum utenlandsk skatt (NOK) per inntekt for årets inntekter.
+	rep.ForeignTaxByIncome = map[int64]float64{}
+	inYear := make(map[int64]bool, len(income))
+	for _, in := range income {
+		inYear[in.ID] = true
+	}
+	taxes, err := a.Q.ListAllIncomeForeignTaxes(ctx)
+	if err != nil {
+		return rep, err
+	}
+	for _, t := range taxes {
+		if inYear[t.IncomeID] {
+			rep.ForeignTaxByIncome[t.IncomeID] = tax.Round2(rep.ForeignTaxByIncome[t.IncomeID] + t.AmountNok)
+		}
+	}
 
 	expenses, err := a.Q.ListExpensesByYear(ctx, int64(year))
 	if err != nil {

@@ -29,7 +29,7 @@ func TransactionsXLSX(w io.Writer, rep core.Report, catName func(string) string)
 		writeRow(f, inc, r,
 			in.Date, in.Description, nullStr(in.Client), catName(in.Category), in.CountryCode,
 			in.Currency, in.AmountOrig, nullFloat(in.ExchangeRate), nullStr(in.RateDate),
-			in.AmountNok, nullFloat(in.ForeignTaxNok))
+			in.AmountNok, foreignTaxCell(rep.ForeignTaxByIncome[in.ID]))
 		r++
 	}
 	writeRow(f, inc, r, "", "", "", "", "", "", "", "", "", rep.TotalIncome, "")
@@ -91,7 +91,7 @@ func TransactionsCSV(w io.Writer, rep core.Report, catName func(string) string) 
 	}
 	for _, in := range rep.Income {
 		rec := []string{"inntekt", in.Date, in.Description, catName(in.Category), in.CountryCode,
-			in.Currency, f2(in.AmountOrig), f2(in.AmountNok), "", f2nullable(in.ForeignTaxNok)}
+			in.Currency, f2(in.AmountOrig), f2(in.AmountNok), "", f2foreign(rep.ForeignTaxByIncome[in.ID])}
 		if err := cw.Write(rec); err != nil {
 			return err
 		}
@@ -140,9 +140,18 @@ func nullFloat(nf sql.NullFloat64) any {
 
 func f2(v float64) string { return strconv.FormatFloat(v, 'f', 2, 64) }
 
-func f2nullable(nf sql.NullFloat64) string {
-	if nf.Valid {
-		return f2(nf.Float64)
+// foreignTaxCell gir skattebeløpet for en Excel-celle, eller "" hvis 0.
+func foreignTaxCell(v float64) any {
+	if v > 0 {
+		return v
+	}
+	return ""
+}
+
+// f2foreign formaterer skattebeløpet for CSV, eller "" hvis 0.
+func f2foreign(v float64) string {
+	if v > 0 {
+		return f2(v)
 	}
 	return ""
 }

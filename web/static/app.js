@@ -121,12 +121,24 @@
     var block = form.querySelector(".foreign-block");
     if (cc && block) block.hidden = cc.value === "NO";
   }
+  // taxPaidVisibility viser skattelinje-editoren bare når "Ja" er valgt, og
+  // sikrer at minst én rad finnes når den vises.
+  function taxPaidVisibility(form) {
+    var editor = form.querySelector(".tax-amount-block");
+    if (!editor) return;
+    var yes = form.querySelector('input[name="foreign_tax_paid"]:checked');
+    var show = yes && yes.value === "1";
+    editor.hidden = !show;
+    if (show && window.ENK.ensureTaxRow) window.ENK.ensureTaxRow(editor);
+  }
   document.addEventListener("click", function (e) {
     var t = e.target;
     if (!t.classList) return;
     if (t.classList.contains("js-edit-toggle")) {
       var detail = t.closest(".entry-detail");
       if (!detail) return;
+      var entry = t.closest(".entry");
+      if (entry) entry.classList.add("editing"); // skjul sammendraget over skjemaet
       var view = detail.querySelector(".entry-view");
       var edit = detail.querySelector(".entry-edit");
       if (view) view.hidden = true;
@@ -136,11 +148,15 @@
         if (form) {
           window.ENK.initAttachments(form);
           foreignVisibility(form);
+          taxPaidVisibility(form);
+          if (window.ENK.initTaxLines) window.ENK.initTaxLines(form);
         }
       }
     } else if (t.classList.contains("js-edit-cancel")) {
       var detail2 = t.closest(".entry-detail");
       if (!detail2) return;
+      var entry2 = t.closest(".entry");
+      if (entry2) entry2.classList.remove("editing");
       var edit2 = detail2.querySelector(".entry-edit");
       var view2 = detail2.querySelector(".entry-view");
       if (edit2) edit2.hidden = true;
@@ -152,7 +168,183 @@
     if (t.matches && t.matches('.entry-edit select[name="country_code"]')) {
       foreignVisibility(t.closest("[data-attach-form]") || t.closest(".entry-edit"));
     }
+    if (t.matches && t.matches('.entry-edit input[name="foreign_tax_paid"]')) {
+      taxPaidVisibility(t.closest("[data-attach-form]") || t.closest(".entry-edit"));
+    }
   });
+
+  // --- Skattetype-combobox + repeterbare skattelinjer ---
+  // Forslagene ligger som JSON i #tax-data[data-suggestions] (per landkode).
+  function taxSuggestions() {
+    if (window.ENK._taxSug) return window.ENK._taxSug;
+    var el = document.getElementById("tax-data");
+    var data = {};
+    if (el && el.dataset.suggestions) {
+      try { data = JSON.parse(el.dataset.suggestions); } catch (_) {}
+    }
+    window.ENK._taxSug = data;
+    return data;
+  }
+  // optionsFor returnerer forslag for skjemaets valgte land, ellers alle.
+  function optionsFor(input) {
+    var sug = taxSuggestions();
+    var form = input.closest("form") || document;
+    var cc = form.querySelector ? form.querySelector('select[name="country_code"], input[name="country_code"]') : null;
+    var code = cc ? cc.value : "";
+    if (code && sug[code]) return sug[code];
+    var all = [];
+    Object.keys(sug).forEach(function (k) { all = all.concat(sug[k]); });
+    return all;
+  }
+  function lookupOption(input, code) {
+    var opts = optionsFor(input);
+    code = (code || "").trim().toUpperCase();
+    for (var i = 0; i < opts.length; i++) {
+      if ((opts[i].code || "").toUpperCase() === code) return opts[i];
+    }
+    return null;
+  }
+  // applyMeta setter hover-tittel (fullt navn) og beskrivelseslinjen under.
+  function applyMeta(input) {
+    var row = input.closest(".tax-row");
+    if (!row) return;
+    var desc = row.querySelector(".tax-type-desc");
+    var opt = lookupOption(input, input.value);
+    if (opt) {
+      input.title = opt.name || "";
+      row.dataset.fullname = opt.name || "";
+      row.dataset.creditable = opt.creditable === false ? "0" : "1";
+      if (desc) {
+        var html = "";
+        if (opt.creditable === false) html += '<span class="tax-noncredit">Ikke krediterbar – kun referanse</span> ';
+        html += esc(opt.desc || opt.name || "");
+        desc.innerHTML = html;
+        desc.hidden = !html;
+      }
+    } else {
+      input.title = "";
+      row.removeAttribute("data-fullname");
+      row.removeAttribute("data-creditable");
+      if (desc) { desc.innerHTML = ""; desc.hidden = true; }
+    }
+  }
+  function closeMenu(menu) { if (menu) { menu.hidden = true; menu.innerHTML = ""; } }
+  function buildMenu(input) {
+    var menu = input.parentNode.querySelector(".combobox-menu");
+    if (!menu) return;
+    var q = input.value.trim().toUpperCase();
+    var opts = optionsFor(input).filter(function (o) {
+      if (!q) return true;
+      return (o.code || "").toUpperCase().indexOf(q) !== -1 ||
+             (o.name || "").toUpperCase().indexOf(q) !== -1;
+    });
+    if (!opts.length) { closeMenu(menu); return; }
+    menu.innerHTML = "";
+    opts.forEach(function (o, i) {
+      var item = document.createElement("div");
+      item.className = "combobox-item" + (i === 0 ? " active" : "");
+      item.dataset.code = o.code;
+      item.innerHTML = '<span class="ci-code">' + esc(o.code) + '</span>' +
+        '<span class="ci-name">' + esc(o.name || "") +
+        (o.creditable === false ? ' <span class="ci-noncredit">ikke krediterbar</span>' : '') + '</span>' +
+        (o.desc ? '<span class="ci-desc">' + esc(o.desc) + '</span>' : '');
+      // mousedown (ikke click) slik at valget skjer før input mister fokus.
+      item.addEventListener("mousedown", function (ev) {
+        ev.preventDefault();
+        selectOption(input, o.code);
+      });
+      menu.appendChild(item);
+    });
+    menu.hidden = false;
+  }
+  function selectOption(input, code) {
+    input.value = code;
+    applyMeta(input);
+    closeMenu(input.parentNode.querySelector(".combobox-menu"));
+  }
+  function activeItem(menu) { return menu ? menu.querySelector(".combobox-item.active") : null; }
+  function moveActive(menu, dir) {
+    var items = menu.querySelectorAll(".combobox-item");
+    if (!items.length) return;
+    var idx = -1;
+    for (var i = 0; i < items.length; i++) { if (items[i].classList.contains("active")) idx = i; }
+    if (idx >= 0) items[idx].classList.remove("active");
+    idx = (idx + dir + items.length) % items.length;
+    items[idx].classList.add("active");
+    items[idx].scrollIntoView({ block: "nearest" });
+  }
+  document.addEventListener("input", function (e) {
+    if (e.target.classList && e.target.classList.contains("tax-type-input")) {
+      buildMenu(e.target);
+      applyMeta(e.target);
+    }
+  });
+  document.addEventListener("focusin", function (e) {
+    if (e.target.classList && e.target.classList.contains("tax-type-input")) buildMenu(e.target);
+  });
+  document.addEventListener("focusout", function (e) {
+    if (e.target.classList && e.target.classList.contains("tax-type-input")) {
+      var menu = e.target.parentNode.querySelector(".combobox-menu");
+      setTimeout(function () { closeMenu(menu); }, 120);
+    }
+  });
+  document.addEventListener("keydown", function (e) {
+    var input = e.target;
+    if (!input.classList || !input.classList.contains("tax-type-input")) return;
+    var menu = input.parentNode.querySelector(".combobox-menu");
+    if (e.key === "ArrowDown") { e.preventDefault(); if (menu && menu.hidden) buildMenu(input); else moveActive(menu, 1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); moveActive(menu, -1); }
+    else if (e.key === "Enter") {
+      if (menu && !menu.hidden) {
+        e.preventDefault();
+        var act = activeItem(menu);
+        if (act) selectOption(input, act.dataset.code);
+      }
+    } else if (e.key === "Escape") { closeMenu(menu); }
+  });
+  function newTaxRow() {
+    var row = document.createElement("div");
+    row.className = "tax-row";
+    row.innerHTML =
+      '<div class="combobox">' +
+      '<input type="text" name="tax_type" class="tax-type-input" autocomplete="off" placeholder="Skattetype">' +
+      '<div class="combobox-menu" hidden></div>' +
+      '<div class="tax-type-desc" hidden></div>' +
+      '</div>' +
+      '<input type="text" name="tax_amount" class="tax-amount-input" inputmode="decimal" placeholder="0,00">' +
+      '<button type="button" class="icon-btn tax-remove" title="Fjern skattetype" tabindex="-1">🗑</button>';
+    return row;
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t.classList) return;
+    if (t.classList.contains("tax-add")) {
+      var editor = t.closest(".tax-lines-editor") || t.parentNode;
+      var lines = editor.querySelector("[data-tax-lines]");
+      if (lines) {
+        var row = newTaxRow();
+        lines.appendChild(row);
+        var inp = row.querySelector(".tax-type-input");
+        if (inp) inp.focus();
+      }
+    } else if (t.classList.contains("tax-remove")) {
+      var r = t.closest(".tax-row");
+      if (r) r.parentNode.removeChild(r);
+    }
+  });
+  // initTaxLines fyller hover/beskrivelse for forhåndsutfylte rader.
+  window.ENK.initTaxLines = function (scope) {
+    scope = scope || document;
+    var inputs = scope.querySelectorAll(".tax-type-input");
+    for (var i = 0; i < inputs.length; i++) {
+      if (inputs[i].value) applyMeta(inputs[i]);
+    }
+  };
+  // ensureTaxRow legger til en tom rad hvis editoren ikke har noen.
+  window.ENK.ensureTaxRow = function (editor) {
+    var lines = editor.querySelector("[data-tax-lines]");
+    if (lines && !lines.querySelector(".tax-row")) lines.appendChild(newTaxRow());
+  };
 
   // --- Fradragskategori-velger: vis detaljer for valgt kategori ---
   document.addEventListener("change", function (e) {

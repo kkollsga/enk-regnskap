@@ -37,26 +37,32 @@ func (a *App) MirrorDir() string {
 // --- lesbare DTO-er (uten sql.Null-stoy) ---
 
 type mirrorIncome struct {
-	ID                 int64    `json:"id"`
-	Date               string   `json:"date"`
-	Description        string   `json:"description"`
-	AmountOriginal     float64  `json:"amount_original"`
-	Currency           string   `json:"currency"`
-	ExchangeRate       *float64 `json:"exchange_rate"`
-	RateDate           *string  `json:"rate_date"`
-	AmountNOK          float64  `json:"amount_nok"`
-	Category           string   `json:"category"`
-	Client             string   `json:"client"`
-	CountryCode        string   `json:"country_code"`
-	ForeignTaxPaid     int64    `json:"foreign_tax_paid"`
-	ForeignTaxOriginal *float64 `json:"foreign_tax_original"`
-	ForeignTaxCurrency *string  `json:"foreign_tax_currency"`
-	ForeignTaxNOK      *float64 `json:"foreign_tax_nok"`
-	ForeignTaxType     *string  `json:"foreign_tax_type"`
-	ReceiptID          *int64   `json:"receipt_id"`
-	TaxYear            int64    `json:"tax_year"`
-	Notes              string   `json:"notes"`
-	CreatedAt          string   `json:"created_at"`
+	ID             int64    `json:"id"`
+	Date           string   `json:"date"`
+	Description    string   `json:"description"`
+	AmountOriginal float64  `json:"amount_original"`
+	Currency       string   `json:"currency"`
+	ExchangeRate   *float64 `json:"exchange_rate"`
+	RateDate       *string  `json:"rate_date"`
+	AmountNOK      float64  `json:"amount_nok"`
+	Category       string   `json:"category"`
+	Client         string   `json:"client"`
+	CountryCode    string   `json:"country_code"`
+	ForeignTaxPaid int64    `json:"foreign_tax_paid"`
+	ReceiptID      *int64   `json:"receipt_id"`
+	TaxYear        int64    `json:"tax_year"`
+	Notes          string   `json:"notes"`
+	CreatedAt      string   `json:"created_at"`
+}
+
+type mirrorIncomeForeignTax struct {
+	ID         int64   `json:"id"`
+	IncomeID   int64   `json:"income_id"`
+	TaxType    string  `json:"tax_type"`
+	AmountOrig float64 `json:"amount_orig"`
+	Currency   string  `json:"currency"`
+	AmountNOK  float64 `json:"amount_nok"`
+	Creditable int64   `json:"creditable"`
 }
 
 type mirrorExpense struct {
@@ -108,13 +114,27 @@ func (a *App) SyncMirror(ctx context.Context) error {
 			ExchangeRate: nfPtr(in.ExchangeRate), RateDate: nsPtr(in.RateDate),
 			AmountNOK: in.AmountNok, Category: in.Category, Client: nsVal(in.Client),
 			CountryCode: in.CountryCode, ForeignTaxPaid: in.ForeignTaxPaid,
-			ForeignTaxOriginal: nfPtr(in.ForeignTaxOrig), ForeignTaxCurrency: nsPtr(in.ForeignTaxCurrency),
-			ForeignTaxNOK: nfPtr(in.ForeignTaxNok), ForeignTaxType: nsPtr(in.ForeignTaxType),
 			ReceiptID: niPtr(in.ReceiptID), TaxYear: in.TaxYear, Notes: nsVal(in.Notes),
 			CreatedAt: in.CreatedAt,
 		})
 	}
 	if err := writeJSONFile(filepath.Join(dir, "income.json"), mi); err != nil {
+		return err
+	}
+
+	taxes, err := a.Q.ListAllIncomeForeignTaxes(ctx)
+	if err != nil {
+		return err
+	}
+	mt := make([]mirrorIncomeForeignTax, 0, len(taxes))
+	for _, t := range taxes {
+		mt = append(mt, mirrorIncomeForeignTax{
+			ID: t.ID, IncomeID: t.IncomeID, TaxType: t.TaxType,
+			AmountOrig: t.AmountOrig, Currency: t.Currency, AmountNOK: t.AmountNok,
+			Creditable: t.Creditable,
+		})
+	}
+	if err := writeJSONFile(filepath.Join(dir, "income_foreign_taxes.json"), mt); err != nil {
 		return err
 	}
 
@@ -186,12 +206,14 @@ func (a *App) syncMirrorBestEffort(ctx context.Context) {
 // er atomisk (transaksjon) for kjernetabellene.
 func (a *App) ImportMirror(ctx context.Context, dir string) error {
 	var income []mirrorIncome
+	var incomeTaxes []mirrorIncomeForeignTax
 	var expenses []mirrorExpense
 	var receipts []mirrorReceipt
 	cfg := map[string]string{}
 	if err := readJSONFile(filepath.Join(dir, "income.json"), &income); err != nil {
 		return fmt.Errorf("les income.json: %w", err)
 	}
+	_ = readJSONFile(filepath.Join(dir, "income_foreign_taxes.json"), &incomeTaxes) // valgfri
 	if err := readJSONFile(filepath.Join(dir, "expenses.json"), &expenses); err != nil {
 		return fmt.Errorf("les expenses.json: %w", err)
 	}
@@ -213,7 +235,7 @@ func (a *App) ImportMirror(ctx context.Context, dir string) error {
 	}
 	defer tx.Rollback()
 
-	for _, t := range []string{"income", "expenses", "receipts", "foreign_tax_credits", "change_log"} {
+	for _, t := range []string{"income_foreign_taxes", "income", "expenses", "receipts", "foreign_tax_credits", "change_log"} {
 		if _, err := tx.ExecContext(ctx, "DELETE FROM "+t); err != nil {
 			return fmt.Errorf("tom %s: %w", t, err)
 		}
@@ -231,14 +253,20 @@ func (a *App) ImportMirror(ctx context.Context, dir string) error {
 		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO income (id, date, description, amount_orig, currency, exchange_rate,
 			   rate_date, amount_nok, category, client, country_code, foreign_tax_paid,
-			   foreign_tax_orig, foreign_tax_currency, foreign_tax_nok, foreign_tax_type,
 			   receipt_id, tax_year, notes, created_at)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			in.ID, in.Date, in.Description, in.AmountOriginal, in.Currency, ptrArg(in.ExchangeRate),
 			ptrArg(in.RateDate), in.AmountNOK, in.Category, in.Client, in.CountryCode, in.ForeignTaxPaid,
-			ptrArg(in.ForeignTaxOriginal), ptrArg(in.ForeignTaxCurrency), ptrArg(in.ForeignTaxNOK),
-			ptrArg(in.ForeignTaxType), ptrArg(in.ReceiptID), in.TaxYear, in.Notes, in.CreatedAt); err != nil {
+			ptrArg(in.ReceiptID), in.TaxYear, in.Notes, in.CreatedAt); err != nil {
 			return fmt.Errorf("importer inntekt: %w", err)
+		}
+	}
+	for _, t := range incomeTaxes {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO income_foreign_taxes (id, income_id, tax_type, amount_orig, currency, amount_nok, creditable)
+			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			t.ID, t.IncomeID, t.TaxType, t.AmountOrig, t.Currency, t.AmountNOK, t.Creditable); err != nil {
+			return fmt.Errorf("importer skattelinje: %w", err)
 		}
 	}
 	for _, ex := range expenses {
@@ -288,6 +316,7 @@ const mirrorReadme = `ENK Regnskap - lesbar datakopi (mirror)
 
 Denne mappen er en menneskelesbar sikkerhetskopi av kjernedataene dine:
   income.json    - alle inntekter
+  income_foreign_taxes.json - utenlandsk skatt per inntekt (per skattetype)
   expenses.json  - alle utgifter
   receipts.json  - kvitteringsmetadata
   config.json    - appinnstillinger

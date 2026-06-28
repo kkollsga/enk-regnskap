@@ -150,6 +150,84 @@ func TestMigrationsIdempotent(t *testing.T) {
 	}
 }
 
+// TestMigrateForeignTaxColumns simulerer en eldre database der income har de
+// flate utenlandsskatt-kolonnene, og verifiserer at migrasjonen flytter dem til
+// income_foreign_taxes og dropper kolonnene.
+func TestMigrateForeignTaxColumns(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "old.db")
+	conn, err := sql.Open("sqlite", "file:"+path+"?_pragma=foreign_keys(1)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.SetMaxOpenConns(1)
+	defer conn.Close()
+
+	// Gammel income-tabell med flate foreign_tax_*-kolonner.
+	if _, err := conn.Exec(`CREATE TABLE income (
+		id INTEGER PRIMARY KEY, date TEXT, description TEXT, amount_orig REAL,
+		currency TEXT, exchange_rate REAL, rate_date TEXT, amount_nok REAL,
+		category TEXT, client TEXT, country_code TEXT,
+		foreign_tax_paid INTEGER DEFAULT 0, foreign_tax_orig REAL,
+		foreign_tax_currency TEXT, foreign_tax_nok REAL, foreign_tax_type TEXT,
+		receipt_id INTEGER, tax_year INTEGER, notes TEXT,
+		created_at TEXT NOT NULL DEFAULT (datetime('now')))`); err != nil {
+		t.Fatal(err)
+	}
+	// Én post med trukket skatt, og én uten (skal ikke backfilles).
+	if _, err := conn.Exec(`INSERT INTO income
+		(id, date, description, amount_orig, currency, amount_nok, category, country_code,
+		 foreign_tax_paid, foreign_tax_orig, foreign_tax_currency, foreign_tax_nok, foreign_tax_type, tax_year)
+		VALUES (7, '2025-03-18', 'Brasil', 10000, 'BRL', 18500, 'tjenesteinntekt', 'BR',
+		        1, 1500, 'BRL', 3000, 'IRRF', 2025)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(`INSERT INTO income
+		(id, date, description, amount_orig, currency, amount_nok, category, country_code,
+		 foreign_tax_paid, tax_year)
+		VALUES (8, '2025-04-01', 'Norge', 5000, 'NOK', 5000, 'honorar', 'NO', 0, 2025)`); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Migrate(conn); err != nil {
+		t.Fatalf("Migrate på gammel database feilet: %v", err)
+	}
+
+	// De flate kolonnene skal være borte.
+	if has, _ := columnExists(conn, "income", "foreign_tax_orig"); has {
+		t.Error("foreign_tax_orig skulle vært droppet")
+	}
+	// Backfill: nøyaktig én skattelinje, knyttet til post 7.
+	var incomeID int64
+	var taxType, currency string
+	var amountOrig, amountNok float64
+	var n int
+	if err := conn.QueryRow(`SELECT COUNT(*) FROM income_foreign_taxes`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatalf("income_foreign_taxes count = %d, forventet 1", n)
+	}
+	if err := conn.QueryRow(`SELECT income_id, tax_type, amount_orig, currency, amount_nok
+		FROM income_foreign_taxes`).Scan(&incomeID, &taxType, &amountOrig, &currency, &amountNok); err != nil {
+		t.Fatal(err)
+	}
+	if incomeID != 7 || taxType != "IRRF" || amountOrig != 1500 || currency != "BRL" || amountNok != 3000 {
+		t.Errorf("backfill feil: income_id=%d type=%q orig=%v cur=%q nok=%v",
+			incomeID, taxType, amountOrig, currency, amountNok)
+	}
+
+	// Idempotent: andre kjøring skal ikke duplisere eller feile.
+	if err := Migrate(conn); err != nil {
+		t.Fatalf("andre Migrate: %v", err)
+	}
+	if err := conn.QueryRow(`SELECT COUNT(*) FROM income_foreign_taxes`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Errorf("etter andre Migrate count = %d, forventet 1 (ingen duplikat)", n)
+	}
+}
+
 // TestMigrateOldReceiptsTable simulerer en eldre database der receipts mangler
 // parent-kolonnene, og verifiserer at migrasjonen legger dem til (og ikke
 // feiler på indeksen).

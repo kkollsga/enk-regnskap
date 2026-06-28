@@ -33,14 +33,24 @@ CREATE TABLE IF NOT EXISTS income (
   client        TEXT,
   country_code  TEXT NOT NULL DEFAULT 'NO', -- ISO 3166-1, kildeland for inntekten
   foreign_tax_paid     INTEGER NOT NULL DEFAULT 0, -- 0=nei, 1=ja, 2=vet ikke enna
-  foreign_tax_orig     REAL,            -- betalt utenlandsk skatt i utenlandsk valuta
-  foreign_tax_currency TEXT,            -- valuta for utenlandsk skatt
-  foreign_tax_nok      REAL,            -- konvertert til NOK
-  foreign_tax_type     TEXT,            -- f.eks. 'IRRF', 'ISS'
   receipt_id    INTEGER REFERENCES receipts(id),
   tax_year      INTEGER NOT NULL,
   notes         TEXT,
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Utenlandsk skatt trukket på en inntekt, brutt ned per skattetype (f.eks.
+-- IRRF, ISS, CSLL). En inntekt kan ha flere linjer. Beløpet konverteres til
+-- NOK på inntektens kursdato. Dette er kilden til alle aggregater av betalt
+-- utenlandsk skatt (fullt normalisert; income har ingen flate skattekolonner).
+CREATE TABLE IF NOT EXISTS income_foreign_taxes (
+  id          INTEGER PRIMARY KEY,
+  income_id   INTEGER NOT NULL REFERENCES income(id) ON DELETE CASCADE,
+  tax_type    TEXT NOT NULL,            -- f.eks. 'IRRF', 'ISS', 'CSLL'
+  amount_orig REAL NOT NULL,            -- betalt skatt i utenlandsk valuta
+  currency    TEXT NOT NULL,            -- valuta for skattebeløpet
+  amount_nok  REAL NOT NULL,            -- konvertert til NOK
+  creditable  INTEGER NOT NULL DEFAULT 1 -- 1=gir kreditfradrag, 0=kun referanse
 );
 
 -- Utgifter
@@ -154,5 +164,6 @@ CREATE INDEX IF NOT EXISTS idx_income_tax_year     ON income(tax_year);
 CREATE INDEX IF NOT EXISTS idx_income_country      ON income(country_code, tax_year);
 CREATE INDEX IF NOT EXISTS idx_expenses_tax_year   ON expenses(tax_year);
 CREATE INDEX IF NOT EXISTS idx_income_receipt      ON income(receipt_id);
+CREATE INDEX IF NOT EXISTS idx_inc_ftax_income     ON income_foreign_taxes(income_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_receipt    ON expenses(receipt_id);
 CREATE INDEX IF NOT EXISTS idx_rates_lookup        ON exchange_rates(currency, date);

@@ -26,6 +26,7 @@ func Migrate(conn *sql.DB) error {
 		{"receipts", "description", "TEXT"},
 		{"receipts", "parent_kind", "TEXT"},
 		{"receipts", "parent_id", "INTEGER"},
+		{"income_foreign_taxes", "creditable", "INTEGER NOT NULL DEFAULT 1"},
 	} {
 		if err := ensureColumn(conn, c.table, c.column, c.def); err != nil {
 			return err
@@ -43,7 +44,68 @@ func Migrate(conn *sql.DB) error {
 	_, _ = conn.Exec(`UPDATE receipts SET parent_kind='expense', parent_id=(
 		SELECT id FROM expenses WHERE expenses.receipt_id = receipts.id LIMIT 1)
 		WHERE parent_kind IS NULL AND EXISTS (SELECT 1 FROM expenses WHERE expenses.receipt_id = receipts.id)`)
+
+	// Flytt flate utenlandsskatt-kolonner på income til den normaliserte
+	// income_foreign_taxes-tabellen, og fjern så kolonnene. Tilstedeværelsen av
+	// foreign_tax_orig fungerer som idempotens-vakt: når kolonnene er droppet
+	// kjøres ikke dette på nytt.
+	if err := migrateForeignTaxes(conn); err != nil {
+		return err
+	}
 	return nil
+}
+
+// migrateForeignTaxes overfører gamle income.foreign_tax_*-kolonner til
+// income_foreign_taxes og dropper deretter kolonnene. Idempotent: gjør ingenting
+// hvis kolonnene allerede er borte.
+func migrateForeignTaxes(conn *sql.DB) error {
+	has, err := columnExists(conn, "income", "foreign_tax_orig")
+	if err != nil {
+		return err
+	}
+	if !has {
+		return nil // allerede migrert
+	}
+	// Kopier eksisterende enkelt-skattelinjer (kun der det faktisk er trukket
+	// skatt med et beløp). Mangler typen, merkes den som UKJENT.
+	if _, err := conn.Exec(`INSERT INTO income_foreign_taxes (income_id, tax_type, amount_orig, currency, amount_nok)
+		SELECT id,
+		       COALESCE(NULLIF(TRIM(foreign_tax_type), ''), 'UKJENT'),
+		       foreign_tax_orig,
+		       COALESCE(NULLIF(TRIM(foreign_tax_currency), ''), currency),
+		       COALESCE(foreign_tax_nok, foreign_tax_orig)
+		FROM income
+		WHERE foreign_tax_paid = 1 AND foreign_tax_orig IS NOT NULL AND foreign_tax_orig > 0`); err != nil {
+		return fmt.Errorf("backfill income_foreign_taxes: %w", err)
+	}
+	for _, col := range []string{"foreign_tax_orig", "foreign_tax_currency", "foreign_tax_nok", "foreign_tax_type"} {
+		if _, err := conn.Exec("ALTER TABLE income DROP COLUMN " + col); err != nil {
+			return fmt.Errorf("drop income.%s: %w", col, err)
+		}
+	}
+	return nil
+}
+
+// columnExists sjekker om en kolonne finnes på en tabell.
+func columnExists(conn *sql.DB, table, column string) (bool, error) {
+	rows, err := conn.Query("PRAGMA table_info(" + table + ")")
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid int
+		var name, ctype string
+		var notnull, pk int
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			return false, err
+		}
+		if name == column {
+			return true, nil
+		}
+	}
+	return false, rows.Err()
 }
 
 // ensureColumn legger til en kolonne hvis den mangler (SQLite mangler

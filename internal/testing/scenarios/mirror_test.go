@@ -107,7 +107,7 @@ func TestMirrorImportRebuildsForeignCredits(t *testing.T) {
 	h.App.AddIncome(ctx, core.ActorWeb, core.IncomeInput{
 		Date: "2025-04-10", Description: "Brasil", Currency: "BRL", CountryCode: "BR",
 		AmountOrig: 10000, Category: "tjenesteinntekt", ForeignTaxPaid: core.ForeignTaxYes,
-		ForeignTaxOrig: 1500, ForeignTaxCurrency: "BRL", ForeignTaxType: "IRRF",
+		ForeignTaxes: []core.ForeignTaxLine{{Type: "IRRF", AmountOrig: 1500, Currency: "BRL"}},
 	})
 
 	backupDir := filepath.Join(t.TempDir(), "b")

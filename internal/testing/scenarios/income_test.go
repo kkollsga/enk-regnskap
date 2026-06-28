@@ -96,9 +96,8 @@ func TestBRLIncomeWithForeignTax(t *testing.T) {
 		Set("amount_orig", "10000").
 		Set("category", "honorar").
 		Set("foreign_tax_paid", "1").
-		Set("foreign_tax_orig", "1500").
-		Set("foreign_tax_type", "IRRF").
-		Set("foreign_tax_currency", "BRL").
+		Set("tax_amount", "1500").
+		Set("tax_type", "IRRF").
 		Submit()
 	apptest.AssertStatus(t, res, 200)
 
@@ -107,12 +106,16 @@ func TestBRLIncomeWithForeignTax(t *testing.T) {
 	if in.ForeignTaxPaid != 1 {
 		t.Errorf("foreign_tax_paid = %d, forventet 1", in.ForeignTaxPaid)
 	}
-	// 1500 BRL * 2.00 = 3000 NOK
-	if !in.ForeignTaxNok.Valid || in.ForeignTaxNok.Float64 != 3000 {
-		t.Errorf("foreign_tax_nok = %+v, forventet 3000", in.ForeignTaxNok)
+	lines, _ := h.App.IncomeForeignTaxes(h.Context(), in.ID)
+	if len(lines) != 1 {
+		t.Fatalf("forventet 1 skattelinje, fikk %d", len(lines))
 	}
-	if in.ForeignTaxType.String != "IRRF" {
-		t.Errorf("foreign_tax_type = %q", in.ForeignTaxType.String)
+	// 1500 BRL * 2.00 = 3000 NOK
+	if lines[0].AmountNok != 3000 {
+		t.Errorf("foreign_tax_nok = %v, forventet 3000", lines[0].AmountNok)
+	}
+	if lines[0].TaxType != "IRRF" {
+		t.Errorf("tax_type = %q", lines[0].TaxType)
 	}
 
 	// Kreditfradrag skal være aggregert for BR/2025 med rettsgrunnlag 'treaty'.
@@ -143,9 +146,8 @@ func TestForeignTaxLegalBasis2024IsInternal(t *testing.T) {
 		Set("amount_orig", "5000").
 		Set("category", "tjenesteinntekt").
 		Set("foreign_tax_paid", "1").
-		Set("foreign_tax_orig", "750").
-		Set("foreign_tax_type", "IRRF").
-		Set("foreign_tax_currency", "BRL").
+		Set("tax_amount", "750").
+		Set("tax_type", "IRRF").
 		Submit()
 
 	credit, _ := h.App.ForeignTaxForYear(h.Context(), 2024)
