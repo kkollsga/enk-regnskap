@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Installer ENK Regnskap på Mac</title>
+  <meta name="description" content="Installer ENK Regnskap på macOS med én kommando.">
+  <style>
+    :root {
+      --primary: #1d3557; --accent: #2a9d8f; --text: #1a1a1a; --muted: #6b7280;
+      --border: #e5e5ea; --sep: #f5f5f7; --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; color: var(--text); background: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 48px 22px 80px; }
+    header { text-align: center; margin-bottom: 36px; }
+    .logo {
+      display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+      font-weight: 800; line-height: 1; color: var(--primary);
+    }
+    .logo .enk { font-size: 34px; letter-spacing: 1px; }
+    .logo .reg { font-size: 16px; color: var(--muted); font-weight: 600; letter-spacing: 3px; text-transform: uppercase; }
+    h1 { font-size: 26px; margin: 24px 0 6px; }
+    .sub { color: var(--muted); margin: 0; }
+    h2 { font-size: 18px; margin: 40px 0 12px; }
+    p { margin: 12px 0; }
+    .card {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: 0 1px 3px rgba(0,0,0,.06); padding: 22px; margin: 24px 0;
+    }
+    .install-card { background: var(--primary); color: #fff; border: none; }
+    .install-card h2 { color: #fff; margin-top: 0; }
+    .cmd {
+      display: flex; align-items: stretch; gap: 0; margin-top: 14px;
+      border-radius: 8px; overflow: hidden; background: #0f1d31;
+    }
+    .cmd code {
+      flex: 1; padding: 14px 16px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13.5px; color: #e6edf6; white-space: nowrap; overflow-x: auto;
+    }
+    .copy-btn {
+      flex: 0 0 auto; border: none; background: var(--accent); color: #fff;
+      padding: 0 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: background .15s;
+    }
+    .copy-btn:hover { background: #248277; }
+    .copy-btn.done { background: #3a7d44; }
+    .hint { font-size: 13px; color: #b9c6d8; margin: 12px 0 0; }
+    ol { padding-left: 22px; } ol li { margin: 7px 0; }
+    code.inline {
+      background: var(--sep); border-radius: 5px; padding: 2px 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px;
+    }
+    .note { background: var(--sep); border-radius: var(--radius); padding: 14px 18px; font-size: 14px; }
+    a { color: var(--primary); }
+    footer { margin-top: 56px; text-align: center; color: var(--muted); font-size: 13px; }
+    .req { color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <span class="logo"><span class="enk">ENK</span><span class="reg">Regnskap</span></span>
+      <h1>Installer på Mac</h1>
+      <p class="sub">Regnskap for enkeltpersonforetak – lokalt på din egen maskin.</p>
+    </header>
+
+    <div class="card install-card">
+      <h2>Installer med én kommando</h2>
+      <p>Åpne <strong>Terminal</strong> og lim inn denne kommandoen:</p>
+      <div class="cmd">
+        <code id="cmd">curl -fsSL https://kkollsga.github.io/enk-regnskap/install.sh | bash</code>
+        <button class="copy-btn" id="copy" onclick="copyCmd()">Kopier</button>
+      </div>
+      <p class="hint">Laster ned siste versjon, installerer <code style="color:#e6edf6">EnkRegnskap.app</code> i Programmer og åpner den. Ingen passord nødvendig.</p>
+    </div>
+
+    <h2>Hva gjør kommandoen?</h2>
+    <ol>
+      <li>Finner riktig versjon for maskinen din (Apple Silicon eller Intel).</li>
+      <li>Laster ned installasjonsfilen (DMG) fra GitHub.</li>
+      <li>Kopierer appen til <code class="inline">/Applications</code>.</li>
+      <li>Åpner ENK Regnskap. Du finner den siden i Launchpad og Programmer.</li>
+    </ol>
+    <p class="req">Krever macOS 11 eller nyere.</p>
+
+    <h2>Foretrekker du å klikke?</h2>
+    <p>
+      Last ned DMG-en manuelt fra
+      <a href="https://github.com/kkollsga/enk-regnskap/releases/latest" target="_blank" rel="noopener">siste release</a>
+      (velg <strong>arm64</strong> for Apple Silicon, <strong>intel</strong> for eldre Macer),
+      åpne den og dra <strong>EnkRegnskap</strong> til <strong>Programmer</strong>.
+    </p>
+    <div class="note">
+      <strong>Førstegangsåpning:</strong> ved manuell nedlasting er appen ikke
+      signert med Apple Developer-ID (beta). Høyreklikk appen → <strong>Åpne</strong>,
+      eller kjør
+      <code class="inline">xattr -dr com.apple.quarantine /Applications/EnkRegnskap.app</code>.
+      Terminal-kommandoen over slipper dette steget.
+    </div>
+
+    <h2>Personvern</h2>
+    <p>
+      Alle data lagres lokalt under <code class="inline">~/ENK-Regnskap/</code> på
+      din egen maskin. Ingen skytjeneste, ingen konto.
+    </p>
+
+    <footer>
+      <a href="https://github.com/kkollsga/enk-regnskap" target="_blank" rel="noopener">Kildekode på GitHub</a>
+    </footer>
+  </div>
+
+  <script>
+    function copyCmd() {
+      var text = document.getElementById("cmd").textContent;
+      var btn = document.getElementById("copy");
+      function ok() { btn.textContent = "Kopiert ✓"; btn.classList.add("done"); setTimeout(function () { btn.textContent = "Kopier"; btn.classList.remove("done"); }, 2000); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(ok, fallback);
+      } else { fallback(); }
+      function fallback() {
+        var r = document.createRange(); r.selectNode(document.getElementById("cmd"));
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        try { document.execCommand("copy"); ok(); } catch (e) {}
+        s.removeAllRanges();
+      }
+    }
+  </script>
+</body>
+</html>

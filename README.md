@@ -48,7 +48,15 @@ Bygges uten CGo og uten system-avhengigheter, og krysskompileres til
 
 ## Installere (ferdigbygd macOS-app)
 
-Last ned siste **DMG** fra
+**Enklest – én kommando i Terminal:**
+
+```bash
+curl -fsSL https://kkollsga.github.io/enk-regnskap/install.sh | bash
+```
+
+Se også [installasjonsguiden](https://kkollsga.github.io/enk-regnskap/).
+
+**Eller manuelt:** last ned siste **DMG** fra
 [Releases](https://github.com/kkollsga/enk-regnskap/releases) – `arm64` for
 Apple Silicon (M1/M2/M3), `intel` for eldre Intel-Macer. Åpne DMG-en og dra
 **EnkRegnskap** til **Programmer**.
