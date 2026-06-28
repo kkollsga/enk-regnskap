@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -10,6 +11,10 @@ import (
 
 // Args er argumentkartet til et verktoykall med trygge oppslagshjelpere.
 type Args map[string]any
+
+// has er sann hvis nøkkelen ble oppgitt i kallet (brukes til partial-update:
+// felt som ikke oppgis, beholdes uendret).
+func (a Args) has(key string) bool { _, ok := a[key]; return ok }
 
 func (a Args) str(key string) string {
 	if v, ok := a[key]; ok {
@@ -203,7 +208,7 @@ func (s *Server) buildTools() []Tool {
 		},
 		{
 			Name:        "update_income",
-			Description: "Endre en eksisterende inntekt (id). Feltene fra add_income gjelder; oppgitte verdier erstatter de gamle. foreign_taxes settes på nytt.",
+			Description: "Endre en eksisterende inntekt. PARTIAL: bare felt du oppgir endres, resten beholdes. foreign_taxes beholdes urørt med mindre du oppgir foreign_taxes (da erstattes hele lista – bruk heller add_foreign_tax for å legge til én linje).",
 			InputSchema: obj(map[string]any{
 				"id":               prop("integer", "Inntekts-id som skal endres"),
 				"date":             prop("string", "Dato (AAAA-MM-DD)"),
@@ -216,7 +221,7 @@ func (s *Server) buildTools() []Tool {
 				"foreign_tax_paid": prop("integer", "0=nei, 1=ja, 2=vet ikke"),
 				"foreign_taxes": map[string]any{
 					"type":        "array",
-					"description": "Utenlandsk skatt per type: {type, amount, currency?, treatment?}. Erstatter eksisterende linjer.",
+					"description": "ERSTATTER hele lista med utenlandsk skatt. Hvert element: {type, amount, currency?, treatment?}. Utelat for å beholde eksisterende linjer.",
 					"items": obj(map[string]any{
 						"type":      prop("string", "Skattetype, f.eks. IRRF, ISS, CSLL"),
 						"amount":    prop("number", "Beløp i utenlandsk valuta"),
@@ -226,15 +231,87 @@ func (s *Server) buildTools() []Tool {
 				},
 				"tax_year": prop("integer", "Inntektsar"),
 				"notes":    prop("string", "Notater"),
-			}, "id", "date", "description", "amount", "category"),
+			}, "id"),
 			Run: func(ctx context.Context, a Args) (string, error) {
-				res, err := app.UpdateIncome(ctx, core.ActorMCP, int64(a.intval("id")), incomeInputFromArgs(a))
+				id := int64(a.intval("id"))
+				inc, err := app.GetIncome(ctx, id)
+				if err != nil {
+					return "", fmt.Errorf("inntekt %d finnes ikke", id)
+				}
+				lines, _ := app.IncomeForeignTaxes(ctx, id)
+				in := incomeInputFromExisting(inc, lines)
+				if a.has("date") {
+					in.Date = a.str("date")
+				}
+				if a.has("description") {
+					in.Description = a.str("description")
+				}
+				if a.has("amount") {
+					in.AmountOrig = a.num("amount")
+				}
+				if a.has("currency") {
+					in.Currency = a.str("currency")
+				}
+				if a.has("country_code") {
+					in.CountryCode = a.str("country_code")
+				}
+				if a.has("category") {
+					in.Category = a.str("category")
+				}
+				if a.has("client") {
+					in.Client = a.str("client")
+				}
+				if a.has("notes") {
+					in.Notes = a.str("notes")
+				}
+				if a.has("tax_year") {
+					in.TaxYear = a.intval("tax_year")
+				}
+				if a.has("foreign_tax_paid") {
+					in.ForeignTaxPaid = a.intval("foreign_tax_paid")
+				}
+				if a.has("foreign_taxes") {
+					in.ForeignTaxes = parseForeignTaxes(a)
+				}
+				res, err := app.UpdateIncome(ctx, core.ActorMCP, id, in)
 				if err != nil {
 					return "", err
 				}
 				return toJSON(map[string]any{
 					"id": res.Income.ID, "amount_nok": res.Income.AmountNok,
 					"rate_used": res.RateUsed, "rate_date": res.RateDate,
+				}), nil
+			},
+		},
+		{
+			Name:        "add_foreign_tax",
+			Description: "Legg til ÉN utenlandsk skattelinje på en eksisterende inntekt uten å røre de andre. Trygt alternativ til å sende hele foreign_taxes på nytt.",
+			InputSchema: obj(map[string]any{
+				"income_id": prop("integer", "Inntekten skatten gjelder"),
+				"type":      prop("string", "Skattetype, f.eks. IRRF, ISS, CSLL"),
+				"amount":    prop("number", "Beløp i utenlandsk valuta"),
+				"currency":  prop("string", "Valuta (default = inntektens valuta)"),
+				"treatment": prop("string", "credit = krediterbar inntektsskatt → kreditfradrag; deduct = indirekte skatt → fradragsberettiget kostnad; none = kun referanse. Tom = utled fra katalog."),
+			}, "income_id", "type", "amount"),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				id := int64(a.intval("income_id"))
+				inc, err := app.GetIncome(ctx, id)
+				if err != nil {
+					return "", fmt.Errorf("inntekt %d finnes ikke", id)
+				}
+				lines, _ := app.IncomeForeignTaxes(ctx, id)
+				in := incomeInputFromExisting(inc, lines)
+				in.ForeignTaxPaid = core.ForeignTaxYes
+				in.ForeignTaxes = append(in.ForeignTaxes, core.ForeignTaxLine{
+					Type: a.str("type"), AmountOrig: a.num("amount"),
+					Currency: a.str("currency"), Treatment: a.str("treatment"),
+				})
+				res, err := app.UpdateIncome(ctx, core.ActorMCP, id, in)
+				if err != nil {
+					return "", err
+				}
+				return toJSON(map[string]any{
+					"income_id": res.Income.ID, "foreign_tax_lines": len(in.ForeignTaxes),
 				}), nil
 			},
 		},
@@ -264,7 +341,7 @@ func (s *Server) buildTools() []Tool {
 		},
 		{
 			Name:        "update_expense",
-			Description: "Endre en eksisterende utgift (id). Feltene fra add_expense gjelder; oppgitte verdier erstatter de gamle. income_id=0 fjerner koblingen.",
+			Description: "Endre en eksisterende utgift. PARTIAL: bare felt du oppgir endres, resten beholdes. income_id=0 fjerner koblingen.",
 			InputSchema: obj(map[string]any{
 				"id":             prop("integer", "Utgifts-id som skal endres"),
 				"date":           prop("string", "Dato (AAAA-MM-DD)"),
@@ -277,14 +354,56 @@ func (s *Server) buildTools() []Tool {
 				"income_id":      prop("integer", "Knytt til inntekt (0 = ingen kobling)"),
 				"tax_year":       prop("integer", "Inntektsar"),
 				"notes":          prop("string", "Notater"),
-			}, "id", "date", "description", "amount", "category"),
+			}, "id"),
 			Run: func(ctx context.Context, a Args) (string, error) {
-				exp, err := app.UpdateExpense(ctx, core.ActorMCP, int64(a.intval("id")), expenseInputFromArgs(a))
+				id := int64(a.intval("id"))
+				exp, err := app.GetExpense(ctx, id)
+				if err != nil {
+					return "", fmt.Errorf("utgift %d finnes ikke", id)
+				}
+				in := expenseInputFromExisting(exp)
+				if a.has("date") {
+					in.Date = a.str("date")
+				}
+				if a.has("description") {
+					in.Description = a.str("description")
+				}
+				if a.has("amount") {
+					in.AmountOrig = a.num("amount")
+				}
+				if a.has("currency") {
+					in.Currency = a.str("currency")
+				}
+				if a.has("country_code") {
+					in.CountryCode = a.str("country_code")
+				}
+				if a.has("category") {
+					in.Category = a.str("category")
+				}
+				if a.has("notes") {
+					in.Notes = a.str("notes")
+				}
+				if a.has("tax_year") {
+					in.TaxYear = a.intval("tax_year")
+				}
+				if a.has("deductible_pct") {
+					in.DeductiblePct = a.num("deductible_pct")
+					in.HasDeductiblePct = true
+				}
+				if a.has("income_id") {
+					if v := a.intval("income_id"); v > 0 {
+						lid := int64(v)
+						in.IncomeID = &lid
+					} else {
+						in.IncomeID = nil
+					}
+				}
+				updated, err := app.UpdateExpense(ctx, core.ActorMCP, id, in)
 				if err != nil {
 					return "", err
 				}
 				return toJSON(map[string]any{
-					"id": exp.ID, "deductible_nok": exp.DeductibleNok, "deductible_pct": exp.DeductiblePct,
+					"id": updated.ID, "deductible_nok": updated.DeductibleNok, "deductible_pct": updated.DeductiblePct,
 				}), nil
 			},
 		},
@@ -503,6 +622,75 @@ func (s *Server) buildTools() []Tool {
 					return "", err
 				}
 				return "Tilstand importert fra " + dir, nil
+			},
+		},
+		{
+			Name:        "attach_receipt",
+			Description: "Legg ved en kvittering/dokumentasjon (PDF eller bilde) på en inntekt eller utgift. Brukes bl.a. for å dokumentere utenlandsk skatt (RF-1147).",
+			InputSchema: obj(map[string]any{
+				"parent_kind":    prop("string", "income eller expense"),
+				"parent_id":      prop("integer", "Id-en til inntekten/utgiften"),
+				"filename":       prop("string", "Filnavn, f.eks. selvangivelse.pdf"),
+				"content_base64": prop("string", "Filinnholdet base64-kodet"),
+				"mime_type":      prop("string", "MIME-type (valgfritt; utledes fra filnavn). JPG/PNG/GIF/WEBP/HEIC/PDF."),
+				"title":          prop("string", "Tittel (valgfritt)"),
+				"description":    prop("string", "Beskrivelse (valgfritt)"),
+				"tax_year":       prop("integer", "Inntektsar (valgfritt; default aktivt år)"),
+			}, "parent_kind", "parent_id", "filename", "content_base64"),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				data, err := base64.StdEncoding.DecodeString(a.str("content_base64"))
+				if err != nil {
+					return "", fmt.Errorf("ugyldig base64-innhold: %w", err)
+				}
+				kind := a.str("parent_kind")
+				if kind != "income" && kind != "expense" {
+					return "", fmt.Errorf("parent_kind må være 'income' eller 'expense'")
+				}
+				mime := a.str("mime_type")
+				if mime == "" {
+					mime = mimeFromName(a.str("filename"))
+				}
+				rec, err := app.SaveReceipt(ctx, core.ActorMCP, core.ReceiptInput{
+					OriginalName: a.str("filename"), MimeType: mime, Data: data,
+					Title: a.str("title"), Description: a.str("description"),
+					ParentKind: kind, ParentID: int64(a.intval("parent_id")),
+					TaxYear: a.intval("tax_year"),
+				})
+				if err != nil {
+					return "", err
+				}
+				return toJSON(map[string]any{"id": rec.ID, "filename": rec.Filename}), nil
+			},
+		},
+		{
+			Name:        "status",
+			Description: "Orienteringsbilde: aktivt foretak, aktivt inntektsår og antall inntekter/utgifter for året. Kall dette først for å se hvilken tilstand verktoyene jobber mot.",
+			InputSchema: obj(map[string]any{}),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				year := app.ActiveYear(ctx)
+				out := map[string]any{
+					"active_year":   year,
+					"business_name": app.GetConfig(ctx, core.ConfigBusinessName, ""),
+					"org_nr":        app.GetConfig(ctx, core.ConfigOrgNr, ""),
+				}
+				if s.ws != nil {
+					out["active_company"] = s.ws.CurrentName()
+				}
+				if inc, err := app.ListIncome(ctx, year); err == nil {
+					out["income_count"] = len(inc)
+				}
+				if exp, err := app.ListExpenses(ctx, year); err == nil {
+					out["expense_count"] = len(exp)
+				}
+				return toJSON(out), nil
+			},
+		},
+		{
+			Name:        "guide",
+			Description: "Full bruksanvisning for dette MCP-grensesnittet: tilstandsmodell, verktoykatalog, treatment-semantikk, partial-oppdatering og konvensjoner. Kall dette først for å lære hele API-et.",
+			InputSchema: obj(map[string]any{}),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				return guideDoc, nil
 			},
 		},
 	}
