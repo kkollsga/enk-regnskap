@@ -11,7 +11,9 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"time"
 
 	"github.com/kkollsga/enk-regnskap/internal/core"
@@ -41,7 +43,7 @@ func main() {
 		if mcpApp == nil {
 			log.Fatalf("ingen aktivt prosjekt for MCP. Opprett et prosjekt i appen først, eller bruk -data <mappe>.")
 		}
-		if err := mcp.New(mcpApp).ServeStdio(context.Background(), os.Stdin, os.Stdout); err != nil {
+		if err := mcp.New(mcpApp, nil).ServeStdio(context.Background(), os.Stdin, os.Stdout); err != nil {
 			log.Fatalf("mcp stdio: %v", err)
 		}
 		return
@@ -72,8 +74,11 @@ func main() {
 		openBrowser(url)
 	}
 
-	// Blokker til prosessen avsluttes.
-	select {}
+	// Blokker til SIGINT/SIGTERM. defer-en over rydder endepunktsfilen ved
+	// avslutning så en agent ikke kobler til en død port.
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	<-sig
 }
 
 // build setter opp serveren i enten enkeltprosjekt- (-data) eller

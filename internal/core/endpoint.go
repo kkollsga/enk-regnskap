@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // Endepunktsfilen lar en lokal AI-agent finne den kjorende appens HTTP-adresse
@@ -11,11 +12,13 @@ import (
 // tilfeldig port, så uten denne filen er den ikke mulig å nå utenfra. Filen
 // ligger i basismappen og fjernes når prosessen avslutter normalt.
 
-// MCPEndpoint beskriver hvor den kjorende appen svarer.
+// MCPEndpoint beskriver hvor den kjorende appen svarer. PID + StartedAt lar en
+// agent oppdage en foreldet fil (prosessen er død) hvis den ikke ble ryddet.
 type MCPEndpoint struct {
-	BaseURL string `json:"base_url"` // f.eks. http://127.0.0.1:54321
-	MCPURL  string `json:"mcp_url"`  // base_url + /mcp
-	PID     int    `json:"pid"`
+	BaseURL   string `json:"base_url"` // f.eks. http://127.0.0.1:54321
+	MCPURL    string `json:"mcp_url"`  // base_url + /mcp
+	PID       int    `json:"pid"`
+	StartedAt string `json:"started_at"` // RFC3339
 }
 
 // MCPEndpointPath er stien til endepunktsfilen for en gitt basismappe.
@@ -35,9 +38,10 @@ func WriteMCPEndpoint(baseDir, baseURL string) error {
 		return err
 	}
 	b, err := json.MarshalIndent(MCPEndpoint{
-		BaseURL: baseURL,
-		MCPURL:  baseURL + "/mcp",
-		PID:     os.Getpid(),
+		BaseURL:   baseURL,
+		MCPURL:    baseURL + "/mcp",
+		PID:       os.Getpid(),
+		StartedAt: time.Now().Format(time.RFC3339),
 	}, "", "  ")
 	if err != nil {
 		return err

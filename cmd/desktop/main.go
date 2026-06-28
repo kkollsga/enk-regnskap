@@ -10,6 +10,9 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	webview "github.com/webview/webview_go"
 
@@ -23,6 +26,16 @@ func main() {
 	w := webview.New(false)
 	defer w.Destroy()
 	gWebview = w
+
+	// Oppdateringsskriptet tvangslukker appen (SIGTERM) før det installerer en
+	// ny versjon – rydd endepunktsfilen da også, ikke bare ved normal lukking.
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sig
+		core.RemoveMCPEndpoint(core.DefaultBaseDir())
+		os.Exit(0)
+	}()
 	w.SetTitle("ENK Regnskap")
 	w.SetSize(1280, 860, webview.HintNone)
 	installAppMenu() // native menylinje: Foretak, Språk, Rediger, Avslutt

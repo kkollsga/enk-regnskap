@@ -125,7 +125,7 @@ func expenseInputFromArgs(a Args) core.ExpenseInput {
 
 func (s *Server) buildTools() []Tool {
 	app := s.app
-	return []Tool{
+	tools := []Tool{
 		{
 			Name:        "add_income",
 			Description: "Registrer en inntekt. For utenlandsk valuta hentes Norges Bank-kurs automatisk og NOK-beløp beregnes. Sett country_code og foreign_tax_* for utenlandsinntekt.",
@@ -198,7 +198,7 @@ func (s *Server) buildTools() []Tool {
 				if err != nil {
 					return "", err
 				}
-				return toJSON(in), nil
+				return toJSON(incomeDTO(in)), nil
 			},
 		},
 		{
@@ -259,7 +259,7 @@ func (s *Server) buildTools() []Tool {
 				if err != nil {
 					return "", err
 				}
-				return toJSON(e), nil
+				return toJSON(expenseDTO(e)), nil
 			},
 		},
 		{
@@ -302,31 +302,61 @@ func (s *Server) buildTools() []Tool {
 		},
 		{
 			Name:        "list_income",
-			Description: "List inntekter for et inntektsar.",
-			InputSchema: obj(map[string]any{"year": prop("integer", "Inntektsar")}, "year"),
+			Description: "List inntekter for et inntektsar. Bruk filtre (country_code/category/month) for å hente kun det du trenger, ikke hele året. For totaler/snitt, bruk aggregate i stedet for å laste rader.",
+			InputSchema: obj(map[string]any{
+				"year":         prop("integer", "Inntektsar"),
+				"country_code": prop("string", "Filtrer på kildeland (valgfritt)"),
+				"category":     prop("string", "Filtrer på kategori (valgfritt)"),
+				"month":        prop("string", "Filtrer på måned AAAA-MM (valgfritt)"),
+				"limit":        prop("integer", "Maks antall rader (valgfritt)"),
+			}, "year"),
 			Run: func(ctx context.Context, a Args) (string, error) {
 				rows, err := app.ListIncome(ctx, a.intval("year"))
 				if err != nil {
 					return "", err
 				}
-				return toJSON(rows), nil
+				rows = filterIncome(rows, a)
+				return toJSON(incomeDTOs(rows)), nil
 			},
 		},
 		{
 			Name:        "list_expenses",
-			Description: "List utgifter for et inntektsar.",
-			InputSchema: obj(map[string]any{"year": prop("integer", "Inntektsar")}, "year"),
+			Description: "List utgifter for et inntektsar. Bruk filtre (country_code/category/month) for å hente kun det du trenger. For totaler/snitt, bruk aggregate.",
+			InputSchema: obj(map[string]any{
+				"year":         prop("integer", "Inntektsar"),
+				"country_code": prop("string", "Filtrer på land (valgfritt)"),
+				"category":     prop("string", "Filtrer på kategori (valgfritt)"),
+				"month":        prop("string", "Filtrer på måned AAAA-MM (valgfritt)"),
+				"income_id":    prop("integer", "Kun utgifter koblet til denne inntekten (valgfritt)"),
+				"limit":        prop("integer", "Maks antall rader (valgfritt)"),
+			}, "year"),
 			Run: func(ctx context.Context, a Args) (string, error) {
 				rows, err := app.ListExpenses(ctx, a.intval("year"))
 				if err != nil {
 					return "", err
 				}
-				return toJSON(rows), nil
+				rows = filterExpenses(rows, a)
+				return toJSON(expenseDTOs(rows)), nil
+			},
+		},
+		{
+			Name:        "aggregate",
+			Description: "Summer og snitt uten å laste rader. kind=income|expenses, group_by=category|country|month|total. Returnerer per gruppe: count, sum_nok, avg_nok (+ deductible_nok for utgifter). Bruk dette for nøkkeltall.",
+			InputSchema: obj(map[string]any{
+				"kind":         prop("string", "income eller expenses"),
+				"year":         prop("integer", "Inntektsar"),
+				"group_by":     prop("string", "category | country | month | total (default total)"),
+				"country_code": prop("string", "Filtrer på land (valgfritt)"),
+				"category":     prop("string", "Filtrer på kategori (valgfritt)"),
+				"month":        prop("string", "Filtrer på måned AAAA-MM (valgfritt)"),
+			}, "kind", "year"),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				return aggregateRun(ctx, app, a)
 			},
 		},
 		{
 			Name:        "dashboard",
-			Description: "Hent nøkkeltall (inntekt, fradrag, resultat, skatteestimat) for et inntektsar.",
+			Description: "Hent nøkkeltall (inntekt, fradrag, resultat, skatteestimat, kreditfradrag, netto skatt) for et inntektsar. Kompakt – ingen rader.",
 			InputSchema: obj(map[string]any{"year": prop("integer", "Inntektsar (default aktivt år)")}),
 			Run: func(ctx context.Context, a Args) (string, error) {
 				year := a.intval("year")
@@ -349,19 +379,37 @@ func (s *Server) buildTools() []Tool {
 				if err != nil {
 					return "", err
 				}
-				return toJSON(ov), nil
+				return toJSON(foreignOverviewDTOs(ov)), nil
 			},
 		},
 		{
 			Name:        "generate_report",
-			Description: "Bygg en rapport (totaler per kategori, resultat, skatteestimat, kreditfradrag) for et ar.",
-			InputSchema: obj(map[string]any{"year": prop("integer", "Inntektsar")}, "year"),
+			Description: "Rapport for et år: totaler per kategori, resultat, skatteestimat og kreditfradrag. Returnerer KUN sammendrag som standard. Sett include_rows=true bare hvis du faktisk trenger hver inntekts-/utgiftsrad.",
+			InputSchema: obj(map[string]any{
+				"year":         prop("integer", "Inntektsar"),
+				"include_rows": prop("boolean", "Ta med alle inntekts-/utgiftsrader (default false – hold svaret lite)"),
+			}, "year"),
 			Run: func(ctx context.Context, a Args) (string, error) {
-				rep, err := app.BuildReport(ctx, a.intval("year"))
+				year := a.intval("year")
+				rep, err := app.BuildReport(ctx, year)
 				if err != nil {
 					return "", err
 				}
-				return toJSON(rep), nil
+				foreign, _ := app.ForeignTaxForYear(ctx, year)
+				out := reportDTO(rep, foreign)
+				if b, ok := a["include_rows"].(bool); !ok || !b {
+					out.Income = nil
+					out.Expenses = nil
+				}
+				return toJSON(out), nil
+			},
+		},
+		{
+			Name:        "selvangivelse",
+			Description: "Strukturert hjelp til skattemeldingen for ENK (RF-skjema): næringsresultat, personinntekt, trygdeavgift/trinnskatt, kreditfradrag (RF-1147) og estimert skatt etter kredit. Kompakt – ingen rader.",
+			InputSchema: obj(map[string]any{"year": prop("integer", "Inntektsar")}, "year"),
+			Run: func(ctx context.Context, a Args) (string, error) {
+				return selvangivelseRun(ctx, app, a.intval("year"))
 			},
 		},
 		{
@@ -389,7 +437,7 @@ func (s *Server) buildTools() []Tool {
 				if err != nil {
 					return "", err
 				}
-				return toJSON(rows), nil
+				return toJSON(changeDTOs(rows)), nil
 			},
 		},
 		{
@@ -458,4 +506,8 @@ func (s *Server) buildTools() []Tool {
 			},
 		},
 	}
+	if s.ws != nil {
+		tools = append(tools, s.companyTools()...)
+	}
+	return tools
 }

@@ -22,22 +22,27 @@ import (
 
 const protocolVersion = "2024-11-05"
 
-// Server er en transport-agnostisk MCP-server over en core.App.
+// Server er en transport-agnostisk MCP-server over en core.App. ws er valgfri
+// (flerprosjekt-modus) og aktiverer verktoy for å liste/opprette/åpne foretak.
 type Server struct {
 	app    *core.App
+	ws     *core.Workspace
 	tools  []Tool
 	byName map[string]Tool
 }
 
-// New lager en MCP-server.
-func New(app *core.App) *Server {
-	s := &Server{app: app, byName: map[string]Tool{}}
+// New lager en MCP-server. ws kan være nil (enkeltprosjekt-/stdio-modus).
+func New(app *core.App, ws *core.Workspace) *Server {
+	s := &Server{app: app, ws: ws, byName: map[string]Tool{}}
 	s.tools = s.buildTools()
 	for _, t := range s.tools {
 		s.byName[t.Name] = t
 	}
 	return s
 }
+
+// App returnerer appen serveren ble bygd for (brukes til caching i web-laget).
+func (s *Server) App() *core.App { return s.app }
 
 // --- JSON-RPC 2.0 ---
 
@@ -101,7 +106,7 @@ func (s *Server) callTool(ctx context.Context, params json.RawMessage) (any, *rp
 	if !ok {
 		return nil, &rpcError{Code: -32602, Message: "ukjent verktoy: " + p.Name}
 	}
-	text, err := tool.Run(ctx, Args(p.Arguments))
+	text, err := runTool(ctx, tool, Args(p.Arguments))
 	if err != nil {
 		// Verktoyfeil rapporteres som innhold med isError, ikke protokollfeil.
 		return map[string]any{
@@ -113,6 +118,18 @@ func (s *Server) callTool(ctx context.Context, params json.RawMessage) (any, *rp
 		"content": []map[string]any{{"type": "text", "text": text}},
 		"isError": false,
 	}, nil
+}
+
+// runTool kjorer et verktoy og fanger en eventuell panic (f.eks. kall mot et
+// verktoy som krever aktivt prosjekt før et er opprettet) som en vanlig feil,
+// slik at serveren aldri krasjer på et enkelt kall.
+func runTool(ctx context.Context, tool Tool, args Args) (text string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("verktoyet feilet (krever sannsynligvis et aktivt foretak): %v", r)
+		}
+	}()
+	return tool.Run(ctx, args)
 }
 
 func (s *Server) toolSchemas() []map[string]any {

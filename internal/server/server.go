@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -35,6 +36,22 @@ type Server struct {
 	ws       *core.Workspace // valgfritt: flerprosjekt-støtte
 	renderer *Renderer
 	mux      http.Handler
+
+	mcpMu  sync.Mutex
+	mcpSrv *mcp.Server // bygges én gang per aktivt prosjekt (cache)
+}
+
+// mcpServer returnerer en MCP-server for det aktive prosjektet. Den bygges på
+// nytt bare når aktivt prosjekt endres (f.eks. via open_company), ellers
+// gjenbrukes den i stedet for å bygges per HTTP-kall.
+func (s *Server) mcpServer() *mcp.Server {
+	app := s.app()
+	s.mcpMu.Lock()
+	defer s.mcpMu.Unlock()
+	if s.mcpSrv == nil || s.mcpSrv.App() != app {
+		s.mcpSrv = mcp.New(app, s.ws)
+	}
+	return s.mcpSrv
 }
 
 // app returnerer den aktive App-instansen.
@@ -86,13 +103,16 @@ func (s *Server) routes() http.Handler {
 	r.Get("/api/exchange-rate", s.handleExchangeRate)
 
 	// MCP-endepunkt (in-process => agentens endringer oppdaterer UI-et live).
-	// Bygges per kall slik at det alltid treffer aktivt prosjekt.
+	// Cachet per aktivt prosjekt (se mcpServer).
 	r.Post("/mcp", func(w http.ResponseWriter, req *http.Request) {
-		if s.app() == nil {
+		// Uten aktivt prosjekt OG uten workspace finnes ingenting å betjene.
+		// Med workspace tillates kallet selv om appen er nil, så en agent kan
+		// opprette det første foretaket via create_company.
+		if s.app() == nil && s.ws == nil {
 			http.Error(w, "ingen aktiv prosjekt", http.StatusServiceUnavailable)
 			return
 		}
-		mcp.New(s.app()).HTTPHandler()(w, req)
+		s.mcpServer().HTTPHandler()(w, req)
 	})
 
 	r.Get("/", s.handleDashboard)
