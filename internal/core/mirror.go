@@ -92,6 +92,7 @@ type mirrorExpense struct {
 	DeductiblePct  float64  `json:"deductible_pct"`
 	DeductibleNOK  float64  `json:"deductible_nok"`
 	ReceiptID      *int64   `json:"receipt_id"`
+	IncomeID       *int64   `json:"income_id"`
 	TaxYear        int64    `json:"tax_year"`
 	Notes          string   `json:"notes"`
 	CreatedAt      string   `json:"created_at"`
@@ -168,8 +169,8 @@ func (a *App) SyncMirror(ctx context.Context) error {
 			ExchangeRate: nfPtr(ex.ExchangeRate), RateDate: nsPtr(ex.RateDate),
 			CountryCode: ex.CountryCode, AmountNOK: ex.AmountNok,
 			Category: ex.Category, DeductiblePct: ex.DeductiblePct, DeductibleNOK: ex.DeductibleNok,
-			ReceiptID: niPtr(ex.ReceiptID), TaxYear: ex.TaxYear, Notes: nsVal(ex.Notes),
-			CreatedAt: ex.CreatedAt,
+			ReceiptID: niPtr(ex.ReceiptID), IncomeID: niPtr(ex.IncomeID),
+			TaxYear: ex.TaxYear, Notes: nsVal(ex.Notes), CreatedAt: ex.CreatedAt,
 		})
 	}
 	if err := writeJSONFile(filepath.Join(dir, "expenses.json"), me); err != nil {
@@ -307,11 +308,11 @@ func (a *App) ImportMirror(ctx context.Context, dir string) error {
 		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO expenses (id, date, description, amount_orig, currency, exchange_rate,
 			   rate_date, country_code, amount_nok, category, deductible_pct,
-			   deductible_nok, receipt_id, tax_year, notes, created_at)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			   deductible_nok, receipt_id, income_id, tax_year, notes, created_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			ex.ID, ex.Date, ex.Description, amountOrig, curr, ptrArg(ex.ExchangeRate),
 			ptrArg(ex.RateDate), country, ex.AmountNOK, ex.Category, ex.DeductiblePct,
-			ex.DeductibleNOK, ptrArg(ex.ReceiptID), ex.TaxYear, ex.Notes, ex.CreatedAt); err != nil {
+			ex.DeductibleNOK, ptrArg(ex.ReceiptID), ptrArg(ex.IncomeID), ex.TaxYear, ex.Notes, ex.CreatedAt); err != nil {
 			return fmt.Errorf("importer utgift: %w", err)
 		}
 	}

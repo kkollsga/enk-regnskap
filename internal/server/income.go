@@ -35,7 +35,8 @@ type incomeListData struct {
 	Total          float64
 	Receipts       map[int64][]db.Receipt
 	TaxLines       map[int64][]db.IncomeForeignTax
-	TaxSuggestions string // JSON: {landkode: [{code,name,desc}]}
+	LinkedExpenses map[int64][]db.Expense // utgifter gruppert under inntekten
+	TaxSuggestions string                 // JSON: {landkode: [{code,name,desc}]}
 	CatNames       map[string]string
 	Categories     []core.Category      // for redigering i listen
 	Currencies     []string             // for redigering i listen
@@ -60,6 +61,15 @@ func (s *Server) handleIncomeList(w http.ResponseWriter, r *http.Request) {
 			taxLines[in.ID], _ = s.app().IncomeForeignTaxes(r.Context(), in.ID)
 		}
 	}
+	// Utgifter gruppert under en inntekt (én spørring, gruppert på income_id).
+	linkedExp := map[int64][]db.Expense{}
+	if allExp, err := s.app().ListExpenses(r.Context(), v.Year); err == nil {
+		for _, e := range allExp {
+			if e.IncomeID.Valid {
+				linkedExp[e.IncomeID.Int64] = append(linkedExp[e.IncomeID.Int64], e)
+			}
+		}
+	}
 	cats := core.IncomeCategories()
 	catNames := map[string]string{}
 	for _, c := range cats {
@@ -69,6 +79,7 @@ func (s *Server) handleIncomeList(w http.ResponseWriter, r *http.Request) {
 	clients, _ := s.app().IncomeClients(r.Context())
 	v.Data = incomeListData{
 		Income: rows, Total: total, Receipts: receipts, TaxLines: taxLines,
+		LinkedExpenses: linkedExp,
 		TaxSuggestions: s.taxSuggestionsJSON(r.Context()), CatNames: catNames,
 		Categories: cats, Currencies: core.SupportedCurrencies(),
 		Countries: countries, Clients: clients,

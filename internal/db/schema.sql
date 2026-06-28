@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   deductible_pct REAL NOT NULL DEFAULT 100.0,
   deductible_nok REAL NOT NULL,         -- amount_nok * deductible_pct / 100
   receipt_id     INTEGER REFERENCES receipts(id),
+  income_id      INTEGER REFERENCES income(id), -- valgfri gruppering under en inntekt
   tax_year       INTEGER NOT NULL,
   notes          TEXT,
   created_at     TEXT NOT NULL DEFAULT (datetime('now'))

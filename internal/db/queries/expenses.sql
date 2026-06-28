@@ -2,11 +2,14 @@
 INSERT INTO expenses (
   date, description, amount_orig, currency, exchange_rate, rate_date,
   country_code, amount_nok, category, deductible_pct, deductible_nok,
-  receipt_id, tax_year, notes
+  receipt_id, income_id, tax_year, notes
 ) VALUES (
-  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 RETURNING *;
+
+-- name: ListExpensesByIncome :many
+SELECT * FROM expenses WHERE income_id = ? ORDER BY date, id;
 
 -- name: GetExpense :one
 SELECT * FROM expenses WHERE id = ?;
@@ -37,6 +40,6 @@ GROUP BY category ORDER BY deductible DESC;
 UPDATE expenses SET
   date = ?, description = ?, amount_orig = ?, currency = ?, exchange_rate = ?,
   rate_date = ?, country_code = ?, amount_nok = ?, category = ?,
-  deductible_pct = ?, deductible_nok = ?, tax_year = ?, notes = ?
+  deductible_pct = ?, deductible_nok = ?, income_id = ?, tax_year = ?, notes = ?
 WHERE id = ?
 RETURNING *;

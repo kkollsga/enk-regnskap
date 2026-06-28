@@ -18,6 +18,7 @@ type expenseFormData struct {
 	Categories []core.ExpenseCategory
 	Currencies []string
 	Countries  []core.CountryOption
+	Incomes    []db.Income // for «knytt til inntekt»-nedtrekk
 	Today      string
 	EditID     int64
 	Action     string
@@ -140,6 +141,10 @@ func (s *Server) saveExpense(w http.ResponseWriter, r *http.Request, id int64) {
 		AmountOrig:  parseAmount(r.FormValue("amount_orig")),
 		Notes:       r.FormValue("notes"),
 	}
+	if v := parseInt(r.FormValue("income_id")); v > 0 {
+		id := int64(v)
+		in.IncomeID = &id
+	}
 	if pctStr := r.FormValue("deductible_pct"); pctStr != "" {
 		in.DeductiblePct = parseAmount(pctStr)
 		in.HasDeductiblePct = true
@@ -153,6 +158,7 @@ func (s *Server) saveExpense(w http.ResponseWriter, r *http.Request, id int64) {
 			"amount_orig": r.FormValue("amount_orig"), "category": r.FormValue("category"),
 			"currency": r.FormValue("currency"), "country_code": r.FormValue("country_code"),
 			"deductible_pct": r.FormValue("deductible_pct"), "notes": r.FormValue("notes"),
+			"income_id": r.FormValue("income_id"),
 		}
 		form.Errors = errs
 		if id > 0 {
@@ -232,23 +238,29 @@ func (s *Server) newExpenseForm(r *http.Request, year int) expenseFormData {
 		values["category"] = cat
 	}
 	countries, _ := s.app().Countries(r.Context())
+	incomes, _ := s.app().ListIncome(r.Context(), year)
 	return expenseFormData{
 		Values:     values,
 		Errors:     map[string]string{},
 		Categories: s.app().ExpenseCategories(year),
 		Currencies: core.SupportedCurrencies(),
 		Countries:  countries,
+		Incomes:    incomes,
 		Today:      time.Now().Format("2006-01-02"),
 		Action:     "/expenses",
 	}
 }
 
 func expenseToValues(e db.Expense) map[string]string {
-	return map[string]string{
+	v := map[string]string{
 		"date": e.Date, "description": e.Description, "category": e.Category,
 		"currency": e.Currency, "country_code": e.CountryCode,
 		"amount_orig":    strconv.FormatFloat(e.AmountOrig, 'f', -1, 64),
 		"deductible_pct": strconv.FormatFloat(e.DeductiblePct, 'f', -1, 64),
 		"notes":          e.Notes.String,
 	}
+	if e.IncomeID.Valid {
+		v["income_id"] = strconv.FormatInt(e.IncomeID.Int64, 10)
+	}
+	return v
 }

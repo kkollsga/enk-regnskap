@@ -233,3 +233,41 @@ func TestForeignTaxExpenseCategoriesAreBR(t *testing.T) {
 		}
 	}
 }
+
+// TestExpenseLinkedToIncome verifiserer gruppering av utgift under inntekt, og
+// at feil land/valuta avvises.
+func TestExpenseLinkedToIncome(t *testing.T) {
+	h := apptest.Start(t)
+	ctx := h.Context()
+	h.App.SetConfig(ctx, core.ConfigActiveYear, "2025")
+	h.Mock.AddRate("BRL", "2025-03-10", 2.00)
+	inc, _ := h.App.AddIncome(ctx, core.ActorWeb, core.IncomeInput{
+		Date: "2025-03-10", Description: "BR inntekt", Currency: "BRL", CountryCode: "BR",
+		AmountOrig: 10000, Category: "tjenesteinntekt", TaxYear: 2025,
+	})
+	id := inc.Income.ID
+	exp, err := h.App.AddExpense(ctx, core.ActorWeb, core.ExpenseInput{
+		Date: "2025-03-11", Description: "Kostnad i Brasil", Category: "kontorrekvisita",
+		Currency: "BRL", CountryCode: "BR", AmountOrig: 500, IncomeID: &id,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !exp.IncomeID.Valid || exp.IncomeID.Int64 != id {
+		t.Errorf("utgift ble ikke koblet til inntekt")
+	}
+	linked, _ := h.App.ExpensesForIncome(ctx, id)
+	if len(linked) != 1 {
+		t.Errorf("forventet 1 koblet utgift, fikk %d", len(linked))
+	}
+	// Feil valuta (NOK vs inntektens BRL) skal avvises.
+	_, err = h.App.AddExpense(ctx, core.ActorWeb, core.ExpenseInput{
+		Date: "2025-03-12", Description: "NOK-kostnad", Category: "kontorrekvisita",
+		Currency: "NOK", CountryCode: "BR", AmountOrig: 100, IncomeID: &id,
+	})
+	if err == nil {
+		t.Errorf("forventet feil ved valuta-avvik")
+	} else if _, ok := core.AsValidation(err); !ok {
+		t.Errorf("forventet valideringsfeil, fikk %T", err)
+	}
+}

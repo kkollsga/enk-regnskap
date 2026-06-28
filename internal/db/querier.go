@@ -44,6 +44,7 @@ type Querier interface {
 	ListCountryRules(ctx context.Context) ([]CountryTaxRule, error)
 	ListCountryTaxTypes(ctx context.Context, arg ListCountryTaxTypesParams) ([]CountryTaxType, error)
 	ListExchangeRates(ctx context.Context, currency string) ([]ExchangeRate, error)
+	ListExpensesByIncome(ctx context.Context, incomeID sql.NullInt64) ([]Expense, error)
 	ListExpensesByYear(ctx context.Context, taxYear int64) ([]Expense, error)
 	ListForeignTaxCreditsByYear(ctx context.Context, taxYear int64) ([]ForeignTaxCredit, error)
 	ListForeignTaxLinesByYearTreatment(ctx context.Context, arg ListForeignTaxLinesByYearTreatmentParams) ([]ListForeignTaxLinesByYearTreatmentRow, error)

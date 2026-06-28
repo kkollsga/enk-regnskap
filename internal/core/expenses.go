@@ -88,6 +88,7 @@ type ExpenseInput struct {
 	TaxYear          int
 	Notes            string
 	ReceiptID        *int64
+	IncomeID         *int64 // valgfri gruppering under en inntekt
 }
 
 // AddExpense validerer, henter valutakurs, beregner fradragsberettiget beløp,
@@ -95,6 +96,9 @@ type ExpenseInput struct {
 func (a *App) AddExpense(ctx context.Context, actor string, in ExpenseInput) (*db.Expense, error) {
 	in.normalize()
 	if err := in.validate(); err != nil {
+		return nil, err
+	}
+	if err := a.validateIncomeLink(ctx, in); err != nil {
 		return nil, err
 	}
 	conv, err := a.convertToNOK(ctx, in.Currency, in.Date, in.AmountOrig, "amount_orig")
@@ -117,6 +121,7 @@ func (a *App) AddExpense(ctx context.Context, actor string, in ExpenseInput) (*d
 		DeductiblePct: pct,
 		DeductibleNok: deductible,
 		ReceiptID:     nullInt(in.ReceiptID),
+		IncomeID:      nullInt(in.IncomeID),
 		TaxYear:       int64(in.TaxYear),
 		Notes:         nullString(in.Notes),
 	})
@@ -160,6 +165,9 @@ func (a *App) UpdateExpense(ctx context.Context, actor string, id int64, in Expe
 	if err != nil || before == nil {
 		return nil, fmt.Errorf("utgift %d finnes ikke", id)
 	}
+	if err := a.validateIncomeLink(ctx, in); err != nil {
+		return nil, err
+	}
 	conv, err := a.convertToNOK(ctx, in.Currency, in.Date, in.AmountOrig, "amount_orig")
 	if err != nil {
 		return nil, err
@@ -171,7 +179,7 @@ func (a *App) UpdateExpense(ctx context.Context, actor string, id int64, in Expe
 		Currency: in.Currency, ExchangeRate: conv.ExchangeRate, RateDate: conv.RateDateNull,
 		CountryCode: in.CountryCode, AmountNok: conv.AmountNOK,
 		Category: in.Category, DeductiblePct: pct, DeductibleNok: deductible,
-		TaxYear: int64(in.TaxYear), Notes: nullString(in.Notes),
+		IncomeID: nullInt(in.IncomeID), TaxYear: int64(in.TaxYear), Notes: nullString(in.Notes),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("oppdater utgift: %w", err)
@@ -187,6 +195,37 @@ func (a *App) UpdateExpense(ctx context.Context, actor string, id int64, in Expe
 // GetExpense henter en utgift.
 func (a *App) GetExpense(ctx context.Context, id int64) (db.Expense, error) {
 	return a.Q.GetExpense(ctx, id)
+}
+
+// validateIncomeLink sjekker at en utgift som knyttes til en inntekt har samme
+// land og valuta som inntekten. Grupperingen påvirker ikke skatteberegningen,
+// men feil land/valuta er nesten alltid en feilregistrering.
+func (a *App) validateIncomeLink(ctx context.Context, in ExpenseInput) error {
+	if in.IncomeID == nil {
+		return nil
+	}
+	inc, err := a.Q.GetIncome(ctx, *in.IncomeID)
+	if err != nil {
+		ve := newValidation()
+		ve.add("income_id", "Fant ikke inntekten utgiften skal knyttes til.")
+		return ve
+	}
+	ve := newValidation()
+	if inc.CountryCode != in.CountryCode {
+		ve.add("income_id", fmt.Sprintf("Feil land: inntekten er %s, utgiften er %s – de må være like.", inc.CountryCode, in.CountryCode))
+	}
+	if inc.Currency != in.Currency {
+		ve.add("income_id", fmt.Sprintf("Feil valuta: inntekten er %s, utgiften er %s – de må være like.", inc.Currency, in.Currency))
+	}
+	if ve.has() {
+		return ve
+	}
+	return nil
+}
+
+// ExpensesForIncome henter utgifter gruppert under en inntekt.
+func (a *App) ExpensesForIncome(ctx context.Context, incomeID int64) ([]db.Expense, error) {
+	return a.Q.ListExpensesByIncome(ctx, nullInt(&incomeID))
 }
 
 // DeleteExpense sletter en utgift med revisjonsspor.

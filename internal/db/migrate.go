@@ -32,6 +32,7 @@ func Migrate(conn *sql.DB) error {
 		{"expenses", "exchange_rate", "REAL"},
 		{"expenses", "rate_date", "TEXT"},
 		{"expenses", "country_code", "TEXT NOT NULL DEFAULT 'NO'"},
+		{"expenses", "income_id", "INTEGER"},
 		{"country_tax_types", "default_treatment", "TEXT"},
 	} {
 		if err := ensureColumn(conn, c.table, c.column, c.def); err != nil {

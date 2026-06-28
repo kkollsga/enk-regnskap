@@ -79,6 +79,7 @@ type Expense struct {
 	DeductiblePct float64         `json:"deductible_pct"`
 	DeductibleNok float64         `json:"deductible_nok"`
 	ReceiptID     sql.NullInt64   `json:"receipt_id"`
+	IncomeID      sql.NullInt64   `json:"income_id"`
 	TaxYear       int64           `json:"tax_year"`
 	Notes         sql.NullString  `json:"notes"`
 	CreatedAt     string          `json:"created_at"`

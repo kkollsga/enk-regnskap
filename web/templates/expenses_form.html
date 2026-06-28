@@ -39,6 +39,17 @@
     <div class="rate-info" id="rate-info" hidden></div>
   </div>
 
+  <div class="field {{if index $d.Errors "income_id"}}has-error{{end}}">
+    <label for="income_id">Knytt til inntekt <span class="muted">(valgfritt – kun gruppering)</span></label>
+    <select id="income_id" name="income_id">
+      <option value="">– ingen –</option>
+      {{$sel := index $d.Values "income_id"}}
+      {{range $d.Incomes}}<option value="{{.ID}}" data-country="{{.CountryCode}}" data-currency="{{.Currency}}" {{if eq (printf "%d" .ID) $sel}}selected{{end}}>{{.Date}} – {{.Description}} ({{.Currency}})</option>{{end}}
+    </select>
+    {{with index $d.Errors "income_id"}}<div class="field-error">{{.}}</div>{{end}}
+    <div class="field-error" id="income-link-warn" hidden></div>
+  </div>
+
   <div class="field {{if index $d.Errors "category"}}has-error{{end}}">
     <label for="category">{{.Tr "common_category"}}</label>
     <select id="category" name="category">
@@ -160,13 +171,30 @@
     info.hidden = false;
   }
 
-  country.addEventListener("change", function () { filterCategories(); });
-  currency.addEventListener("change", updateRate);
+  // Rødt varsel hvis valgt inntekt har annet land/valuta enn utgiften.
+  var incomeSel = document.getElementById("income_id");
+  var linkWarn = document.getElementById("income-link-warn");
+  function checkIncomeLink() {
+    var opt = incomeSel.options[incomeSel.selectedIndex];
+    if (!opt || !opt.value) { linkWarn.hidden = true; return; }
+    var msgs = [];
+    if (opt.dataset.country !== country.value) msgs.push("land (inntekt " + opt.dataset.country + " vs utgift " + country.value + ")");
+    if (opt.dataset.currency !== currency.value) msgs.push("valuta (inntekt " + opt.dataset.currency + " vs utgift " + currency.value + ")");
+    if (msgs.length) {
+      linkWarn.textContent = "Feil " + msgs.join(" og ") + " – utgiften og inntekten må ha samme land og valuta.";
+      linkWarn.hidden = false;
+    } else { linkWarn.hidden = true; }
+  }
+
+  country.addEventListener("change", function () { filterCategories(); checkIncomeLink(); });
+  currency.addEventListener("change", function () { updateRate(); checkIncomeLink(); });
   amount.addEventListener("input", updateRate);
   if (date) date.addEventListener("change", updateRate);
   category.addEventListener("change", applyCategoryDefault);
   pct.addEventListener("input", function () { userSetPct = true; update(); });
+  incomeSel.addEventListener("change", checkIncomeLink);
 
+  checkIncomeLink();
   filterCategories();
   updateRate();
   if (category.value) applyCategoryDefault();
