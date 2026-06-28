@@ -176,21 +176,22 @@ func itoa(n int64) string {
 	return string(b[i:])
 }
 
-// TestExpenseSaveSwitchesToEntryYear sikrer at en nylagret post alltid vises:
-// hvis datoen er i et annet år enn det aktive, byttes aktivt år til postens år
-// (ellers «forsvant» posten fra lista).
-func TestExpenseSaveSwitchesToEntryYear(t *testing.T) {
+// TestExpenseRejectedWhenYearDiffersFromActive sikrer at en post med dato i et
+// annet år enn det valgte inntektsåret avvises (ikke lagres), så den ikke
+// «forsvinner» i et annet års liste.
+func TestExpenseRejectedWhenYearDiffersFromActive(t *testing.T) {
 	h := apptest.Start(t)
 	ctx := h.Context()
 	h.App.SetConfig(ctx, core.ConfigActiveYear, "2025")
 	h.Browser().Get("/expenses/new").Form("/expenses").
 		Set("date", "2026-06-28").Set("description", "Kontorrekvisita").
 		Set("amount_nok", "500").Set("category", "kontorrekvisita").Submit()
-	if y := h.App.ActiveYear(ctx); y != 2026 {
-		t.Errorf("aktivt år etter lagring = %d, forventet 2026 (postens år)", y)
+	a25, _ := h.App.ListExpenses(ctx, 2025)
+	a26, _ := h.App.ListExpenses(ctx, 2026)
+	if len(a25)+len(a26) != 0 {
+		t.Errorf("forventet 0 utgifter (avvist), fikk 2025=%d 2026=%d", len(a25), len(a26))
 	}
-	rows, _ := h.App.ListExpenses(ctx, h.App.ActiveYear(ctx))
-	if len(rows) != 1 {
-		t.Errorf("forventet 1 utgift i aktivt år etter lagring, fikk %d", len(rows))
+	if y := h.App.ActiveYear(ctx); y != 2025 {
+		t.Errorf("aktivt år skal være uendret 2025, var %d", y)
 	}
 }

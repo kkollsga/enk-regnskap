@@ -136,6 +136,7 @@ func TestBRLIncomeWithForeignTax(t *testing.T) {
 
 func TestForeignTaxLegalBasis2024IsInternal(t *testing.T) {
 	h := apptest.Start(t)
+	h.App.SetConfig(h.Context(), core.ConfigActiveYear, "2024") // dato i 2024 -> aktivt år 2024
 	h.Mock.AddRate("BRL", "2024-06-10", 2.00)
 	b := h.Browser()
 	b.Get("/income/new").Form("/income").

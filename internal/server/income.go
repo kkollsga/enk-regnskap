@@ -145,6 +145,10 @@ func (s *Server) saveIncome(w http.ResponseWriter, r *http.Request, id int64) {
 		render(map[string]string{"file": msg})
 		return
 	}
+	if active := s.app().ActiveYear(r.Context()); !dateInYear(in.Date, active) {
+		render(map[string]string{"date": wrongYearMsg(active)})
+		return
+	}
 
 	var res *core.IncomeResult
 	var err error
@@ -165,8 +169,6 @@ func (s *Server) saveIncome(w http.ResponseWriter, r *http.Request, id int64) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// Bytt til postens år så den nettopp lagrede inntekten faktisk vises.
-	_ = s.app().SetConfig(r.Context(), core.ConfigActiveYear, strconv.Itoa(int(res.Income.TaxYear)))
 	http.Redirect(w, r, "/income?saved=1", http.StatusSeeOther)
 }
 

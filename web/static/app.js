@@ -174,6 +174,29 @@
   });
 
   // --- Datofelt: fri innskriving (tekst) synket med kalendervelger ---
+  function activeYear() { return (document.body && document.body.dataset.activeYear || "").trim(); }
+  // markDateYear: oransje varsel når datoens år avviker fra valgt inntektsår.
+  function markDateYear(combo) {
+    var text = combo.querySelector(".date-text");
+    var y = activeYear();
+    var m = text && text.value.trim().match(/^(\d{4})-\d{2}-\d{2}$/);
+    combo.classList.toggle("year-mismatch", !!(m && y && m[1] !== y));
+  }
+  // initDateCombos: begrens kalenderen til inntektsåret + sett varselstatus.
+  function initDateCombos(scope) {
+    var y = activeYear();
+    (scope || document).querySelectorAll(".date-combo").forEach(function (combo) {
+      var pick = combo.querySelector(".date-pick");
+      if (pick && y) { pick.min = y + "-01-01"; pick.max = y + "-12-31"; }
+      markDateYear(combo);
+    });
+  }
+  document.addEventListener("input", function (e) {
+    if (e.target.classList && e.target.classList.contains("date-text")) {
+      var c = e.target.closest(".date-combo");
+      if (c) markDateYear(c);
+    }
+  });
   document.addEventListener("change", function (e) {
     var t = e.target;
     if (!t.classList) return;
@@ -188,7 +211,9 @@
       var pick = combo.querySelector(".date-pick");
       if (pick && /^\d{4}-\d{2}-\d{2}$/.test(t.value.trim())) pick.value = t.value.trim();
     }
+    markDateYear(combo);
   });
+  initDateCombos(document);
 
   // --- Skattetype-combobox + repeterbare skattelinjer ---
   // Forslagene ligger som JSON i #tax-data[data-suggestions] (per landkode).

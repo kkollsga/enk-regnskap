@@ -244,6 +244,11 @@ form input:focus, form select:focus, form textarea:focus { outline: 2px solid va
 .date-combo .date-pick::-webkit-inner-spin-button,
 .date-combo .date-pick::-webkit-clear-button { display: none; }
 .date-combo .date-pick::-webkit-calendar-picker-indicator { opacity: 0.55; margin: 0 auto; cursor: pointer; }
+/* Oransje varsel når datoens år avviker fra valgt inntektsår */
+.date-combo.year-mismatch .date-text {
+  border-color: #e08a00; background: #fff7ea; color: #8a5a00;
+}
+.date-combo.year-mismatch .date-pick { border-color: #e08a00; }
 
 /* Toast (diskret lagringsbekreftelse) */
 .toast {

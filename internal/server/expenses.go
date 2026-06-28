@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -137,6 +138,10 @@ func (s *Server) saveExpense(w http.ResponseWriter, r *http.Request, id int64) {
 		render(map[string]string{"file": msg})
 		return
 	}
+	if active := s.app().ActiveYear(r.Context()); !dateInYear(in.Date, active) {
+		render(map[string]string{"date": wrongYearMsg(active)})
+		return
+	}
 
 	var exp *db.Expense
 	var err error
@@ -157,21 +162,32 @@ func (s *Server) saveExpense(w http.ResponseWriter, r *http.Request, id int64) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// Bytt til postens år, slik at den nettopp lagrede posten faktisk vises
-	// (ellers «forsvinner» den hvis datoen er i et annet år enn det aktive).
-	_ = s.app().SetConfig(r.Context(), core.ConfigActiveYear, strconv.Itoa(int(exp.TaxYear)))
 	http.Redirect(w, r, "/expenses?saved=1", http.StatusSeeOther)
 }
 
 // entryDefaultDate gir standard dato for en ny post: i dag hvis vi er i det
-// aktive året, ellers samme dag/måned i det aktive året (så posten ikke havner
-// i feil år ved et uhell).
+// aktive året, ellers samme dag/måned i det aktive året (så posten havner i
+// riktig år).
 func entryDefaultDate(activeYear int) string {
 	now := time.Now()
 	if now.Year() == activeYear {
 		return now.Format("2006-01-02")
 	}
 	return time.Date(activeYear, now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).Format("2006-01-02")
+}
+
+// dateInYear er sann hvis datoen er en gyldig dato i det gitte året. En ugyldig
+// dato slipper gjennom her (kjernens validering fanger formatfeil).
+func dateInYear(dateStr string, year int) bool {
+	t, err := time.Parse("2006-01-02", strings.TrimSpace(dateStr))
+	if err != nil {
+		return true
+	}
+	return t.Year() == year
+}
+
+func wrongYearMsg(year int) string {
+	return "Datoen må være i inntektsåret " + strconv.Itoa(year) + ". Bytt år øverst hvis du vil føre i et annet år."
 }
 
 func (s *Server) newExpenseForm(r *http.Request, year int) expenseFormData {

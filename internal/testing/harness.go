@@ -8,6 +8,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -32,6 +33,11 @@ func Start(t *testing.T) *Harness {
 	h := StartRaw(t)
 	if err := h.App.SetConfig(h.Context(), "onboarded", "1"); err != nil {
 		t.Fatalf("kunne ikke markere onboardet: %v", err)
+	}
+	// Standard aktivt år = fikstur-året, så skjema-tester med faste datoer ikke
+	// avvises av regelen «dato må være i valgt inntektsår».
+	if err := h.App.SetConfig(h.Context(), core.ConfigActiveYear, strconv.Itoa(FixtureYear)); err != nil {
+		t.Fatalf("kunne ikke sette aktivt år: %v", err)
 	}
 	return h
 }
