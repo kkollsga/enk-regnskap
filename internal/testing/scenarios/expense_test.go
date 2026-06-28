@@ -16,7 +16,7 @@ func TestExpenseDeductiblePctDefault(t *testing.T) {
 	// Uten eksplisitt prosent skal kategoriens standard (100%) brukes.
 	exp, err := h.App.AddExpense(h.Context(), core.ActorWeb, core.ExpenseInput{
 		Date: "2025-03-01", Description: "Kontorrekvisita", Category: "kontorrekvisita",
-		AmountNOK: 1000,
+		AmountOrig: 1000,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -30,7 +30,7 @@ func TestExpenseDeductiblePctOverride(t *testing.T) {
 	h := apptest.Start(t)
 	exp, err := h.App.AddExpense(h.Context(), core.ActorWeb, core.ExpenseInput{
 		Date: "2025-03-01", Description: "Mobil (50% privat)", Category: "telefon_internett",
-		AmountNOK: 1000, DeductiblePct: 50, HasDeductiblePct: true,
+		AmountOrig: 1000, DeductiblePct: 50, HasDeductiblePct: true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -48,7 +48,7 @@ func TestExpenseViaFormWithReceipt(t *testing.T) {
 		map[string]string{
 			"date":        "2025-04-02",
 			"description": "Faglitteratur med kvittering",
-			"amount_nok":  "750",
+			"amount_orig": "750",
 			"category":    "kurs_faglitteratur",
 		},
 		"attachment", "kvittering.png", "image/png", png)
@@ -185,7 +185,7 @@ func TestExpenseRejectedWhenYearDiffersFromActive(t *testing.T) {
 	h.App.SetConfig(ctx, core.ConfigActiveYear, "2025")
 	h.Browser().Get("/expenses/new").Form("/expenses").
 		Set("date", "2026-06-28").Set("description", "Kontorrekvisita").
-		Set("amount_nok", "500").Set("category", "kontorrekvisita").Submit()
+		Set("amount_orig", "500").Set("category", "kontorrekvisita").Submit()
 	a25, _ := h.App.ListExpenses(ctx, 2025)
 	a26, _ := h.App.ListExpenses(ctx, 2026)
 	if len(a25)+len(a26) != 0 {
@@ -193,5 +193,43 @@ func TestExpenseRejectedWhenYearDiffersFromActive(t *testing.T) {
 	}
 	if y := h.App.ActiveYear(ctx); y != 2025 {
 		t.Errorf("aktivt år skal være uendret 2025, var %d", y)
+	}
+}
+
+// TestExpenseForeignCurrencyConverted verifiserer at en utgift i utenlandsk
+// valuta konverteres til NOK på utgiftsdatoen, og at valuta/land lagres.
+func TestExpenseForeignCurrencyConverted(t *testing.T) {
+	h := apptest.Start(t)
+	ctx := h.Context()
+	h.App.SetConfig(ctx, core.ConfigActiveYear, "2025")
+	h.Mock.AddRate("BRL", "2025-03-10", 2.00)
+	exp, err := h.App.AddExpense(ctx, core.ActorWeb, core.ExpenseInput{
+		Date: "2025-03-10", Description: "Materiell i Brasil", Category: "kontorrekvisita",
+		Currency: "BRL", CountryCode: "BR", AmountOrig: 1000,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exp.Currency != "BRL" || exp.CountryCode != "BR" {
+		t.Errorf("valuta/land ikke lagret: currency=%q country=%q", exp.Currency, exp.CountryCode)
+	}
+	if exp.AmountOrig != 1000 {
+		t.Errorf("amount_orig = %v, forventet 1000", exp.AmountOrig)
+	}
+	if exp.AmountNok != 2000 {
+		t.Errorf("amount_nok = %v, forventet 2000 (1000 * 2.00)", exp.AmountNok)
+	}
+	if exp.DeductibleNok != 2000 {
+		t.Errorf("fradrag = %v, forventet 2000 (100%%)", exp.DeductibleNok)
+	}
+}
+
+// TestForeignTaxExpenseCategoriesAreBR sikrer at de brasilianske skatte-
+// kategoriene er merket med land BR (for landfiltrering i skjemaet).
+func TestForeignTaxExpenseCategoriesAreBR(t *testing.T) {
+	for _, c := range core.ForeignTaxExpenseCategories() {
+		if c.Country != "BR" {
+			t.Errorf("kategori %q har land %q, forventet BR", c.Key, c.Country)
+		}
 	}
 }

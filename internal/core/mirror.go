@@ -79,17 +79,22 @@ func (t mirrorIncomeForeignTax) treatmentOrDefault() string {
 }
 
 type mirrorExpense struct {
-	ID            int64   `json:"id"`
-	Date          string  `json:"date"`
-	Description   string  `json:"description"`
-	AmountNOK     float64 `json:"amount_nok"`
-	Category      string  `json:"category"`
-	DeductiblePct float64 `json:"deductible_pct"`
-	DeductibleNOK float64 `json:"deductible_nok"`
-	ReceiptID     *int64  `json:"receipt_id"`
-	TaxYear       int64   `json:"tax_year"`
-	Notes         string  `json:"notes"`
-	CreatedAt     string  `json:"created_at"`
+	ID             int64    `json:"id"`
+	Date           string   `json:"date"`
+	Description    string   `json:"description"`
+	AmountOriginal float64  `json:"amount_original"`
+	Currency       string   `json:"currency"`
+	ExchangeRate   *float64 `json:"exchange_rate"`
+	RateDate       *string  `json:"rate_date"`
+	CountryCode    string   `json:"country_code"`
+	AmountNOK      float64  `json:"amount_nok"`
+	Category       string   `json:"category"`
+	DeductiblePct  float64  `json:"deductible_pct"`
+	DeductibleNOK  float64  `json:"deductible_nok"`
+	ReceiptID      *int64   `json:"receipt_id"`
+	TaxYear        int64    `json:"tax_year"`
+	Notes          string   `json:"notes"`
+	CreatedAt      string   `json:"created_at"`
 }
 
 type mirrorReceipt struct {
@@ -158,7 +163,10 @@ func (a *App) SyncMirror(ctx context.Context) error {
 	me := make([]mirrorExpense, 0, len(expenses))
 	for _, ex := range expenses {
 		me = append(me, mirrorExpense{
-			ID: ex.ID, Date: ex.Date, Description: ex.Description, AmountNOK: ex.AmountNok,
+			ID: ex.ID, Date: ex.Date, Description: ex.Description,
+			AmountOriginal: ex.AmountOrig, Currency: ex.Currency,
+			ExchangeRate: nfPtr(ex.ExchangeRate), RateDate: nsPtr(ex.RateDate),
+			CountryCode: ex.CountryCode, AmountNOK: ex.AmountNok,
 			Category: ex.Category, DeductiblePct: ex.DeductiblePct, DeductibleNOK: ex.DeductibleNok,
 			ReceiptID: niPtr(ex.ReceiptID), TaxYear: ex.TaxYear, Notes: nsVal(ex.Notes),
 			CreatedAt: ex.CreatedAt,
@@ -283,11 +291,26 @@ func (a *App) ImportMirror(ctx context.Context, dir string) error {
 		}
 	}
 	for _, ex := range expenses {
+		// Bakoverkompatibelt: eldre mirror uten valuta -> NOK, beløp = amount_nok.
+		curr := ex.Currency
+		if curr == "" {
+			curr = "NOK"
+		}
+		country := ex.CountryCode
+		if country == "" {
+			country = "NO"
+		}
+		amountOrig := ex.AmountOriginal
+		if amountOrig == 0 {
+			amountOrig = ex.AmountNOK
+		}
 		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO expenses (id, date, description, amount_nok, category, deductible_pct,
+			`INSERT INTO expenses (id, date, description, amount_orig, currency, exchange_rate,
+			   rate_date, country_code, amount_nok, category, deductible_pct,
 			   deductible_nok, receipt_id, tax_year, notes, created_at)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			ex.ID, ex.Date, ex.Description, ex.AmountNOK, ex.Category, ex.DeductiblePct,
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			ex.ID, ex.Date, ex.Description, amountOrig, curr, ptrArg(ex.ExchangeRate),
+			ptrArg(ex.RateDate), country, ex.AmountNOK, ex.Category, ex.DeductiblePct,
 			ex.DeductibleNOK, ptrArg(ex.ReceiptID), ex.TaxYear, ex.Notes, ex.CreatedAt); err != nil {
 			return fmt.Errorf("importer utgift: %w", err)
 		}

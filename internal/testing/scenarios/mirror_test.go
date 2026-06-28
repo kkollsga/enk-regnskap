@@ -65,7 +65,7 @@ func TestMirrorImportSetsState(t *testing.T) {
 		CountryCode: "NO", AmountOrig: 5000, Category: "tjenesteinntekt",
 	})
 	h.App.AddExpense(ctx, core.ActorWeb, core.ExpenseInput{
-		Date: "2025-02-02", Description: "Beholdes utgift", Category: "kontorrekvisita", AmountNOK: 800,
+		Date: "2025-02-02", Description: "Beholdes utgift", Category: "kontorrekvisita", AmountOrig: 800,
 	})
 
 	// Ta en kopi av mirror-mappen til et eget sted (representerer brukerens backup-mappe).

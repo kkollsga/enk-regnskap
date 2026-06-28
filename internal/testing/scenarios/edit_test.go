@@ -42,11 +42,11 @@ func TestEditIncomeViaForm(t *testing.T) {
 func TestEditExpenseViaForm(t *testing.T) {
 	h := apptest.Start(t)
 	exp, _ := h.App.AddExpense(h.Context(), core.ActorWeb, core.ExpenseInput{
-		Date: "2025-02-01", Description: "PC", Category: "små_driftsmidler", AmountNOK: 10000,
+		Date: "2025-02-01", Description: "PC", Category: "små_driftsmidler", AmountOrig: 10000,
 	})
 	res := h.Browser().PostForm("/expenses/"+strconv.FormatInt(exp.ID, 10), url.Values{
 		"date": {"2025-02-01"}, "description": {"PC (oppdatert)"},
-		"amount_nok": {"12000"}, "category": {"små_driftsmidler"},
+		"amount_orig": {"12000"}, "category": {"små_driftsmidler"},
 	})
 	apptest.AssertStatus(t, res, 200)
 	got, _ := h.App.GetExpense(h.Context(), exp.ID)
@@ -91,7 +91,7 @@ func TestAttachmentListingHasThumbAndCroppedDesc(t *testing.T) {
 	res := h.Browser().PostMultipartFiles("/expenses",
 		map[string]string{
 			"date": "2025-05-01", "description": "Med vedlegg",
-			"amount_nok": "500", "category": "kontorrekvisita",
+			"amount_orig": "500", "category": "kontorrekvisita",
 		},
 		"attachment",
 		[]apptest.UploadFile{{Name: "kvittering.png", ContentType: "image/png", Data: onePixelPNG()}},

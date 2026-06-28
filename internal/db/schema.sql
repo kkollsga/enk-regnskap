@@ -58,7 +58,12 @@ CREATE TABLE IF NOT EXISTS expenses (
   id             INTEGER PRIMARY KEY,
   date           TEXT NOT NULL,
   description    TEXT NOT NULL,
-  amount_nok     REAL NOT NULL,
+  amount_orig    REAL NOT NULL DEFAULT 0, -- beløp i original valuta
+  currency       TEXT NOT NULL DEFAULT 'NOK',
+  exchange_rate  REAL,                  -- Norges Bank-kurs, NULL hvis NOK
+  rate_date      TEXT,                  -- dato kursen gjelder for
+  country_code   TEXT NOT NULL DEFAULT 'NO',
+  amount_nok     REAL NOT NULL,         -- amount_orig * exchange_rate
   category       TEXT NOT NULL,         -- kobles til tax/rules_AAAA.go
   deductible_pct REAL NOT NULL DEFAULT 100.0,
   deductible_nok REAL NOT NULL,         -- amount_nok * deductible_pct / 100

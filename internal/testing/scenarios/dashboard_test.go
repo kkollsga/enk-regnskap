@@ -24,7 +24,7 @@ func TestDashboardReflectsTransactions(t *testing.T) {
 	})
 	h.App.AddExpense(ctx, core.ActorWeb, core.ExpenseInput{
 		Date: "2025-02-15", Description: "Utstyr", Category: "små_driftsmidler",
-		AmountNOK: 20000,
+		AmountOrig: 20000,
 	})
 
 	doc := h.Browser().Get("/")

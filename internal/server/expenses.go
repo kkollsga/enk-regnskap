@@ -15,6 +15,8 @@ type expenseFormData struct {
 	Values     map[string]string
 	Errors     map[string]string
 	Categories []core.ExpenseCategory
+	Currencies []string
+	Countries  []core.CountryOption
 	Today      string
 	EditID     int64
 	Action     string
@@ -26,6 +28,8 @@ type expenseListData struct {
 	Kinds          map[string]string // kategorinøkkel -> TaxKind
 	CatNames       map[string]string
 	Categories     []core.ExpenseCategory // for redigering i listen
+	Currencies     []string
+	Countries      []core.CountryOption
 	Receipts       map[int64][]db.Receipt
 	TotalAmount    float64
 	TotalDeduct    float64
@@ -61,8 +65,10 @@ func (s *Server) handleExpenseList(w http.ResponseWriter, r *http.Request) {
 	for _, l := range linked {
 		linkedTotal += l.AmountNok
 	}
+	countries, _ := s.app().Countries(r.Context())
 	v.Data = expenseListData{
 		Expenses: rows, Kinds: kinds, CatNames: catNames, Categories: cats, Receipts: receipts,
+		Currencies: core.SupportedCurrencies(), Countries: countries,
 		TotalAmount: amt, TotalDeduct: ded, TaxSummary: summary,
 		LinkedTaxes: linked, LinkedTaxTotal: linkedTotal,
 	}
@@ -107,7 +113,9 @@ func (s *Server) saveExpense(w http.ResponseWriter, r *http.Request, id int64) {
 		Date:        r.FormValue("date"),
 		Description: r.FormValue("description"),
 		Category:    r.FormValue("category"),
-		AmountNOK:   parseAmount(r.FormValue("amount_nok")),
+		CountryCode: r.FormValue("country_code"),
+		Currency:    r.FormValue("currency"),
+		AmountOrig:  parseAmount(r.FormValue("amount_orig")),
 		Notes:       r.FormValue("notes"),
 	}
 	if pctStr := r.FormValue("deductible_pct"); pctStr != "" {
@@ -120,7 +128,8 @@ func (s *Server) saveExpense(w http.ResponseWriter, r *http.Request, id int64) {
 		form := s.newExpenseForm(r, v.Year)
 		form.Values = map[string]string{
 			"date": r.FormValue("date"), "description": r.FormValue("description"),
-			"amount_nok": r.FormValue("amount_nok"), "category": r.FormValue("category"),
+			"amount_orig": r.FormValue("amount_orig"), "category": r.FormValue("category"),
+			"currency": r.FormValue("currency"), "country_code": r.FormValue("country_code"),
 			"deductible_pct": r.FormValue("deductible_pct"), "notes": r.FormValue("notes"),
 		}
 		form.Errors = errs
@@ -192,15 +201,20 @@ func wrongYearMsg(year int) string {
 
 func (s *Server) newExpenseForm(r *http.Request, year int) expenseFormData {
 	values := map[string]string{
-		"date": entryDefaultDate(year),
+		"date":         entryDefaultDate(year),
+		"currency":     "NOK",
+		"country_code": "NO",
 	}
 	if cat := r.URL.Query().Get("category"); cat != "" {
 		values["category"] = cat
 	}
+	countries, _ := s.app().Countries(r.Context())
 	return expenseFormData{
 		Values:     values,
 		Errors:     map[string]string{},
 		Categories: s.app().ExpenseCategories(year),
+		Currencies: core.SupportedCurrencies(),
+		Countries:  countries,
 		Today:      time.Now().Format("2006-01-02"),
 		Action:     "/expenses",
 	}
@@ -209,7 +223,8 @@ func (s *Server) newExpenseForm(r *http.Request, year int) expenseFormData {
 func expenseToValues(e db.Expense) map[string]string {
 	return map[string]string{
 		"date": e.Date, "description": e.Description, "category": e.Category,
-		"amount_nok":     strconv.FormatFloat(e.AmountNok, 'f', -1, 64),
+		"currency": e.Currency, "country_code": e.CountryCode,
+		"amount_orig":    strconv.FormatFloat(e.AmountOrig, 'f', -1, 64),
 		"deductible_pct": strconv.FormatFloat(e.DeductiblePct, 'f', -1, 64),
 		"notes":          e.Notes.String,
 	}

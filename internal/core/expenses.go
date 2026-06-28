@@ -33,6 +33,7 @@ type ExpenseCategory struct {
 	Note           string
 	Kind           string // TaxKind*: vanlig kostnad eller utenlandsk skatt
 	Group          string
+	Country        string // ISO-landkode kategorien hører til ("" = alle land)
 }
 
 // ExpenseCategories henter fradragskategoriene for et inntektsår fra
@@ -73,12 +74,15 @@ func (a *App) expenseCategory(year int, key string) (ExpenseCategory, bool) {
 	return ExpenseCategory{}, false
 }
 
-// ExpenseInput er innspillet for en ny utgift (alltid i NOK).
+// ExpenseInput er innspillet for en ny utgift. Beløpet føres i valgt valuta og
+// konverteres til NOK på utgiftens dato.
 type ExpenseInput struct {
 	Date             string
 	Description      string
 	Category         string
-	AmountNOK        float64
+	CountryCode      string  // ISO 3166-1, default 'NO'
+	Currency         string  // default 'NOK'
+	AmountOrig       float64 // beløp i valgt valuta
 	DeductiblePct    float64
 	HasDeductiblePct bool // true hvis bruker eksplisitt satte prosent
 	TaxYear          int
@@ -86,34 +90,29 @@ type ExpenseInput struct {
 	ReceiptID        *int64
 }
 
-// AddExpense validerer, beregner fradragsberettiget beløp, lagrer utgiften og
-// loggfor endringen.
+// AddExpense validerer, henter valutakurs, beregner fradragsberettiget beløp,
+// lagrer utgiften og loggfor endringen.
 func (a *App) AddExpense(ctx context.Context, actor string, in ExpenseInput) (*db.Expense, error) {
 	in.normalize()
 	if err := in.validate(); err != nil {
 		return nil, err
 	}
-
-	pct := in.DeductiblePct
-	if !in.HasDeductiblePct {
-		if cat, ok := a.expenseCategory(in.TaxYear, in.Category); ok {
-			pct = cat.DefaultPct
-		} else {
-			pct = 100
-		}
+	conv, err := a.convertToNOK(ctx, in.Currency, in.Date, in.AmountOrig, "amount_orig")
+	if err != nil {
+		return nil, err
 	}
-	if pct < 0 {
-		pct = 0
-	}
-	if pct > 100 {
-		pct = 100
-	}
-	deductible := tax.Round2(in.AmountNOK * pct / 100.0)
+	pct := a.expenseDeductiblePct(in)
+	deductible := tax.Round2(conv.AmountNOK * pct / 100.0)
 
 	created, err := a.Q.CreateExpense(ctx, db.CreateExpenseParams{
 		Date:          in.Date,
 		Description:   in.Description,
-		AmountNok:     in.AmountNOK,
+		AmountOrig:    in.AmountOrig,
+		Currency:      in.Currency,
+		ExchangeRate:  conv.ExchangeRate,
+		RateDate:      conv.RateDateNull,
+		CountryCode:   in.CountryCode,
+		AmountNok:     conv.AmountNOK,
 		Category:      in.Category,
 		DeductiblePct: pct,
 		DeductibleNok: deductible,
@@ -161,10 +160,16 @@ func (a *App) UpdateExpense(ctx context.Context, actor string, id int64, in Expe
 	if err != nil || before == nil {
 		return nil, fmt.Errorf("utgift %d finnes ikke", id)
 	}
+	conv, err := a.convertToNOK(ctx, in.Currency, in.Date, in.AmountOrig, "amount_orig")
+	if err != nil {
+		return nil, err
+	}
 	pct := a.expenseDeductiblePct(in)
-	deductible := tax.Round2(in.AmountNOK * pct / 100.0)
+	deductible := tax.Round2(conv.AmountNOK * pct / 100.0)
 	updated, err := a.Q.UpdateExpense(ctx, db.UpdateExpenseParams{
-		ID: id, Date: in.Date, Description: in.Description, AmountNok: in.AmountNOK,
+		ID: id, Date: in.Date, Description: in.Description, AmountOrig: in.AmountOrig,
+		Currency: in.Currency, ExchangeRate: conv.ExchangeRate, RateDate: conv.RateDateNull,
+		CountryCode: in.CountryCode, AmountNok: conv.AmountNOK,
 		Category: in.Category, DeductiblePct: pct, DeductibleNok: deductible,
 		TaxYear: int64(in.TaxYear), Notes: nullString(in.Notes),
 	})
@@ -210,6 +215,14 @@ func (in *ExpenseInput) normalize() {
 	in.Description = strings.TrimSpace(in.Description)
 	in.Category = strings.TrimSpace(in.Category)
 	in.Notes = strings.TrimSpace(in.Notes)
+	in.Currency = strings.ToUpper(strings.TrimSpace(in.Currency))
+	if in.Currency == "" {
+		in.Currency = "NOK"
+	}
+	in.CountryCode = strings.ToUpper(strings.TrimSpace(in.CountryCode))
+	if in.CountryCode == "" {
+		in.CountryCode = "NO"
+	}
 	if in.TaxYear == 0 {
 		in.TaxYear = yearFromDate(in.Date)
 	}
@@ -223,8 +236,8 @@ func (in *ExpenseInput) validate() error {
 	if in.Description == "" {
 		ve.add("description", "Beskrivelse er påkrevd.")
 	}
-	if in.AmountNOK <= 0 {
-		ve.add("amount_nok", "Beløp må være større enn 0.")
+	if in.AmountOrig <= 0 {
+		ve.add("amount_orig", "Beløp må være større enn 0.")
 	}
 	if in.Category == "" {
 		ve.add("category", "Velg en kategori.")

@@ -27,11 +27,19 @@ func Migrate(conn *sql.DB) error {
 		{"receipts", "parent_kind", "TEXT"},
 		{"receipts", "parent_id", "INTEGER"},
 		{"income_foreign_taxes", "treatment", "TEXT NOT NULL DEFAULT 'credit'"},
+		{"expenses", "amount_orig", "REAL NOT NULL DEFAULT 0"},
+		{"expenses", "currency", "TEXT NOT NULL DEFAULT 'NOK'"},
+		{"expenses", "exchange_rate", "REAL"},
+		{"expenses", "rate_date", "TEXT"},
+		{"expenses", "country_code", "TEXT NOT NULL DEFAULT 'NO'"},
 	} {
 		if err := ensureColumn(conn, c.table, c.column, c.def); err != nil {
 			return err
 		}
 	}
+	// Eldre utgifter var alltid NOK: sett amount_orig = amount_nok der den ikke
+	// er satt (nye kolonner får default 0).
+	_, _ = conn.Exec(`UPDATE expenses SET amount_orig = amount_nok WHERE amount_orig = 0 AND amount_nok <> 0`)
 	// Indeks på vedleggets parent-felter (etter at kolonnene finnes).
 	if _, err := conn.Exec(`CREATE INDEX IF NOT EXISTS idx_receipts_parent ON receipts(parent_kind, parent_id)`); err != nil {
 		return fmt.Errorf("opprett vedleggsindeks: %w", err)

@@ -137,20 +137,27 @@ func (s *Server) buildTools() []Tool {
 		},
 		{
 			Name:        "add_expense",
-			Description: "Registrer en utgift (alltid NOK). Fradragsprosent hentes fra kategoriens standard hvis ikke oppgitt.",
+			Description: "Registrer en utgift. For utenlandsk valuta hentes Norges Bank-kurs automatisk og NOK-beløp beregnes. Fradragsprosent hentes fra kategoriens standard hvis ikke oppgitt.",
 			InputSchema: obj(map[string]any{
 				"date":           prop("string", "Dato (AAAA-MM-DD)"),
 				"description":    prop("string", "Beskrivelse"),
-				"amount_nok":     prop("number", "Beløp i NOK"),
+				"amount":         prop("number", "Beløp i valgt valuta"),
+				"currency":       prop("string", "Valutakode (NOK, BRL, ...). Default NOK."),
+				"country_code":   prop("string", "Land ISO 3166-1 (default NO). Styrer landspesifikke kategorier."),
 				"category":       prop("string", "Fradragskategori (se tax_info for gyldige nøkler)"),
 				"deductible_pct": prop("number", "Fradragsprosent (valgfritt; default fra kategori)"),
 				"tax_year":       prop("integer", "Inntektsar (default fra dato)"),
 				"notes":          prop("string", "Notater"),
-			}, "date", "description", "amount_nok", "category"),
+			}, "date", "description", "amount", "category"),
 			Run: func(ctx context.Context, a Args) (string, error) {
+				amount := a.num("amount")
+				if amount == 0 {
+					amount = a.num("amount_nok") // bakoverkompatibelt alias
+				}
 				in := core.ExpenseInput{
 					Date: a.str("date"), Description: a.str("description"),
-					Category: a.str("category"), AmountNOK: a.num("amount_nok"),
+					Category: a.str("category"), AmountOrig: amount,
+					Currency: a.str("currency"), CountryCode: a.str("country_code"),
 					TaxYear: a.intval("tax_year"), Notes: a.str("notes"),
 				}
 				if _, ok := a["deductible_pct"]; ok {

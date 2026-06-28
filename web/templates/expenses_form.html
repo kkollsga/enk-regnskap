@@ -18,10 +18,25 @@
     {{with index $d.Errors "description"}}<div class="field-error">{{.}}</div>{{end}}
   </div>
 
-  <div class="field {{if index $d.Errors "amount_nok"}}has-error{{end}}">
-    <label for="amount_nok">{{.Tr "common_amount"}} (NOK)</label>
-    <input type="text" id="amount_nok" name="amount_nok" inputmode="decimal" value="{{index $d.Values "amount_nok"}}" placeholder="0,00">
-    {{with index $d.Errors "amount_nok"}}<div class="field-error">{{.}}</div>{{end}}
+  <div class="field">
+    <label for="country_code">Land</label>
+    <select id="country_code" name="country_code">
+      {{$cc := index $d.Values "country_code"}}
+      {{range $d.Countries}}<option value="{{.Code}}" {{if eq .Code $cc}}selected{{end}}>{{.Name}}</option>{{end}}
+    </select>
+  </div>
+
+  <div class="field {{if index $d.Errors "amount_orig"}}has-error{{end}}">
+    <label for="amount_orig">{{.Tr "common_amount"}}</label>
+    <div style="display:flex; gap:10px;">
+      <select id="currency" name="currency" style="max-width:120px;">
+        {{$cur := index $d.Values "currency"}}
+        {{range $d.Currencies}}<option value="{{.}}" {{if eq . $cur}}selected{{end}}>{{.}}</option>{{end}}
+      </select>
+      <input type="text" id="amount_orig" name="amount_orig" inputmode="decimal" value="{{index $d.Values "amount_orig"}}" placeholder="0,00">
+    </div>
+    {{with index $d.Errors "amount_orig"}}<div class="field-error">{{.}}</div>{{end}}
+    <div class="rate-info" id="rate-info" hidden></div>
   </div>
 
   <div class="field {{if index $d.Errors "category"}}has-error{{end}}">
@@ -31,12 +46,12 @@
       {{$cat := index $d.Values "category"}}
       <optgroup label="Driftskostnader">
         {{range $d.Categories}}{{if eq .Kind ""}}
-        <option value="{{.Key}}" data-pct="{{.DefaultPct}}" data-kind="{{.Kind}}" data-note="{{.Note}}" {{if eq .Key $cat}}selected{{end}}>{{.Name}} ({{pct .DefaultPct}} fradrag)</option>
+        <option value="{{.Key}}" data-pct="{{.DefaultPct}}" data-kind="{{.Kind}}" data-note="{{.Note}}" data-country="{{.Country}}" {{if eq .Key $cat}}selected{{end}}>{{.Name}} ({{pct .DefaultPct}} fradrag)</option>
         {{end}}{{end}}
       </optgroup>
-      <optgroup label="Skatt – Brasil (skatteavtale)">
+      <optgroup id="cat-grp-br" label="Skatt – Brasil (skatteavtale)">
         {{range $d.Categories}}{{if ne .Kind ""}}
-        <option value="{{.Key}}" data-pct="{{.DefaultPct}}" data-kind="{{.Kind}}" data-note="{{.Note}}" {{if eq .Key $cat}}selected{{end}}>{{.Name}}</option>
+        <option value="{{.Key}}" data-pct="{{.DefaultPct}}" data-kind="{{.Kind}}" data-note="{{.Note}}" data-country="{{.Country}}" {{if eq .Key $cat}}selected{{end}}>{{.Name}}</option>
         {{end}}{{end}}
       </optgroup>
     </select>
@@ -72,47 +87,88 @@
 
 <script>
 (function () {
+  var currency = document.getElementById("currency");
+  var amount = document.getElementById("amount_orig");
+  var date = document.querySelector("#entry-form .date-text");
+  var country = document.getElementById("country_code");
   var category = document.getElementById("category");
   var pct = document.getElementById("deductible_pct");
-  var amount = document.getElementById("amount_nok");
+  var rateInfo = document.getElementById("rate-info");
   var info = document.getElementById("deductible-info");
   var catNote = document.getElementById("cat-note");
   var userSetPct = false;
+  var currentRate = 1; // NOK per valutaenhet
 
   function fmt(n) { return n.toLocaleString("nb-NO", {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+  function fmtRate(n) { return n.toLocaleString("nb-NO", {minimumFractionDigits: 4, maximumFractionDigits: 4}); }
+  function amt() { return parseFloat((amount.value || "0").replace(/\s/g, "").replace(",", ".")) || 0; }
+
+  // Kategorier filtreres på land: Brasil-gruppen vises kun når landet er BR.
+  var brGroup = document.getElementById("cat-grp-br");
+  var brParent = brGroup ? brGroup.parentNode : null;
+  var brNext = brGroup ? brGroup.nextSibling : null;
+  function filterCategories() {
+    var br = country.value === "BR";
+    if (brGroup && brParent) {
+      var inDom = brGroup.parentNode === brParent;
+      if (br && !inDom) brParent.insertBefore(brGroup, brNext);
+      else if (!br && inDom) {
+        // Hvis en Brasil-kategori er valgt, nullstill før vi fjerner gruppen.
+        var opt = category.options[category.selectedIndex];
+        if (opt && opt.dataset.country === "BR") category.value = "";
+        brParent.removeChild(brGroup);
+      }
+    }
+  }
+
+  async function updateRate() {
+    currentRate = 1;
+    var cur = currency.value;
+    if (cur === "NOK" || !date || !date.value) { rateInfo.hidden = true; update(); return; }
+    try {
+      var res = await fetch("/api/exchange-rate?currency=" + encodeURIComponent(cur) + "&date=" + encodeURIComponent(date.value));
+      var data = await res.json();
+      if (data.error) { rateInfo.textContent = "Kunne ikke hente kurs: " + data.error; rateInfo.hidden = false; update(); return; }
+      currentRate = data.rate_nok;
+      rateInfo.innerHTML = "Kurs " + fmtRate(data.rate_nok) + " (per " + data.date + ") &rarr; <strong>" + fmt(amt() * data.rate_nok) + " kr</strong>";
+      rateInfo.hidden = false;
+    } catch (e) { rateInfo.hidden = true; }
+    update();
+  }
 
   function applyCategoryDefault() {
     var opt = category.options[category.selectedIndex];
-    if (opt && opt.dataset.pct && !userSetPct) {
-      pct.value = opt.dataset.pct;
-    }
-    // Vis veiledning for skattekategorier (kreditberettiget / overskytende).
+    if (opt && opt.dataset.pct && !userSetPct) pct.value = opt.dataset.pct;
     var kind = opt ? opt.dataset.kind : "";
     if (kind) {
       catNote.textContent = opt.dataset.note || "";
       catNote.className = "info-card" + (kind === "creditable" ? "" : " warn");
       catNote.hidden = false;
-    } else {
-      catNote.hidden = true;
-    }
+    } else { catNote.hidden = true; }
     update();
   }
   function update() {
     var opt = category.options[category.selectedIndex];
     var isTax = opt && opt.dataset.kind;
-    var amt = parseFloat((amount.value || "0").replace(/\s/g, "").replace(",", ".")) || 0;
+    var nok = amt() * currentRate;
     var p = parseFloat((pct.value || "100").replace(",", ".")) || 0;
-    var d = amt * p / 100;
     if (isTax) {
       info.innerHTML = "Utenlandsk skatt – ikke kostnadsfradrag i resultatet.";
     } else {
-      info.innerHTML = "Fradragsberettiget: <strong>" + fmt(d) + " kr</strong>";
+      info.innerHTML = "Fradragsberettiget: <strong>" + fmt(nok * p / 100) + " kr</strong>";
     }
     info.hidden = false;
   }
+
+  country.addEventListener("change", function () { filterCategories(); });
+  currency.addEventListener("change", updateRate);
+  amount.addEventListener("input", updateRate);
+  if (date) date.addEventListener("change", updateRate);
   category.addEventListener("change", applyCategoryDefault);
   pct.addEventListener("input", function () { userSetPct = true; update(); });
-  amount.addEventListener("input", update);
+
+  filterCategories();
+  updateRate();
   if (category.value) applyCategoryDefault();
   if (window.ENK && window.ENK.initAttachments) window.ENK.initAttachments();
 })();

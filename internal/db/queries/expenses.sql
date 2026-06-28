@@ -1,9 +1,10 @@
 -- name: CreateExpense :one
 INSERT INTO expenses (
-  date, description, amount_nok, category, deductible_pct, deductible_nok,
+  date, description, amount_orig, currency, exchange_rate, rate_date,
+  country_code, amount_nok, category, deductible_pct, deductible_nok,
   receipt_id, tax_year, notes
 ) VALUES (
-  ?, ?, ?, ?, ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 RETURNING *;
 
@@ -34,7 +35,8 @@ GROUP BY category ORDER BY deductible DESC;
 
 -- name: UpdateExpense :one
 UPDATE expenses SET
-  date = ?, description = ?, amount_nok = ?, category = ?, deductible_pct = ?,
-  deductible_nok = ?, tax_year = ?, notes = ?
+  date = ?, description = ?, amount_orig = ?, currency = ?, exchange_rate = ?,
+  rate_date = ?, country_code = ?, amount_nok = ?, category = ?,
+  deductible_pct = ?, deductible_nok = ?, tax_year = ?, notes = ?
 WHERE id = ?
 RETURNING *;

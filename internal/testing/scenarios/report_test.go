@@ -26,7 +26,7 @@ func seedReportData(t *testing.T, h *apptest.Harness) {
 		CountryCode: "NO", AmountOrig: 40000, Category: "honorar",
 	})
 	h.App.AddExpense(ctx, core.ActorWeb, core.ExpenseInput{
-		Date: "2025-01-20", Description: "PC", Category: "små_driftsmidler", AmountNOK: 15000,
+		Date: "2025-01-20", Description: "PC", Category: "små_driftsmidler", AmountOrig: 15000,
 	})
 }
 

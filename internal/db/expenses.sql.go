@@ -12,30 +12,41 @@ import (
 
 const createExpense = `-- name: CreateExpense :one
 INSERT INTO expenses (
-  date, description, amount_nok, category, deductible_pct, deductible_nok,
+  date, description, amount_orig, currency, exchange_rate, rate_date,
+  country_code, amount_nok, category, deductible_pct, deductible_nok,
   receipt_id, tax_year, notes
 ) VALUES (
-  ?, ?, ?, ?, ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
-RETURNING id, date, description, amount_nok, category, deductible_pct, deductible_nok, receipt_id, tax_year, notes, created_at
+RETURNING id, date, description, amount_orig, currency, exchange_rate, rate_date, country_code, amount_nok, category, deductible_pct, deductible_nok, receipt_id, tax_year, notes, created_at
 `
 
 type CreateExpenseParams struct {
-	Date          string         `json:"date"`
-	Description   string         `json:"description"`
-	AmountNok     float64        `json:"amount_nok"`
-	Category      string         `json:"category"`
-	DeductiblePct float64        `json:"deductible_pct"`
-	DeductibleNok float64        `json:"deductible_nok"`
-	ReceiptID     sql.NullInt64  `json:"receipt_id"`
-	TaxYear       int64          `json:"tax_year"`
-	Notes         sql.NullString `json:"notes"`
+	Date          string          `json:"date"`
+	Description   string          `json:"description"`
+	AmountOrig    float64         `json:"amount_orig"`
+	Currency      string          `json:"currency"`
+	ExchangeRate  sql.NullFloat64 `json:"exchange_rate"`
+	RateDate      sql.NullString  `json:"rate_date"`
+	CountryCode   string          `json:"country_code"`
+	AmountNok     float64         `json:"amount_nok"`
+	Category      string          `json:"category"`
+	DeductiblePct float64         `json:"deductible_pct"`
+	DeductibleNok float64         `json:"deductible_nok"`
+	ReceiptID     sql.NullInt64   `json:"receipt_id"`
+	TaxYear       int64           `json:"tax_year"`
+	Notes         sql.NullString  `json:"notes"`
 }
 
 func (q *Queries) CreateExpense(ctx context.Context, arg CreateExpenseParams) (Expense, error) {
 	row := q.db.QueryRowContext(ctx, createExpense,
 		arg.Date,
 		arg.Description,
+		arg.AmountOrig,
+		arg.Currency,
+		arg.ExchangeRate,
+		arg.RateDate,
+		arg.CountryCode,
 		arg.AmountNok,
 		arg.Category,
 		arg.DeductiblePct,
@@ -49,6 +60,11 @@ func (q *Queries) CreateExpense(ctx context.Context, arg CreateExpenseParams) (E
 		&i.ID,
 		&i.Date,
 		&i.Description,
+		&i.AmountOrig,
+		&i.Currency,
+		&i.ExchangeRate,
+		&i.RateDate,
+		&i.CountryCode,
 		&i.AmountNok,
 		&i.Category,
 		&i.DeductiblePct,
@@ -71,7 +87,7 @@ func (q *Queries) DeleteExpense(ctx context.Context, id int64) error {
 }
 
 const getExpense = `-- name: GetExpense :one
-SELECT id, date, description, amount_nok, category, deductible_pct, deductible_nok, receipt_id, tax_year, notes, created_at FROM expenses WHERE id = ?
+SELECT id, date, description, amount_orig, currency, exchange_rate, rate_date, country_code, amount_nok, category, deductible_pct, deductible_nok, receipt_id, tax_year, notes, created_at FROM expenses WHERE id = ?
 `
 
 func (q *Queries) GetExpense(ctx context.Context, id int64) (Expense, error) {
@@ -81,6 +97,11 @@ func (q *Queries) GetExpense(ctx context.Context, id int64) (Expense, error) {
 		&i.ID,
 		&i.Date,
 		&i.Description,
+		&i.AmountOrig,
+		&i.Currency,
+		&i.ExchangeRate,
+		&i.RateDate,
+		&i.CountryCode,
 		&i.AmountNok,
 		&i.Category,
 		&i.DeductiblePct,
@@ -94,7 +115,7 @@ func (q *Queries) GetExpense(ctx context.Context, id int64) (Expense, error) {
 }
 
 const listAllExpenses = `-- name: ListAllExpenses :many
-SELECT id, date, description, amount_nok, category, deductible_pct, deductible_nok, receipt_id, tax_year, notes, created_at FROM expenses ORDER BY date DESC, id DESC
+SELECT id, date, description, amount_orig, currency, exchange_rate, rate_date, country_code, amount_nok, category, deductible_pct, deductible_nok, receipt_id, tax_year, notes, created_at FROM expenses ORDER BY date DESC, id DESC
 `
 
 func (q *Queries) ListAllExpenses(ctx context.Context) ([]Expense, error) {
@@ -110,6 +131,11 @@ func (q *Queries) ListAllExpenses(ctx context.Context) ([]Expense, error) {
 			&i.ID,
 			&i.Date,
 			&i.Description,
+			&i.AmountOrig,
+			&i.Currency,
+			&i.ExchangeRate,
+			&i.RateDate,
+			&i.CountryCode,
 			&i.AmountNok,
 			&i.Category,
 			&i.DeductiblePct,
@@ -133,7 +159,7 @@ func (q *Queries) ListAllExpenses(ctx context.Context) ([]Expense, error) {
 }
 
 const listExpensesByYear = `-- name: ListExpensesByYear :many
-SELECT id, date, description, amount_nok, category, deductible_pct, deductible_nok, receipt_id, tax_year, notes, created_at FROM expenses WHERE tax_year = ? ORDER BY date DESC, id DESC
+SELECT id, date, description, amount_orig, currency, exchange_rate, rate_date, country_code, amount_nok, category, deductible_pct, deductible_nok, receipt_id, tax_year, notes, created_at FROM expenses WHERE tax_year = ? ORDER BY date DESC, id DESC
 `
 
 func (q *Queries) ListExpensesByYear(ctx context.Context, taxYear int64) ([]Expense, error) {
@@ -149,6 +175,11 @@ func (q *Queries) ListExpensesByYear(ctx context.Context, taxYear int64) ([]Expe
 			&i.ID,
 			&i.Date,
 			&i.Description,
+			&i.AmountOrig,
+			&i.Currency,
+			&i.ExchangeRate,
+			&i.RateDate,
+			&i.CountryCode,
 			&i.AmountNok,
 			&i.Category,
 			&i.DeductiblePct,
@@ -221,28 +252,39 @@ func (q *Queries) SumExpensesByCategory(ctx context.Context, taxYear int64) ([]S
 
 const updateExpense = `-- name: UpdateExpense :one
 UPDATE expenses SET
-  date = ?, description = ?, amount_nok = ?, category = ?, deductible_pct = ?,
-  deductible_nok = ?, tax_year = ?, notes = ?
+  date = ?, description = ?, amount_orig = ?, currency = ?, exchange_rate = ?,
+  rate_date = ?, country_code = ?, amount_nok = ?, category = ?,
+  deductible_pct = ?, deductible_nok = ?, tax_year = ?, notes = ?
 WHERE id = ?
-RETURNING id, date, description, amount_nok, category, deductible_pct, deductible_nok, receipt_id, tax_year, notes, created_at
+RETURNING id, date, description, amount_orig, currency, exchange_rate, rate_date, country_code, amount_nok, category, deductible_pct, deductible_nok, receipt_id, tax_year, notes, created_at
 `
 
 type UpdateExpenseParams struct {
-	Date          string         `json:"date"`
-	Description   string         `json:"description"`
-	AmountNok     float64        `json:"amount_nok"`
-	Category      string         `json:"category"`
-	DeductiblePct float64        `json:"deductible_pct"`
-	DeductibleNok float64        `json:"deductible_nok"`
-	TaxYear       int64          `json:"tax_year"`
-	Notes         sql.NullString `json:"notes"`
-	ID            int64          `json:"id"`
+	Date          string          `json:"date"`
+	Description   string          `json:"description"`
+	AmountOrig    float64         `json:"amount_orig"`
+	Currency      string          `json:"currency"`
+	ExchangeRate  sql.NullFloat64 `json:"exchange_rate"`
+	RateDate      sql.NullString  `json:"rate_date"`
+	CountryCode   string          `json:"country_code"`
+	AmountNok     float64         `json:"amount_nok"`
+	Category      string          `json:"category"`
+	DeductiblePct float64         `json:"deductible_pct"`
+	DeductibleNok float64         `json:"deductible_nok"`
+	TaxYear       int64           `json:"tax_year"`
+	Notes         sql.NullString  `json:"notes"`
+	ID            int64           `json:"id"`
 }
 
 func (q *Queries) UpdateExpense(ctx context.Context, arg UpdateExpenseParams) (Expense, error) {
 	row := q.db.QueryRowContext(ctx, updateExpense,
 		arg.Date,
 		arg.Description,
+		arg.AmountOrig,
+		arg.Currency,
+		arg.ExchangeRate,
+		arg.RateDate,
+		arg.CountryCode,
 		arg.AmountNok,
 		arg.Category,
 		arg.DeductiblePct,
@@ -256,6 +298,11 @@ func (q *Queries) UpdateExpense(ctx context.Context, arg UpdateExpenseParams) (E
 		&i.ID,
 		&i.Date,
 		&i.Description,
+		&i.AmountOrig,
+		&i.Currency,
+		&i.ExchangeRate,
+		&i.RateDate,
+		&i.CountryCode,
 		&i.AmountNok,
 		&i.Category,
 		&i.DeductiblePct,

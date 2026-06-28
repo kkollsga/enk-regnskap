@@ -39,7 +39,8 @@
       <div class="entry-view">
         <table class="kv">
           <tr><td>Kategori</td><td>{{index $d.CatNames $e.Category}}</td></tr>
-          <tr><td>Beløp</td><td>{{nok $e.AmountNok}}</td></tr>
+          <tr><td>Beløp</td><td>{{nok $e.AmountOrig}} {{$e.Currency}}{{if ne $e.Currency "NOK"}} → {{nok $e.AmountNok}}{{if $e.ExchangeRate.Valid}} <span class="muted">(kurs {{kurs $e.ExchangeRate.Float64}} per {{$e.RateDate.String}})</span>{{end}}{{end}}</td></tr>
+          {{if ne $e.CountryCode "NO"}}<tr><td>Land</td><td>{{$e.CountryCode}}</td></tr>{{end}}
           <tr><td>Fradrag</td><td>{{pct $e.DeductiblePct}} → {{nok $e.DeductibleNok}} fradragsberettiget</td></tr>
           {{if $e.Notes.Valid}}<tr><td>Notater</td><td>{{$e.Notes.String}}</td></tr>{{end}}
         </table>
@@ -58,13 +59,23 @@
             <label class="edit-field">Beskrivelse
               <input type="text" name="description" value="{{$e.Description}}" autocomplete="off">
             </label>
-            <label class="edit-field">Kategori
-              <select name="category">
-                {{range $d.Categories}}<option value="{{.Key}}" {{if eq .Key $e.Category}}selected{{end}}>{{.Name}}</option>{{end}}
+            <label class="edit-field">Land
+              <select name="country_code">
+                {{range $d.Countries}}<option value="{{.Code}}" {{if eq .Code $e.CountryCode}}selected{{end}}>{{.Name}}</option>{{end}}
               </select>
             </label>
-            <label class="edit-field">Beløp (NOK)
-              <input type="text" name="amount_nok" inputmode="decimal" value="{{printf "%g" $e.AmountNok}}">
+            <label class="edit-field">Kategori
+              <select name="category">
+                {{range $d.Categories}}{{if or (eq .Country "") (eq .Country $e.CountryCode)}}<option value="{{.Key}}" {{if eq .Key $e.Category}}selected{{end}}>{{.Name}}</option>{{end}}{{end}}
+              </select>
+            </label>
+            <label class="edit-field">Valuta
+              <select name="currency">
+                {{range $d.Currencies}}<option value="{{.}}" {{if eq . $e.Currency}}selected{{end}}>{{.}}</option>{{end}}
+              </select>
+            </label>
+            <label class="edit-field">Beløp
+              <input type="text" name="amount_orig" inputmode="decimal" value="{{printf "%g" $e.AmountOrig}}">
             </label>
             <label class="edit-field">Fradragsprosent
               <input type="text" name="deductible_pct" inputmode="decimal" value="{{printf "%g" $e.DeductiblePct}}">

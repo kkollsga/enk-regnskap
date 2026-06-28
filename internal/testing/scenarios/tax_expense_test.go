@@ -42,7 +42,7 @@ func TestTaxExpenseDoesNotReduceResult(t *testing.T) {
 	// IRRF (kreditberettiget) bokført som utgift – 0 % fradrag.
 	exp, err := h.App.AddExpense(ctx, core.ActorWeb, core.ExpenseInput{
 		Date: "2025-03-01", Description: "IRRF betalt til Brasil", Category: "skatt_irrf",
-		AmountNOK: 5000,
+		AmountOrig: 5000,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -62,13 +62,13 @@ func TestTaxExpenseSummary(t *testing.T) {
 	ctx := h.Context()
 	h.App.SetConfig(ctx, core.ConfigActiveYear, "2025")
 	h.App.AddExpense(ctx, core.ActorWeb, core.ExpenseInput{
-		Date: "2025-03-01", Description: "IRRF", Category: "skatt_irrf", AmountNOK: 4000,
+		Date: "2025-03-01", Description: "IRRF", Category: "skatt_irrf", AmountOrig: 4000,
 	})
 	h.App.AddExpense(ctx, core.ActorWeb, core.ExpenseInput{
-		Date: "2025-03-02", Description: "ISS", Category: "skatt_iss", AmountNOK: 1500,
+		Date: "2025-03-02", Description: "ISS", Category: "skatt_iss", AmountOrig: 1500,
 	})
 	h.App.AddExpense(ctx, core.ActorWeb, core.ExpenseInput{
-		Date: "2025-03-03", Description: "PC", Category: "smaa_driftsmidler", AmountNOK: 9000,
+		Date: "2025-03-03", Description: "PC", Category: "smaa_driftsmidler", AmountOrig: 9000,
 	})
 
 	sum, err := h.App.TaxExpenseSummaryForYear(ctx, 2025)

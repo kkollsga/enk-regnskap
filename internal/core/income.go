@@ -86,19 +86,15 @@ type resolvedIncome struct {
 // resolveIncome henter valutakurs og beregner NOK-beløp + utenlandske skatter.
 func (a *App) resolveIncome(ctx context.Context, in IncomeInput) (resolvedIncome, error) {
 	res := resolvedIncome{amountNOK: in.AmountOrig, usedRate: 1.0, usedRateDate: in.Date}
-	if in.Currency != "NOK" {
-		r, err := a.Currency.Rate(ctx, in.Currency, in.Date)
-		if err != nil {
-			ve := newValidation()
-			ve.add("currency", "kunne ikke hente valutakurs: "+err.Error())
-			return res, ve
-		}
-		res.usedRate = r.RateNOK
-		res.usedRateDate = r.Date
-		res.amountNOK = tax.Round2(in.AmountOrig * r.RateNOK)
-		res.exchangeRate = sql.NullFloat64{Float64: r.RateNOK, Valid: true}
-		res.rateDate = sql.NullString{String: r.Date, Valid: true}
+	conv, err := a.convertToNOK(ctx, in.Currency, in.Date, in.AmountOrig, "currency")
+	if err != nil {
+		return res, err
 	}
+	res.amountNOK = conv.AmountNOK
+	res.usedRate = conv.Rate
+	res.usedRateDate = conv.RateDate
+	res.exchangeRate = conv.ExchangeRate
+	res.rateDate = conv.RateDateNull
 	if in.ForeignTaxPaid == ForeignTaxYes {
 		creditable := a.creditabilityMap(ctx, in.CountryCode, in.TaxYear)
 		for _, line := range in.ForeignTaxes {

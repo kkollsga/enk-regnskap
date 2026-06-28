@@ -93,7 +93,7 @@ func (a *App) GenerateDummyData(ctx context.Context, actor string) (int, error) 
 	}
 	for _, ex := range expenses {
 		input := ExpenseInput{
-			Date: d(ex.mmdd), Description: ex.desc, Category: ex.cat, AmountNOK: ex.amount, TaxYear: year,
+			Date: d(ex.mmdd), Description: ex.desc, Category: ex.cat, AmountOrig: ex.amount, TaxYear: year,
 		}
 		if ex.pct > 0 {
 			input.DeductiblePct = ex.pct

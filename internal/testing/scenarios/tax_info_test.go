@@ -27,7 +27,7 @@ func TestTaxInfoSummarizesBookedDeductions(t *testing.T) {
 	h.App.SetConfig(h.Context(), core.ConfigActiveYear, "2025")
 	if _, err := h.App.AddExpense(h.Context(), core.ActorWeb, core.ExpenseInput{
 		Date: "2025-03-10", Description: "Kontorrekvisita", Category: "kontorrekvisita",
-		AmountNOK: 1234, TaxYear: 2025,
+		AmountOrig: 1234, TaxYear: 2025,
 	}); err != nil {
 		t.Fatal(err)
 	}

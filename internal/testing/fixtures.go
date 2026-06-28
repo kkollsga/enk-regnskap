@@ -98,7 +98,7 @@ func (h *Harness) LoadFixtures(t *testing.T) {
 	}
 	for _, ex := range fixtureExpenses() {
 		input := core.ExpenseInput{
-			Date: ex.date, Description: ex.desc, Category: ex.category, AmountNOK: ex.amount,
+			Date: ex.date, Description: ex.desc, Category: ex.category, AmountOrig: ex.amount,
 			TaxYear: FixtureYear,
 		}
 		if ex.pct > 0 {

@@ -11,7 +11,7 @@ import "context"
 // KREDITFRADRAG (mot norsk skatt), ikke kostnadsfradrag i inntekten.
 func ForeignTaxExpenseCategories() []ExpenseCategory {
 	g := GroupSkattBrasil
-	return []ExpenseCategory{
+	cats := []ExpenseCategory{
 		{
 			Key: "skatt_irrf", Group: g, Kind: TaxKindCreditable, DefaultPct: 0,
 			Name:        "IRRF – brasiliansk kildeskatt (kreditberettiget)",
@@ -49,6 +49,10 @@ func ForeignTaxExpenseCategories() []ExpenseCategory {
 			Note:        "Ikke benyttet kredit – vurder fremføring.",
 		},
 	}
+	for i := range cats {
+		cats[i].Country = "BR" // brasilianske skattekategorier vises kun for Brasil
+	}
+	return cats
 }
 
 // TaxExpenseSummary oppsummerer utenlandsk skatt registrert som utgifter.

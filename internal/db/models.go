@@ -65,17 +65,22 @@ type ExchangeRate struct {
 }
 
 type Expense struct {
-	ID            int64          `json:"id"`
-	Date          string         `json:"date"`
-	Description   string         `json:"description"`
-	AmountNok     float64        `json:"amount_nok"`
-	Category      string         `json:"category"`
-	DeductiblePct float64        `json:"deductible_pct"`
-	DeductibleNok float64        `json:"deductible_nok"`
-	ReceiptID     sql.NullInt64  `json:"receipt_id"`
-	TaxYear       int64          `json:"tax_year"`
-	Notes         sql.NullString `json:"notes"`
-	CreatedAt     string         `json:"created_at"`
+	ID            int64           `json:"id"`
+	Date          string          `json:"date"`
+	Description   string          `json:"description"`
+	AmountOrig    float64         `json:"amount_orig"`
+	Currency      string          `json:"currency"`
+	ExchangeRate  sql.NullFloat64 `json:"exchange_rate"`
+	RateDate      sql.NullString  `json:"rate_date"`
+	CountryCode   string          `json:"country_code"`
+	AmountNok     float64         `json:"amount_nok"`
+	Category      string          `json:"category"`
+	DeductiblePct float64         `json:"deductible_pct"`
+	DeductibleNok float64         `json:"deductible_nok"`
+	ReceiptID     sql.NullInt64   `json:"receipt_id"`
+	TaxYear       int64           `json:"tax_year"`
+	Notes         sql.NullString  `json:"notes"`
+	CreatedAt     string          `json:"created_at"`
 }
 
 type ForeignTaxCredit struct {
