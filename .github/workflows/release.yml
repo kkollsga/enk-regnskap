@@ -72,13 +72,10 @@ jobs:
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
-      max-parallel: 1   # unngå kappløp om å opprette samme tag/release
       matrix:
         include:
           - runner: macos-14   # Apple Silicon
             arch: arm64
-          - runner: macos-13   # Intel
-            arch: intel
     steps:
       - uses: actions/checkout@v5
 
@@ -98,7 +95,7 @@ jobs:
         run: bash assets/make-dmg.sh dist/EnkRegnskap.app "dist/EnkRegnskap-${{ needs.version.outputs.tag }}-${{ matrix.arch }}.dmg"
 
       - name: Publiser til release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.version.outputs.tag }}
           files: dist/EnkRegnskap-${{ needs.version.outputs.tag }}-${{ matrix.arch }}.dmg
