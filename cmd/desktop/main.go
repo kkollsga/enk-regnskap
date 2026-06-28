@@ -34,6 +34,9 @@ func main() {
 	} else {
 		w.Navigate(url)
 	}
+	// Aktiver fil-input-velgeren (NSOpenPanel) – uten en WKUIDelegate gjør
+	// <input type="file"> ingenting i WKWebView. Gir også iPhone-import.
+	enableFileOpenPanel(w.Window())
 	w.Run()
 }
 
