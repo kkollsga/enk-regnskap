@@ -5,4 +5,7 @@
 // og språkmenyer). Kalles etter at webview er opprettet.
 void installAppMenu(void);
 
+// copyToClipboard legger UTF-8-teksten på den generelle utklippstavlen.
+void copyToClipboard(const char *text);
+
 #endif

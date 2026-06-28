@@ -12,7 +12,20 @@
 - (void)langNB:(id)sender { (void)sender; goMenuLang((char *)"nb"); }
 - (void)langPT:(id)sender { (void)sender; goMenuLang((char *)"pt"); }
 - (void)langEN:(id)sender { (void)sender; goMenuLang((char *)"en"); }
+- (void)copyAgentPrompt:(id)sender { (void)sender; goMenuCopyAgentPrompt(); }
 @end
+
+// copyToClipboard legger UTF-8-teksten på den generelle utklippstavlen.
+void copyToClipboard(const char *text) {
+  if (!text) return;
+  NSString *s = [NSString stringWithUTF8String:text];
+  if (!s) return;
+  dispatch_async(dispatch_get_main_queue(), ^{
+    NSPasteboard *pb = [NSPasteboard generalPasteboard];
+    [pb clearContents];
+    [pb setString:s forType:NSPasteboardTypeString];
+  });
+}
 
 static ENKMenuTarget *gTarget = nil;
 
@@ -67,6 +80,13 @@ void installAppMenu(void) {
     addItem(langMenu, @"Norsk bokmål", @selector(langNB:), @"", gTarget);
     addItem(langMenu, @"Português", @selector(langPT:), @"", gTarget);
     addItem(langMenu, @"English", @selector(langEN:), @"", gTarget);
+
+    // Agent-meny: kopier ferdig prompt som ber en AI-agent lage /enk-kommandoen.
+    NSMenuItem *agentItem = [[NSMenuItem alloc] init];
+    [mainMenu addItem:agentItem];
+    NSMenu *agentMenu = [[NSMenu alloc] initWithTitle:@"Agent"];
+    [agentItem setSubmenu:agentMenu];
+    addItem(agentMenu, @"Kopier /enk-agentprompt", @selector(copyAgentPrompt:), @"", gTarget);
 
     [NSApp setMainMenu:mainMenu];
   });
