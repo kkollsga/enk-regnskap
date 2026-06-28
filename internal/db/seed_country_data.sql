@@ -48,10 +48,12 @@ VALUES
   ('BR', 'ISS', 'Imposto Sobre Serviços',
    'Kommunal tjenesteskatt på tjenesteomsetning (ikke en inntektsskatt). Gir ikke kreditfradrag, men er normalt en fradragsberettiget kostnad i Norge (sktl. § 6-15).',
    'tjenester', 0, 'brutto', 5.0, 2015, NULL),
-  -- CSLL t.o.m. 2024: ikke omfattet av kreditfradrag (gammel avtale/intern rett).
+  -- CSLL t.o.m. 2024: skatt på netto overskudd = inntektsskatt, krediterbar
+  -- etter intern norsk rett (sktl. § 16-20) selv uten avtaledekning. Historisk
+  -- omtvistet – vurder med rådgiver for år før 2025.
   ('BR', 'CSLL', 'Contribuição Social sobre o Lucro Líquido',
-   'Sosial bidragsskatt på netto overskudd. T.o.m. inntektsår 2024 normalt ikke krediterbar i Norge.',
-   'selskap', 0, 'netto', 9.0, 2015, 2024),
+   'Sosial bidragsskatt på netto overskudd (en inntektsskatt). Krediterbar etter intern norsk rett (sktl. § 16-20) t.o.m. 2024 – historisk omtvistet, vurder med rådgiver.',
+   'selskap', 1, 'netto', 9.0, 2015, 2024),
   -- CSLL f.o.m. 2025: skatteavtalen Norge-Brasil (art. 2) omfatter CSLL, så den
   -- er en krediterbar inntektsskatt fra inntektsår 2025.
   ('BR', 'CSLL', 'Contribuição Social sobre o Lucro Líquido',
