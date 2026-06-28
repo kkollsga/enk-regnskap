@@ -96,7 +96,7 @@ func (a *App) resolveIncome(ctx context.Context, in IncomeInput) (resolvedIncome
 	res.exchangeRate = conv.ExchangeRate
 	res.rateDate = conv.RateDateNull
 	if in.ForeignTaxPaid == ForeignTaxYes {
-		creditable := a.creditabilityMap(ctx, in.CountryCode, in.TaxYear)
+		defaults := a.defaultTreatmentMap(ctx, in.CountryCode, in.TaxYear)
 		for _, line := range in.ForeignTaxes {
 			if line.AmountOrig <= 0 {
 				continue
@@ -122,7 +122,7 @@ func (a *App) resolveIncome(ctx context.Context, in IncomeInput) (resolvedIncome
 			}
 			res.taxes = append(res.taxes, resolvedTaxLine{
 				taxType: line.Type, amountOrig: line.AmountOrig, currency: cur, amountNOK: nok,
-				treatment: resolveTreatment(line.Treatment, creditable, line.Type),
+				treatment: resolveTreatment(line.Treatment, defaults, line.Type),
 			})
 		}
 	}
@@ -130,40 +130,44 @@ func (a *App) resolveIncome(ctx context.Context, in IncomeInput) (resolvedIncome
 }
 
 // resolveTreatment velger skattemessig behandling for en linje: brukerens
-// eksplisitte valg hvis gyldig, ellers utledet fra katalogen (krediterbar type
-// -> credit, ellers deduct som antatt fradragsberettiget kostnad).
-func resolveTreatment(override string, creditable map[string]bool, taxType string) string {
+// eksplisitte valg hvis gyldig, ellers katalogens standard for typen. Ukjente
+// typer (ikke i katalogen) antas å være inntektsskatt -> credit, så brukeren
+// ikke taper kredit på en egendefinert kode.
+func resolveTreatment(override string, defaults map[string]string, taxType string) string {
 	if t := strings.ToLower(strings.TrimSpace(override)); isTreatment(t) {
 		return t
 	}
-	if isCreditable(creditable, taxType) {
-		return TaxTreatmentCredit
+	if t, ok := defaults[strings.ToUpper(strings.TrimSpace(taxType))]; ok {
+		return t
 	}
-	return TaxTreatmentDeduct
+	return TaxTreatmentCredit
 }
 
-// creditabilityMap gir et oppslag fra skattetype-kode til om typen gir
-// kreditfradrag i Norge, for et land og inntektsår. Tom hvis landet/året mangler.
-func (a *App) creditabilityMap(ctx context.Context, country string, year int) map[string]bool {
+// defaultTreatmentMap gir et oppslag fra skattetype-kode til standard
+// behandling (credit/deduct/none) for et land og inntektsår. Bruker katalogens
+// eksplisitte default_treatment hvis satt, ellers utledes det fra
+// is_creditable_in_norway (1 -> credit, 0 -> deduct).
+func (a *App) defaultTreatmentMap(ctx context.Context, country string, year int) map[string]string {
 	rows, err := a.CountryTaxTypes(ctx, country, year)
 	if err != nil {
 		return nil
 	}
-	m := make(map[string]bool, len(rows))
+	m := make(map[string]string, len(rows))
 	for _, r := range rows {
-		m[strings.ToUpper(r.TaxTypeCode)] = r.IsCreditableInNorway.Int64 == 1
+		m[strings.ToUpper(r.TaxTypeCode)] = catalogTreatment(r)
 	}
 	return m
 }
 
-// isCreditable slår opp en skattetype i kreditbarhetskartet. Ukjente typer
-// (ikke i katalogen) regnes som krediterbare, slik at brukeren ikke taper
-// kredit på en egendefinert kode.
-func isCreditable(m map[string]bool, taxType string) bool {
-	if v, ok := m[strings.ToUpper(strings.TrimSpace(taxType))]; ok {
-		return v
+// catalogTreatment gir standardbehandlingen for en katalogtype.
+func catalogTreatment(r db.CountryTaxType) string {
+	if t := strings.ToLower(strings.TrimSpace(r.DefaultTreatment.String)); isTreatment(t) {
+		return t
 	}
-	return true
+	if r.IsCreditableInNorway.Int64 == 1 {
+		return TaxTreatmentCredit
+	}
+	return TaxTreatmentDeduct
 }
 
 // AddIncome validerer, henter valutakurs, beregner NOK-beløp, lagrer inntekten,

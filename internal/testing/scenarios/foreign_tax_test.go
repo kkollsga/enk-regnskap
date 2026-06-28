@@ -249,3 +249,41 @@ func TestForeignTaxStatusUpdate(t *testing.T) {
 		t.Errorf("income_nok = %v, forventet 20000 (bevart)", c.IncomeNok)
 	}
 }
+
+// TestINSSDefaultsToNone låser fast at INSS (trygdeavgift) får standard­behandling
+// 'none' (verken kreditfradrag eller kostnadsfradrag), mens IRPF er krediterbar.
+func TestINSSDefaultsToNone(t *testing.T) {
+	h := apptest.Start(t)
+	ctx := h.Context()
+	h.App.SetConfig(ctx, core.ConfigActiveYear, "2025")
+	h.Mock.AddRate("BRL", "2025-03-10", 2.00)
+	res, err := h.App.AddIncome(ctx, core.ActorWeb, core.IncomeInput{
+		Date: "2025-03-10", Description: "BR", Currency: "BRL", CountryCode: "BR",
+		AmountOrig: 10000, Category: "tjenesteinntekt", TaxYear: 2025,
+		ForeignTaxPaid: core.ForeignTaxYes,
+		ForeignTaxes: []core.ForeignTaxLine{
+			{Type: "INSS", AmountOrig: 300, Currency: "BRL"},
+			{Type: "IRPF", AmountOrig: 800, Currency: "BRL"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines, _ := h.App.IncomeForeignTaxes(ctx, res.Income.ID)
+	byType := map[string]string{}
+	for _, l := range lines {
+		byType[l.TaxType] = l.Treatment
+	}
+	if byType["INSS"] != core.TaxTreatmentNone {
+		t.Errorf("INSS treatment = %q, forventet none", byType["INSS"])
+	}
+	if byType["IRPF"] != core.TaxTreatmentCredit {
+		t.Errorf("IRPF treatment = %q, forventet credit", byType["IRPF"])
+	}
+	linked, _ := h.App.DeductibleForeignTaxLines(ctx, 2025)
+	for _, l := range linked {
+		if l.TaxType == "INSS" {
+			t.Errorf("INSS skal ikke være en fradragspost (treatment none)")
+		}
+	}
+}

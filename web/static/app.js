@@ -258,7 +258,8 @@
       row.dataset.creditable = opt.creditable === false ? "0" : "1";
       if (desc) {
         var html = "";
-        if (opt.creditable === false) html += '<span class="tax-noncredit">Ikke krediterbar – «Auto» fører den som fradragsberettiget kostnad</span> ';
+        if (opt.treatment === "deduct") html += '<span class="tax-noncredit">Ikke krediterbar – «Auto» fører den som fradragsberettiget kostnad</span> ';
+        else if (opt.treatment === "none") html += '<span class="tax-noncredit">Ikke krediterbar – usikker fradragsrett; «Auto» fører den kun som referanse (vurder rådgiver)</span> ';
         html += esc(opt.desc || opt.name || "");
         desc.innerHTML = html;
         desc.hidden = !html;

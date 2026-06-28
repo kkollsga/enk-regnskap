@@ -51,6 +51,7 @@ type CountryTaxType struct {
 	Description          sql.NullString  `json:"description"`
 	AppliesTo            sql.NullString  `json:"applies_to"`
 	IsCreditableInNorway sql.NullInt64   `json:"is_creditable_in_norway"`
+	DefaultTreatment     sql.NullString  `json:"default_treatment"`
 	Basis                sql.NullString  `json:"basis"`
 	TypicalRatePct       sql.NullFloat64 `json:"typical_rate_pct"`
 	EffectiveFrom        int64           `json:"effective_from"`

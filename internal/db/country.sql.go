@@ -47,7 +47,7 @@ func (q *Queries) GetCountryRule(ctx context.Context, arg GetCountryRuleParams) 
 }
 
 const listAllCountryTaxTypes = `-- name: ListAllCountryTaxTypes :many
-SELECT id, country_code, tax_type_code, tax_type_name, description, applies_to, is_creditable_in_norway, basis, typical_rate_pct, effective_from, effective_to FROM country_tax_types
+SELECT id, country_code, tax_type_code, tax_type_name, description, applies_to, is_creditable_in_norway, default_treatment, basis, typical_rate_pct, effective_from, effective_to FROM country_tax_types
 ORDER BY country_code, tax_type_code
 `
 
@@ -68,6 +68,7 @@ func (q *Queries) ListAllCountryTaxTypes(ctx context.Context) ([]CountryTaxType,
 			&i.Description,
 			&i.AppliesTo,
 			&i.IsCreditableInNorway,
+			&i.DefaultTreatment,
 			&i.Basis,
 			&i.TypicalRatePct,
 			&i.EffectiveFrom,
@@ -162,7 +163,7 @@ func (q *Queries) ListCountryRules(ctx context.Context) ([]CountryTaxRule, error
 }
 
 const listCountryTaxTypes = `-- name: ListCountryTaxTypes :many
-SELECT id, country_code, tax_type_code, tax_type_name, description, applies_to, is_creditable_in_norway, basis, typical_rate_pct, effective_from, effective_to FROM country_tax_types
+SELECT id, country_code, tax_type_code, tax_type_name, description, applies_to, is_creditable_in_norway, default_treatment, basis, typical_rate_pct, effective_from, effective_to FROM country_tax_types
 WHERE country_code = ?
   AND effective_from <= ?
   AND (effective_to IS NULL OR effective_to >= ?)
@@ -192,6 +193,7 @@ func (q *Queries) ListCountryTaxTypes(ctx context.Context, arg ListCountryTaxTyp
 			&i.Description,
 			&i.AppliesTo,
 			&i.IsCreditableInNorway,
+			&i.DefaultTreatment,
 			&i.Basis,
 			&i.TypicalRatePct,
 			&i.EffectiveFrom,

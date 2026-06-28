@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS country_tax_types (
   description      TEXT,                 -- forklaring på norsk
   applies_to       TEXT,                 -- 'tjenester', 'lønn', 'utbytte', etc.
   is_creditable_in_norway INTEGER DEFAULT 1, -- 1 = godkjent for kreditfradrag i Norge
+  default_treatment TEXT,                -- 'credit'/'deduct'/'none'; NULL = utled fra is_creditable
   basis            TEXT,                 -- 'netto' eller 'brutto'
   typical_rate_pct REAL,
   effective_from   INTEGER NOT NULL,

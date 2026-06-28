@@ -67,7 +67,7 @@ VALUES
    'Brasiliansk inntektsskatt for personer (årlig ligning, bl.a. Carnê-Leão for selvstendige). Dette er en inntektsskatt og gir kreditfradrag i Norge.',
    'inntekt', 1, 'netto', NULL, 2015, NULL),
   ('BR', 'INSS', 'Instituto Nacional do Seguro Social',
-   'Brasiliansk trygdeavgift (sosial sikkerhet), ikke en inntektsskatt. Gir ikke kreditfradrag; behandles normalt som fradragsberettiget kostnad – vurder eventuell trygdeavtale.',
+   'Brasiliansk trygdeavgift (sosial sikkerhet), ikke en inntektsskatt. Gir ikke kreditfradrag, og fradragsrett som kostnad er tvilsom (ingen trygdeavtale Norge-Brasil). Standard: kun referanse – vurder med rådgiver.',
    'personinntekt', 0, 'brutto', NULL, 2015, NULL)
 ON CONFLICT(country_code, tax_type_code, effective_from) DO UPDATE SET
   tax_type_name = excluded.tax_type_name,
@@ -76,6 +76,12 @@ ON CONFLICT(country_code, tax_type_code, effective_from) DO UPDATE SET
   basis = excluded.basis,
   typical_rate_pct = excluded.typical_rate_pct,
   effective_to = excluded.effective_to;
+
+-- INSS: trygdeavgift, hverken krediterbar eller med sikker fradragsrett i Norge
+-- (ingen trygdeavtale Norge-Brasil). Standard-behandling = 'none' (kun referanse).
+-- Øvrige typer utleder behandling fra is_creditable_in_norway.
+UPDATE country_tax_types SET default_treatment = 'none'
+WHERE country_code = 'BR' AND tax_type_code = 'INSS';
 
 -- ---------------------------------------------------------------------------
 -- country_tax_types - Norge

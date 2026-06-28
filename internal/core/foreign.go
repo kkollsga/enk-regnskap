@@ -218,6 +218,7 @@ type TaxTypeOption struct {
 	Name       string `json:"name"`
 	Desc       string `json:"desc"`
 	Creditable bool   `json:"creditable"`
+	Treatment  string `json:"treatment"` // standardbehandling: credit/deduct/none
 }
 
 // TaxTypeSuggestions returnerer skattetype-forslag gruppert per kildeland for et
@@ -241,6 +242,7 @@ func (a *App) TaxTypeSuggestions(ctx context.Context, year int) (map[string][]Ta
 			out[c.Code] = append(out[c.Code], TaxTypeOption{
 				Code: r.TaxTypeCode, Name: r.TaxTypeName, Desc: nsVal(r.Description),
 				Creditable: r.IsCreditableInNorway.Int64 == 1,
+				Treatment:  catalogTreatment(r),
 			})
 		}
 	}
