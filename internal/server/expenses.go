@@ -29,6 +29,8 @@ type expenseListData struct {
 	TotalAmount float64
 	TotalDeduct float64
 	TaxSummary  core.TaxExpenseSummary
+	LinkedTaxes    []core.LinkedForeignTax // utenlandsk skatt ført som fradrag, koblet til inntekt
+	LinkedTaxTotal float64
 }
 
 func (s *Server) handleExpenseList(w http.ResponseWriter, r *http.Request) {
@@ -53,9 +55,15 @@ func (s *Server) handleExpenseList(w http.ResponseWriter, r *http.Request) {
 		receipts[e.ID], _ = s.app().ReceiptsFor(r.Context(), "expense", e.ID)
 	}
 	summary, _ := s.app().TaxExpenseSummaryForYear(r.Context(), v.Year)
+	linked, _ := s.app().DeductibleForeignTaxLines(r.Context(), v.Year)
+	var linkedTotal float64
+	for _, l := range linked {
+		linkedTotal += l.AmountNok
+	}
 	v.Data = expenseListData{
 		Expenses: rows, Kinds: kinds, CatNames: catNames, Categories: cats, Receipts: receipts,
 		TotalAmount: amt, TotalDeduct: ded, TaxSummary: summary,
+		LinkedTaxes: linked, LinkedTaxTotal: linkedTotal,
 	}
 	s.renderer.Render(w, "expenses_list", v)
 }

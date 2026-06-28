@@ -62,7 +62,20 @@ type mirrorIncomeForeignTax struct {
 	AmountOrig float64 `json:"amount_orig"`
 	Currency   string  `json:"currency"`
 	AmountNOK  float64 `json:"amount_nok"`
-	Creditable int64   `json:"creditable"`
+	Treatment  string  `json:"treatment"`
+	Creditable *int64  `json:"creditable,omitempty"` // utgått; leses for bakoverkompatibilitet
+}
+
+// treatmentOrDefault gir behandlingskoden, med fallback til den utgåtte
+// creditable-verdien (0 -> deduct, 1 -> credit) og ellers 'credit'.
+func (t mirrorIncomeForeignTax) treatmentOrDefault() string {
+	if isTreatment(t.Treatment) {
+		return t.Treatment
+	}
+	if t.Creditable != nil && *t.Creditable == 0 {
+		return TaxTreatmentDeduct
+	}
+	return TaxTreatmentCredit
 }
 
 type mirrorExpense struct {
@@ -131,7 +144,7 @@ func (a *App) SyncMirror(ctx context.Context) error {
 		mt = append(mt, mirrorIncomeForeignTax{
 			ID: t.ID, IncomeID: t.IncomeID, TaxType: t.TaxType,
 			AmountOrig: t.AmountOrig, Currency: t.Currency, AmountNOK: t.AmountNok,
-			Creditable: t.Creditable,
+			Treatment: t.Treatment,
 		})
 	}
 	if err := writeJSONFile(filepath.Join(dir, "income_foreign_taxes.json"), mt); err != nil {
@@ -263,9 +276,9 @@ func (a *App) ImportMirror(ctx context.Context, dir string) error {
 	}
 	for _, t := range incomeTaxes {
 		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO income_foreign_taxes (id, income_id, tax_type, amount_orig, currency, amount_nok, creditable)
+			`INSERT INTO income_foreign_taxes (id, income_id, tax_type, amount_orig, currency, amount_nok, treatment)
 			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			t.ID, t.IncomeID, t.TaxType, t.AmountOrig, t.Currency, t.AmountNOK, t.Creditable); err != nil {
+			t.ID, t.IncomeID, t.TaxType, t.AmountOrig, t.Currency, t.AmountNOK, t.treatmentOrDefault()); err != nil {
 			return fmt.Errorf("importer skattelinje: %w", err)
 		}
 	}

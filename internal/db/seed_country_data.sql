@@ -40,29 +40,36 @@ VALUES
 
 INSERT INTO country_tax_types
   (country_code, tax_type_code, tax_type_name, description, applies_to,
-   is_creditable_in_norway, basis, typical_rate_pct, effective_from)
+   is_creditable_in_norway, basis, typical_rate_pct, effective_from, effective_to)
 VALUES
   ('BR', 'IRRF', 'Imposto de Renda Retido na Fonte',
    'Brasiliansk kildeskatt på inntekt. Trekkes ved kilden på tjenester og honorar. Dette er en inntektsskatt og gir kreditfradrag i Norge.',
-   'tjenester', 1, 'brutto', 15.0, 2015),
+   'tjenester', 1, 'brutto', 15.0, 2015, NULL),
   ('BR', 'ISS', 'Imposto Sobre Serviços',
-   'Kommunal tjenesteskatt (indirekte, ikke en inntektsskatt). Gir normalt ikke kreditfradrag i Norge.',
-   'tjenester', 0, 'brutto', 5.0, 2015),
+   'Kommunal tjenesteskatt på tjenesteomsetning (ikke en inntektsskatt). Gir ikke kreditfradrag, men er normalt en fradragsberettiget kostnad i Norge (sktl. § 6-15).',
+   'tjenester', 0, 'brutto', 5.0, 2015, NULL),
+  -- CSLL t.o.m. 2024: ikke omfattet av kreditfradrag (gammel avtale/intern rett).
   ('BR', 'CSLL', 'Contribuição Social sobre o Lucro Líquido',
-   'Sosial bidragsskatt på selskapsoverskudd. Normalt ikke relevant eller krediterbar for et norsk ENK.',
-   'selskap', 0, 'netto', 9.0, 2015),
+   'Sosial bidragsskatt på netto overskudd. T.o.m. inntektsår 2024 normalt ikke krediterbar i Norge.',
+   'selskap', 0, 'netto', 9.0, 2015, 2024),
+  -- CSLL f.o.m. 2025: skatteavtalen Norge-Brasil (art. 2) omfatter CSLL, så den
+  -- er en krediterbar inntektsskatt fra inntektsår 2025.
+  ('BR', 'CSLL', 'Contribuição Social sobre o Lucro Líquido',
+   'Sosial bidragsskatt på netto overskudd. Omfattet av skatteavtalen Norge-Brasil (art. 2) og gir kreditfradrag i Norge fra inntektsår 2025.',
+   'selskap', 1, 'netto', 9.0, 2025, NULL),
   ('BR', 'PIS', 'Programa de Integração Social',
-   'Bidragsskatt på omsetning. Ikke en inntektsskatt – normalt ikke krediterbar i Norge.',
-   'omsetning', 0, 'brutto', 0.65, 2015),
+   'Bidragsskatt på omsetning (ikke en inntektsskatt). Gir ikke kreditfradrag, men er normalt en fradragsberettiget kostnad i Norge (sktl. § 6-15).',
+   'omsetning', 0, 'brutto', 0.65, 2015, NULL),
   ('BR', 'COFINS', 'Contribuição para o Financiamento da Seguridade Social',
-   'Bidragsskatt på omsetning til finansiering av sosial trygghet. Normalt ikke krediterbar i Norge.',
-   'omsetning', 0, 'brutto', 3.0, 2015)
+   'Bidragsskatt på omsetning til finansiering av sosial trygghet (ikke en inntektsskatt). Gir ikke kreditfradrag, men er normalt en fradragsberettiget kostnad i Norge (sktl. § 6-15).',
+   'omsetning', 0, 'brutto', 3.0, 2015, NULL)
 ON CONFLICT(country_code, tax_type_code, effective_from) DO UPDATE SET
   tax_type_name = excluded.tax_type_name,
   description = excluded.description,
   is_creditable_in_norway = excluded.is_creditable_in_norway,
   basis = excluded.basis,
-  typical_rate_pct = excluded.typical_rate_pct;
+  typical_rate_pct = excluded.typical_rate_pct,
+  effective_to = excluded.effective_to;
 
 -- ---------------------------------------------------------------------------
 -- country_tax_types - Norge

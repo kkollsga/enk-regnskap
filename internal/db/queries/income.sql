@@ -52,11 +52,26 @@ LEFT JOIN (
          SUM(amount_orig) AS tax_orig,
          SUM(amount_nok) AS tax_nok
   FROM income_foreign_taxes
-  WHERE creditable = 1
+  WHERE treatment = 'credit'
   GROUP BY income_id
 ) t ON t.income_id = i.id
 WHERE i.tax_year = ? AND i.country_code <> 'NO'
 GROUP BY i.country_code;
+
+-- name: SumForeignTaxByTreatmentYear :many
+SELECT t.treatment, COALESCE(SUM(t.amount_nok), 0) AS total
+FROM income_foreign_taxes t
+JOIN income i ON i.id = t.income_id
+WHERE i.tax_year = ?
+GROUP BY t.treatment;
+
+-- name: ListForeignTaxLinesByYearTreatment :many
+SELECT t.id, t.income_id, t.tax_type, t.amount_orig, t.currency, t.amount_nok,
+       i.date AS income_date, i.description AS income_description
+FROM income_foreign_taxes t
+JOIN income i ON i.id = t.income_id
+WHERE i.tax_year = ? AND t.treatment = ?
+ORDER BY i.date, t.id;
 
 -- name: UpdateIncome :one
 UPDATE income SET
@@ -68,7 +83,7 @@ RETURNING *;
 
 -- name: CreateIncomeForeignTax :one
 INSERT INTO income_foreign_taxes (
-  income_id, tax_type, amount_orig, currency, amount_nok, creditable
+  income_id, tax_type, amount_orig, currency, amount_nok, treatment
 ) VALUES (?, ?, ?, ?, ?, ?)
 RETURNING *;
 

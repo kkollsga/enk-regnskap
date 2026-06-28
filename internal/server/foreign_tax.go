@@ -19,8 +19,10 @@ type foreignCountryView struct {
 }
 
 type foreignTaxData struct {
-	Countries []foreignCountryView
-	HasData   bool
+	Countries  []foreignCountryView
+	HasData    bool
+	Deductible float64 // utenlandsk skatt ført som fradragsberettiget kostnad
+	Reference  float64 // utenlandsk skatt uten lettelse (kun referanse)
 }
 
 func (s *Server) handleForeignTax(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +61,10 @@ func (s *Server) handleForeignTax(w http.ResponseWriter, r *http.Request) {
 		data.Countries = append(data.Countries, cv)
 	}
 	data.HasData = len(data.Countries) > 0
+	if totals, err := s.app().ForeignTaxTotalsForYear(r.Context(), year); err == nil {
+		data.Deductible = totals.Deduct
+		data.Reference = totals.None
+	}
 	v.Data = data
 	s.renderer.Render(w, "foreign_tax", v)
 }

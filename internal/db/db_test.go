@@ -144,9 +144,9 @@ func TestMigrationsIdempotent(t *testing.T) {
 	if err := conn.QueryRow(`SELECT COUNT(*) FROM country_tax_types`).Scan(&typeCount); err != nil {
 		t.Fatalf("tell country_tax_types: %v", err)
 	}
-	// BR(5) + NO(3) = 8
-	if typeCount != 8 {
-		t.Errorf("country_tax_types count = %d, forventet 8", typeCount)
+	// BR(6: IRRF, ISS, CSLL<=2024, CSLL>=2025, PIS, COFINS) + NO(3) = 9
+	if typeCount != 9 {
+		t.Errorf("country_tax_types count = %d, forventet 9", typeCount)
 	}
 }
 
@@ -225,6 +225,70 @@ func TestMigrateForeignTaxColumns(t *testing.T) {
 	}
 	if n != 1 {
 		t.Errorf("etter andre Migrate count = %d, forventet 1 (ingen duplikat)", n)
+	}
+}
+
+// TestMigrateCreditableToTreatment simulerer en database fra forrige versjon der
+// income_foreign_taxes har den binære creditable-kolonnen, og verifiserer at den
+// migreres til treatment-enum (1->credit, 0->deduct) og at creditable droppes.
+func TestMigrateCreditableToTreatment(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "old.db")
+	conn, err := sql.Open("sqlite", "file:"+path+"?_pragma=foreign_keys(1)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.SetMaxOpenConns(1)
+	defer conn.Close()
+
+	// Minimal income + gammel income_foreign_taxes (med creditable, uten treatment).
+	if _, err := conn.Exec(`CREATE TABLE income (id INTEGER PRIMARY KEY, tax_year INTEGER, country_code TEXT, receipt_id INTEGER)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(`CREATE TABLE income_foreign_taxes (
+		id INTEGER PRIMARY KEY, income_id INTEGER NOT NULL, tax_type TEXT NOT NULL,
+		amount_orig REAL NOT NULL, currency TEXT NOT NULL, amount_nok REAL NOT NULL,
+		creditable INTEGER NOT NULL DEFAULT 1)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(`INSERT INTO income (id, tax_year, country_code) VALUES (1, 2025, 'BR')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(`INSERT INTO income_foreign_taxes
+		(income_id, tax_type, amount_orig, currency, amount_nok, creditable)
+		VALUES (1, 'IRRF', 100, 'BRL', 200, 1), (1, 'COFINS', 50, 'BRL', 100, 0)`); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Migrate(conn); err != nil {
+		t.Fatalf("Migrate feilet: %v", err)
+	}
+
+	if has, _ := columnExists(conn, "income_foreign_taxes", "creditable"); has {
+		t.Error("creditable skulle vært droppet")
+	}
+	rows, err := conn.Query(`SELECT tax_type, treatment FROM income_foreign_taxes ORDER BY tax_type`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	got := map[string]string{}
+	for rows.Next() {
+		var typ, tr string
+		if err := rows.Scan(&typ, &tr); err != nil {
+			t.Fatal(err)
+		}
+		got[typ] = tr
+	}
+	if got["IRRF"] != "credit" {
+		t.Errorf("IRRF treatment = %q, forventet credit", got["IRRF"])
+	}
+	if got["COFINS"] != "deduct" {
+		t.Errorf("COFINS treatment = %q, forventet deduct", got["COFINS"])
+	}
+
+	// Idempotent.
+	if err := Migrate(conn); err != nil {
+		t.Fatalf("andre Migrate: %v", err)
 	}
 }
 

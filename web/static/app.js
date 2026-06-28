@@ -216,7 +216,7 @@
       row.dataset.creditable = opt.creditable === false ? "0" : "1";
       if (desc) {
         var html = "";
-        if (opt.creditable === false) html += '<span class="tax-noncredit">Ikke krediterbar – kun referanse</span> ';
+        if (opt.creditable === false) html += '<span class="tax-noncredit">Ikke krediterbar – «Auto» fører den som fradragsberettiget kostnad</span> ';
         html += esc(opt.desc || opt.name || "");
         desc.innerHTML = html;
         desc.hidden = !html;
@@ -312,6 +312,12 @@
       '<div class="tax-type-desc" hidden></div>' +
       '</div>' +
       '<input type="text" name="tax_amount" class="tax-amount-input" inputmode="decimal" placeholder="0,00">' +
+      '<select name="tax_treatment" class="tax-treatment-select" title="Skattemessig behandling i Norge">' +
+      '<option value="" selected>Auto (fra katalog)</option>' +
+      '<option value="credit">Kreditfradrag</option>' +
+      '<option value="deduct">Fradrag (kostnad)</option>' +
+      '<option value="none">Ingen (referanse)</option>' +
+      '</select>' +
       '<button type="button" class="icon-btn tax-remove" title="Fjern skattetype" tabindex="-1">🗑</button>';
     return row;
   }

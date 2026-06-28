@@ -98,4 +98,34 @@
 {{else}}
 <div class="empty">Ingen utgifter registrert for {{.Year}} enda. <a href="/expenses/new">Legg til den første</a>.</div>
 {{end}}
+
+{{if $d.LinkedTaxes}}
+<section class="panel" style="margin-top:28px;">
+  <h2>Utenlandsk skatt ført som fradrag <span class="muted small">(fra inntekter)</span></h2>
+  <p class="muted small" style="margin-top:4px;">
+    Registrert som skatt under en inntekt og behandlet som fradragsberettiget kostnad
+    (sktl. § 6-15). Skrivebeskyttet her – rediger på inntekten den hører til.
+  </p>
+  <div class="entry-list">
+    {{range $d.LinkedTaxes}}
+    <div class="entry linked-tax">
+      <div class="entry-row entry-row-2line">
+        <span class="entry-line1">
+          <span class="entry-date">{{.IncomeDate}}</span>
+          <span class="entry-desc">{{.TaxType}} <span class="muted">— {{.IncomeDescription}}</span></span>
+        </span>
+        <span class="entry-line2">
+          <span class="entry-meta">{{printf "%g" .AmountOrig}} {{.Currency}} · <a href="/income/{{.IncomeID}}/edit">rediger på inntekt →</a></span>
+          <span class="entry-amount num">{{nok .AmountNok}}</span>
+        </span>
+      </div>
+    </div>
+    {{end}}
+  </div>
+  <div class="entry-total">
+    <span>Sum utenlandsk skatt (fradrag)</span>
+    <span class="num">{{nok $d.LinkedTaxTotal}}</span>
+  </div>
+</section>
+{{end}}
 {{end}}

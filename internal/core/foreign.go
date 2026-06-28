@@ -134,6 +134,65 @@ func (a *App) CountryTaxTypes(ctx context.Context, country string, year int) ([]
 	})
 }
 
+// ForeignTaxTotals er årets utenlandske skatt summert per behandling (NOK).
+type ForeignTaxTotals struct {
+	Credit float64 // kreditfradrag
+	Deduct float64 // fradragsberettiget kostnad
+	None   float64 // ingen lettelse (kun referanse)
+}
+
+// ForeignTaxTotalsForYear summerer utenlandsk skatt per skattemessig behandling
+// for et inntektsår.
+func (a *App) ForeignTaxTotalsForYear(ctx context.Context, year int) (ForeignTaxTotals, error) {
+	rows, err := a.Q.SumForeignTaxByTreatmentYear(ctx, int64(year))
+	if err != nil {
+		return ForeignTaxTotals{}, err
+	}
+	var t ForeignTaxTotals
+	for _, r := range rows {
+		switch r.Treatment {
+		case TaxTreatmentCredit:
+			t.Credit = toFloat(r.Total)
+		case TaxTreatmentDeduct:
+			t.Deduct = toFloat(r.Total)
+		case TaxTreatmentNone:
+			t.None = toFloat(r.Total)
+		}
+	}
+	return t, nil
+}
+
+// LinkedForeignTax er en utenlandsk skattelinje vist som en koblet (skrivebeskyttet)
+// post i utgiftslisten, med peker tilbake til inntekten den hører til.
+type LinkedForeignTax struct {
+	IncomeID          int64
+	IncomeDate        string
+	IncomeDescription string
+	TaxType           string
+	AmountOrig        float64
+	Currency          string
+	AmountNok         float64
+}
+
+// DeductibleForeignTaxLines henter utenlandske skattelinjer som behandles som
+// fradragsberettiget kostnad for et år, til visning i utgiftslisten.
+func (a *App) DeductibleForeignTaxLines(ctx context.Context, year int) ([]LinkedForeignTax, error) {
+	rows, err := a.Q.ListForeignTaxLinesByYearTreatment(ctx, db.ListForeignTaxLinesByYearTreatmentParams{
+		TaxYear: int64(year), Treatment: TaxTreatmentDeduct,
+	})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]LinkedForeignTax, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, LinkedForeignTax{
+			IncomeID: r.IncomeID, IncomeDate: r.IncomeDate, IncomeDescription: r.IncomeDescription,
+			TaxType: r.TaxType, AmountOrig: r.AmountOrig, Currency: r.Currency, AmountNok: r.AmountNok,
+		})
+	}
+	return out, nil
+}
+
 // TaxTypeOption er et forslag i skattetype-comboboksen på inntektsskjemaet.
 type TaxTypeOption struct {
 	Code       string `json:"code"`
@@ -142,26 +201,29 @@ type TaxTypeOption struct {
 	Creditable bool   `json:"creditable"`
 }
 
-// TaxTypeSuggestions returnerer skattetype-forslag gruppert per kildeland, til
-// bruk i inntektsskjemaets combobox. Duplikater (samme kode, ulike perioder)
-// slås sammen.
-func (a *App) TaxTypeSuggestions(ctx context.Context) (map[string][]TaxTypeOption, error) {
-	rows, err := a.Q.ListAllCountryTaxTypes(ctx)
+// TaxTypeSuggestions returnerer skattetype-forslag gruppert per kildeland for et
+// gitt inntektsår, til bruk i inntektsskjemaets combobox. Året avgjør
+// krediterbarheten (f.eks. er CSLL krediterbar fra 2025).
+func (a *App) TaxTypeSuggestions(ctx context.Context, year int) (map[string][]TaxTypeOption, error) {
+	countries, err := a.Countries(ctx)
 	if err != nil {
 		return nil, err
 	}
 	out := map[string][]TaxTypeOption{}
-	seen := map[string]bool{}
-	for _, r := range rows {
-		key := r.CountryCode + "|" + r.TaxTypeCode
-		if seen[key] {
+	for _, c := range countries {
+		if c.Code == "NO" {
 			continue
 		}
-		seen[key] = true
-		out[r.CountryCode] = append(out[r.CountryCode], TaxTypeOption{
-			Code: r.TaxTypeCode, Name: r.TaxTypeName, Desc: nsVal(r.Description),
-			Creditable: r.IsCreditableInNorway.Int64 == 1,
-		})
+		types, err := a.CountryTaxTypes(ctx, c.Code, year)
+		if err != nil {
+			continue
+		}
+		for _, r := range types {
+			out[c.Code] = append(out[c.Code], TaxTypeOption{
+				Code: r.TaxTypeCode, Name: r.TaxTypeName, Desc: nsVal(r.Description),
+				Creditable: r.IsCreditableInNorway.Int64 == 1,
+			})
+		}
 	}
 	return out, nil
 }

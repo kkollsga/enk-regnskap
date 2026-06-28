@@ -104,6 +104,12 @@
     <div class="tax-type-desc" hidden></div>
   </div>
   <input type="text" name="tax_amount" class="tax-amount-input" inputmode="decimal" placeholder="0,00" value="{{if gt .AmountOrig 0.0}}{{printf "%g" .AmountOrig}}{{end}}">
+  <select name="tax_treatment" class="tax-treatment-select" title="Skattemessig behandling i Norge">
+    <option value="" {{if not .Treatment}}selected{{end}}>Auto (fra katalog)</option>
+    <option value="credit" {{if eq .Treatment "credit"}}selected{{end}}>Kreditfradrag</option>
+    <option value="deduct" {{if eq .Treatment "deduct"}}selected{{end}}>Fradrag (kostnad)</option>
+    <option value="none" {{if eq .Treatment "none"}}selected{{end}}>Ingen (referanse)</option>
+  </select>
   <button type="button" class="icon-btn tax-remove" title="Fjern skattetype" tabindex="-1">🗑</button>
 </div>
 {{end}}

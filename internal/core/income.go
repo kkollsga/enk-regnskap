@@ -18,12 +18,25 @@ const (
 	ForeignTaxUnknown = 2 // vet ikke enna
 )
 
+// Skattemessig behandling av en utenlandsk skattelinje i Norge.
+const (
+	TaxTreatmentCredit = "credit" // kreditfradrag (sktl. § 16-20 flg.)
+	TaxTreatmentDeduct = "deduct" // fradragsberettiget kostnad (sktl. § 6-1/§ 6-15)
+	TaxTreatmentNone   = "none"   // ingen lettelse – kun referanse
+)
+
+// isTreatment sjekker om en streng er en gyldig behandlingskode.
+func isTreatment(s string) bool {
+	return s == TaxTreatmentCredit || s == TaxTreatmentDeduct || s == TaxTreatmentNone
+}
+
 // ForeignTaxLine er én betalt utenlandsk skatt av en bestemt type (f.eks. IRRF)
 // på en inntekt. En inntekt kan ha flere slike linjer.
 type ForeignTaxLine struct {
 	Type       string  // f.eks. 'IRRF', 'ISS', 'CSLL'
 	AmountOrig float64 // beløp i utenlandsk valuta
 	Currency   string  // default = inntektens valuta
+	Treatment  string  // 'credit'/'deduct'/'none'; tom = utled fra katalogen
 }
 
 // IncomeInput er brukerens/agentens innspill for en ny inntekt.
@@ -57,7 +70,7 @@ type resolvedTaxLine struct {
 	amountOrig float64
 	currency   string
 	amountNOK  float64
-	creditable bool
+	treatment  string
 }
 
 // resolvedIncome er ferdig beregnede DB-verdier for en inntekt.
@@ -113,11 +126,24 @@ func (a *App) resolveIncome(ctx context.Context, in IncomeInput) (resolvedIncome
 			}
 			res.taxes = append(res.taxes, resolvedTaxLine{
 				taxType: line.Type, amountOrig: line.AmountOrig, currency: cur, amountNOK: nok,
-				creditable: isCreditable(creditable, line.Type),
+				treatment: resolveTreatment(line.Treatment, creditable, line.Type),
 			})
 		}
 	}
 	return res, nil
+}
+
+// resolveTreatment velger skattemessig behandling for en linje: brukerens
+// eksplisitte valg hvis gyldig, ellers utledet fra katalogen (krediterbar type
+// -> credit, ellers deduct som antatt fradragsberettiget kostnad).
+func resolveTreatment(override string, creditable map[string]bool, taxType string) string {
+	if t := strings.ToLower(strings.TrimSpace(override)); isTreatment(t) {
+		return t
+	}
+	if isCreditable(creditable, taxType) {
+		return TaxTreatmentCredit
+	}
+	return TaxTreatmentDeduct
 }
 
 // creditabilityMap gir et oppslag fra skattetype-kode til om typen gir
@@ -258,13 +284,9 @@ func (a *App) IncomeForeignTaxes(ctx context.Context, id int64) ([]db.IncomeFore
 // (typisk en transaksjon).
 func insertTaxLines(ctx context.Context, q *db.Queries, incomeID int64, lines []resolvedTaxLine) error {
 	for _, l := range lines {
-		creditable := int64(0)
-		if l.creditable {
-			creditable = 1
-		}
 		if _, err := q.CreateIncomeForeignTax(ctx, db.CreateIncomeForeignTaxParams{
 			IncomeID: incomeID, TaxType: l.taxType, AmountOrig: l.amountOrig,
-			Currency: l.currency, AmountNok: l.amountNOK, Creditable: creditable,
+			Currency: l.currency, AmountNok: l.amountNOK, Treatment: l.treatment,
 		}); err != nil {
 			return fmt.Errorf("lagre skattelinje: %w", err)
 		}

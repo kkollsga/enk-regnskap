@@ -28,7 +28,7 @@
           {{if $in.Client.Valid}}<tr><td>Klient</td><td>{{$in.Client.String}}</td></tr>{{end}}
           <tr><td>Beløp</td><td>{{nok $in.AmountOrig}} {{$in.Currency}}{{if ne $in.Currency "NOK"}} → {{nok $in.AmountNok}}{{if $in.ExchangeRate.Valid}} <span class="muted">(kurs {{kurs $in.ExchangeRate.Float64}} per {{$in.RateDate.String}})</span>{{end}}{{end}}</td></tr>
           <tr><td>Kildeland</td><td>{{$in.CountryCode}}</td></tr>
-          {{if eq $in.ForeignTaxPaid 1}}{{$lines := index $d.TaxLines $in.ID}}<tr><td>Utenlandsk skatt</td><td>{{range $lines}}<div><strong>{{.TaxType}}</strong> — {{nok .AmountNok}} <span class="muted">({{printf "%g" .AmountOrig}} {{.Currency}})</span>{{if eq .Creditable 0}} <span class="tax-noncredit">ikke krediterbar</span>{{end}}</div>{{else}}<span class="muted">–</span>{{end}}</td></tr>{{end}}
+          {{if eq $in.ForeignTaxPaid 1}}{{$lines := index $d.TaxLines $in.ID}}<tr><td>Utenlandsk skatt</td><td>{{range $lines}}<div><strong>{{.TaxType}}</strong> — {{nok .AmountNok}} <span class="muted">({{printf "%g" .AmountOrig}} {{.Currency}})</span> {{if eq .Treatment "credit"}}<span class="tax-tag tax-credit">kreditfradrag</span>{{else if eq .Treatment "deduct"}}<span class="tax-tag tax-deduct">fradrag (kostnad)</span>{{else}}<span class="tax-tag tax-none">kun referanse</span>{{end}}</div>{{else}}<span class="muted">–</span>{{end}}</td></tr>{{end}}
           {{if $in.Notes.Valid}}<tr><td>Notater</td><td>{{$in.Notes.String}}</td></tr>{{end}}
         </table>
         {{if $recs}}{{template "attachment_list" $recs}}{{end}}

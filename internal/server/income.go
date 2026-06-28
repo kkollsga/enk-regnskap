@@ -190,9 +190,10 @@ func (s *Server) newIncomeForm(r *http.Request) incomeFormData {
 }
 
 // taxSuggestionsJSON returnerer skattetype-forslag per land som JSON-streng for
-// inntektsskjemaets combobox. Feiler det, returneres et tomt objekt.
+// inntektsskjemaets combobox, for det aktive året. Feiler det, returneres et
+// tomt objekt.
 func (s *Server) taxSuggestionsJSON(ctx context.Context) string {
-	m, err := s.app().TaxTypeSuggestions(ctx)
+	m, err := s.app().TaxTypeSuggestions(ctx, s.app().ActiveYear(ctx))
 	if err != nil {
 		return "{}"
 	}
@@ -229,13 +230,18 @@ func formValues(r *http.Request) map[string]string {
 func parseForeignTaxLines(r *http.Request) []core.ForeignTaxLine {
 	types := r.Form["tax_type"]
 	amounts := r.Form["tax_amount"]
+	treatments := r.Form["tax_treatment"]
 	var out []core.ForeignTaxLine
 	for i := range types {
 		amt := 0.0
 		if i < len(amounts) {
 			amt = parseAmount(amounts[i])
 		}
-		out = append(out, core.ForeignTaxLine{Type: types[i], AmountOrig: amt})
+		tr := ""
+		if i < len(treatments) {
+			tr = treatments[i]
+		}
+		out = append(out, core.ForeignTaxLine{Type: types[i], AmountOrig: amt, Treatment: tr})
 	}
 	return out
 }
@@ -245,6 +251,7 @@ func parseForeignTaxLines(r *http.Request) []core.ForeignTaxLine {
 func taxLinesFromForm(r *http.Request) []db.IncomeForeignTax {
 	types := r.Form["tax_type"]
 	amounts := r.Form["tax_amount"]
+	treatments := r.Form["tax_treatment"]
 	var out []db.IncomeForeignTax
 	for i := range types {
 		if strings.TrimSpace(types[i]) == "" {
@@ -254,7 +261,11 @@ func taxLinesFromForm(r *http.Request) []db.IncomeForeignTax {
 		if i < len(amounts) {
 			amt = parseAmount(amounts[i])
 		}
-		out = append(out, db.IncomeForeignTax{TaxType: types[i], AmountOrig: amt})
+		tr := ""
+		if i < len(treatments) {
+			tr = treatments[i]
+		}
+		out = append(out, db.IncomeForeignTax{TaxType: types[i], AmountOrig: amt, Treatment: tr})
 	}
 	return out
 }

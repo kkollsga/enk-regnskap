@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS income_foreign_taxes (
   amount_orig REAL NOT NULL,            -- betalt skatt i utenlandsk valuta
   currency    TEXT NOT NULL,            -- valuta for skattebeløpet
   amount_nok  REAL NOT NULL,            -- konvertert til NOK
-  creditable  INTEGER NOT NULL DEFAULT 1 -- 1=gir kreditfradrag, 0=kun referanse
+  treatment   TEXT NOT NULL DEFAULT 'credit' -- 'credit'=kreditfradrag, 'deduct'=fradragsberettiget kostnad, 'none'=kun referanse
 );
 
 -- Utgifter

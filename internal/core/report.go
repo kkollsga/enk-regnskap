@@ -7,6 +7,10 @@ import (
 	"github.com/kkollsga/enk-regnskap/internal/tax"
 )
 
+// CategoryForeignTaxDeductible er den syntetiske fradragskategorien for
+// utenlandsk skatt som behandles som fradragsberettiget kostnad.
+const CategoryForeignTaxDeductible = "_utenlandsk_skatt_fradrag"
+
 // CategorySum er en kategori med sumtotaler.
 type CategorySum struct {
 	Category   string
@@ -26,6 +30,8 @@ type Report struct {
 	ExpenseByCategory []CategorySum
 	ForeignCredits    []db.ForeignTaxCredit
 	ForeignTaxByIncome map[int64]float64 // income_id -> sum utenlandsk skatt (NOK)
+	ForeignTaxDeductible float64          // utenlandsk skatt behandlet som fradragsberettiget kostnad
+	ForeignTaxReference  float64          // utenlandsk skatt uten lettelse (kun referanse)
 	TotalIncome       float64
 	TotalExpenses     float64
 	TotalDeductible   float64
@@ -89,6 +95,23 @@ func (a *App) BuildReport(ctx context.Context, year int) (Report, error) {
 		rep.TotalDeductible += ded
 	}
 
+	// Utenlandsk skatt behandlet som fradragsberettiget kostnad teller med i
+	// fradraget (som en egen linje), mens 'none' kun vises for referanse.
+	ftt, err := a.ForeignTaxTotalsForYear(ctx, year)
+	if err != nil {
+		return rep, err
+	}
+	rep.ForeignTaxDeductible = tax.Round2(ftt.Deduct)
+	rep.ForeignTaxReference = tax.Round2(ftt.None)
+	if rep.ForeignTaxDeductible > 0 {
+		rep.ExpenseByCategory = append(rep.ExpenseByCategory, CategorySum{
+			Category: CategoryForeignTaxDeductible, Total: rep.ForeignTaxDeductible,
+			Deductible: rep.ForeignTaxDeductible,
+		})
+		rep.TotalExpenses += rep.ForeignTaxDeductible
+		rep.TotalDeductible += rep.ForeignTaxDeductible
+	}
+
 	rep.TotalIncome = tax.Round2(rep.TotalIncome)
 	rep.TotalExpenses = tax.Round2(rep.TotalExpenses)
 	rep.TotalDeductible = tax.Round2(rep.TotalDeductible)
@@ -109,6 +132,9 @@ func (a *App) BuildReport(ctx context.Context, year int) (Report, error) {
 
 // CategoryDisplayName gir et lesbart navn for en kategorinøkkel for et år.
 func (a *App) CategoryDisplayName(year int, key string) string {
+	if key == CategoryForeignTaxDeductible {
+		return "Utenlandsk skatt (fradragsberettiget kostnad)"
+	}
 	for _, c := range a.ExpenseCategories(year) {
 		if c.Key == key {
 			return c.Name

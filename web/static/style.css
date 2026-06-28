@@ -424,7 +424,11 @@ h3 { font-size: 15px; font-weight: 600; margin: 18px 0 8px; }
 .tax-lines-editor { margin-top: 12px; }
 .tax-lines-editor > label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
 .tax-lines { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; max-width: 540px; }
-.tax-row { display: grid; grid-template-columns: 1fr 150px auto; gap: 10px; align-items: start; }
+.tax-row { display: grid; grid-template-columns: 1fr 130px minmax(140px, 0.7fr) auto; gap: 10px; align-items: start; }
+.tax-treatment-select {
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+  font: inherit; color: var(--text); background: #fff;
+}
 .tax-row .combobox { position: relative; display: flex; flex-direction: column; min-width: 0; }
 .tax-type-input, .tax-amount-input {
   padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius);
@@ -454,3 +458,15 @@ h3 { font-size: 15px; font-weight: 600; margin: 18px 0 8px; }
   color: #8a5a00; background: #fbeecb; border: 1px solid #f0dca0;
 }
 .ci-noncredit { font-size: 10px; }
+/* Behandlingsmerker i lesevisningen av en inntekt */
+.tax-tag {
+  display: inline-block; font-size: 11px; font-weight: 600; line-height: 1.5;
+  padding: 0 7px; border-radius: 999px; white-space: nowrap;
+}
+.tax-credit { color: #1f5d3f; background: #e3f3ea; border: 1px solid #bfe3cd; }
+.tax-deduct { color: #8a5a00; background: #fbeecb; border: 1px solid #f0dca0; }
+.tax-none   { color: #6b7280; background: #eef0f3; border: 1px solid #dcdfe5; }
+/* Koblede (skrivebeskyttede) utenlandsskatt-rader i utgiftslisten */
+.entry.linked-tax { border-left: 3px solid var(--gold); background: #fffdf7; }
+.entry.linked-tax .entry-row { padding-left: 10px; cursor: default; }
+.entry.linked-tax .entry-row:hover { background: transparent; }

@@ -109,6 +109,33 @@
 </section>
 {{end}}
 
+{{if or (gt $d.Deductible 0.0) (gt $d.Reference 0.0)}}
+<section class="panel">
+  <h2>Utenlandsk skatt utenfor kreditfradraget</h2>
+  <div class="cards">
+    {{if gt $d.Deductible 0.0}}
+    <div class="card">
+      <div class="card-label">Fradragsberettiget kostnad</div>
+      <div class="card-value">{{nok $d.Deductible}}</div>
+      <div class="muted small">Trekkes fra i næringsinntekten (sktl. § 6-15)</div>
+    </div>
+    {{end}}
+    {{if gt $d.Reference 0.0}}
+    <div class="card">
+      <div class="card-label">Ingen lettelse (kun referanse)</div>
+      <div class="card-value">{{nok $d.Reference}}</div>
+      <div class="muted small">Registrert, men hverken kreditert eller fradragsført</div>
+    </div>
+    {{end}}
+  </div>
+  <p class="muted small" style="margin-top:12px;">
+    Skatt som ikke gir kreditfradrag (f.eks. ISS, PIS, COFINS) føres normalt som
+    fradragsberettiget kostnad. Valget mellom kredit og fradrag for samme
+    inntektsskatt gjøres per år – vurder med rådgiver ved tvil.
+  </p>
+</section>
+{{end}}
+
 <div class="info-card warn">
   Reglene for kreditfradrag er komplekse. Appen beregner aldri det endelige
   kreditfradraget, men gir deg informasjonen du trenger til RF-1147. For større

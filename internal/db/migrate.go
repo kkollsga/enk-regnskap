@@ -26,7 +26,7 @@ func Migrate(conn *sql.DB) error {
 		{"receipts", "description", "TEXT"},
 		{"receipts", "parent_kind", "TEXT"},
 		{"receipts", "parent_id", "INTEGER"},
-		{"income_foreign_taxes", "creditable", "INTEGER NOT NULL DEFAULT 1"},
+		{"income_foreign_taxes", "treatment", "TEXT NOT NULL DEFAULT 'credit'"},
 	} {
 		if err := ensureColumn(conn, c.table, c.column, c.def); err != nil {
 			return err
@@ -51,6 +51,31 @@ func Migrate(conn *sql.DB) error {
 	// kjøres ikke dette på nytt.
 	if err := migrateForeignTaxes(conn); err != nil {
 		return err
+	}
+	// Erstatt den binære creditable-kolonnen med treatment-enum (credit/deduct/
+	// none). Idempotent: kjøres bare så lenge creditable fortsatt finnes.
+	if err := migrateForeignTaxTreatment(conn); err != nil {
+		return err
+	}
+	return nil
+}
+
+// migrateForeignTaxTreatment flytter income_foreign_taxes.creditable over til
+// treatment-kolonnen (1->'credit', 0->'deduct') og dropper creditable.
+func migrateForeignTaxTreatment(conn *sql.DB) error {
+	has, err := columnExists(conn, "income_foreign_taxes", "creditable")
+	if err != nil {
+		return err
+	}
+	if !has {
+		return nil // allerede migrert (eller fersk database)
+	}
+	if _, err := conn.Exec(`UPDATE income_foreign_taxes
+		SET treatment = CASE creditable WHEN 1 THEN 'credit' ELSE 'deduct' END`); err != nil {
+		return fmt.Errorf("backfill treatment: %w", err)
+	}
+	if _, err := conn.Exec(`ALTER TABLE income_foreign_taxes DROP COLUMN creditable`); err != nil {
+		return fmt.Errorf("drop income_foreign_taxes.creditable: %w", err)
 	}
 	return nil
 }

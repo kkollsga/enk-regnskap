@@ -46,6 +46,7 @@ type Querier interface {
 	ListExchangeRates(ctx context.Context, currency string) ([]ExchangeRate, error)
 	ListExpensesByYear(ctx context.Context, taxYear int64) ([]Expense, error)
 	ListForeignTaxCreditsByYear(ctx context.Context, taxYear int64) ([]ForeignTaxCredit, error)
+	ListForeignTaxLinesByYearTreatment(ctx context.Context, arg ListForeignTaxLinesByYearTreatmentParams) ([]ListForeignTaxLinesByYearTreatmentRow, error)
 	ListIncomeByCountryYear(ctx context.Context, arg ListIncomeByCountryYearParams) ([]Income, error)
 	ListIncomeByYear(ctx context.Context, taxYear int64) ([]Income, error)
 	ListIncomeForeignTaxes(ctx context.Context, incomeID int64) ([]IncomeForeignTax, error)
@@ -55,6 +56,7 @@ type Querier interface {
 	SetConfig(ctx context.Context, arg SetConfigParams) error
 	SumDeductibleByYear(ctx context.Context, taxYear int64) (interface{}, error)
 	SumExpensesByCategory(ctx context.Context, taxYear int64) ([]SumExpensesByCategoryRow, error)
+	SumForeignTaxByTreatmentYear(ctx context.Context, taxYear int64) ([]SumForeignTaxByTreatmentYearRow, error)
 	SumIncomeByCategory(ctx context.Context, taxYear int64) ([]SumIncomeByCategoryRow, error)
 	SumIncomeNOKByYear(ctx context.Context, taxYear int64) (interface{}, error)
 	UpdateExpense(ctx context.Context, arg UpdateExpenseParams) (Expense, error)

@@ -29,6 +29,11 @@ func (a *App) Dashboard(ctx context.Context, year int) (Dashboard, error) {
 
 	incomeF := toFloat(income)
 	deductibleF := toFloat(deductible)
+	// Utenlandsk skatt behandlet som fradragsberettiget kostnad inngår i fradraget.
+	if ftt, err := a.ForeignTaxTotalsForYear(ctx, year); err == nil {
+		deductibleF += ftt.Deduct
+	}
+	deductibleF = tax.Round2(deductibleF)
 	result := tax.Round2(incomeF - deductibleF)
 
 	d := Dashboard{

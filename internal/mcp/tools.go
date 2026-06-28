@@ -48,6 +48,7 @@ func parseForeignTaxes(a Args) []core.ForeignTaxLine {
 			la := Args(m)
 			out = append(out, core.ForeignTaxLine{
 				Type: la.str("type"), AmountOrig: la.num("amount"), Currency: la.str("currency"),
+				Treatment: la.str("treatment"),
 			})
 		}
 	}
@@ -104,9 +105,10 @@ func (s *Server) buildTools() []Tool {
 					"type":        "array",
 					"description": "Utenlandsk skatt brutt ned per type. Hvert element: {type, amount, currency?}. Currency default = inntektens valuta.",
 					"items": obj(map[string]any{
-						"type":     prop("string", "Skattetype, f.eks. IRRF, ISS, CSLL"),
-						"amount":   prop("number", "Beløp i utenlandsk valuta"),
-						"currency": prop("string", "Valuta (default = inntektens valuta)"),
+						"type":      prop("string", "Skattetype, f.eks. IRRF, ISS, CSLL"),
+						"amount":    prop("number", "Beløp i utenlandsk valuta"),
+						"currency":  prop("string", "Valuta (default = inntektens valuta)"),
+						"treatment": prop("string", "Behandling: 'credit' (kreditfradrag), 'deduct' (fradragsberettiget kostnad) eller 'none' (kun referanse). Tom = utled fra katalog."),
 					}, "type", "amount"),
 				},
 				"foreign_tax_amount": prop("number", "Enkel variant (én skattetype): beløp i utenlandsk valuta. Bruk foreign_taxes for flere."),

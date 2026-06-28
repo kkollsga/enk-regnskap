@@ -21,7 +21,7 @@ LEFT JOIN (
          SUM(amount_orig) AS tax_orig,
          SUM(amount_nok) AS tax_nok
   FROM income_foreign_taxes
-  WHERE creditable = 1
+  WHERE treatment = 'credit'
   GROUP BY income_id
 ) t ON t.income_id = i.id
 WHERE i.tax_year = ? AND i.country_code <> 'NO'
@@ -49,6 +49,99 @@ func (q *Queries) AggregateForeignIncomeByYear(ctx context.Context, taxYear int6
 			&i.IncomeNok,
 			&i.ForeignTaxOrig,
 			&i.ForeignTaxNok,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const sumForeignTaxByTreatmentYear = `-- name: SumForeignTaxByTreatmentYear :many
+SELECT t.treatment, COALESCE(SUM(t.amount_nok), 0) AS total
+FROM income_foreign_taxes t
+JOIN income i ON i.id = t.income_id
+WHERE i.tax_year = ?
+GROUP BY t.treatment
+`
+
+type SumForeignTaxByTreatmentYearRow struct {
+	Treatment string      `json:"treatment"`
+	Total     interface{} `json:"total"`
+}
+
+func (q *Queries) SumForeignTaxByTreatmentYear(ctx context.Context, taxYear int64) ([]SumForeignTaxByTreatmentYearRow, error) {
+	rows, err := q.db.QueryContext(ctx, sumForeignTaxByTreatmentYear, taxYear)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SumForeignTaxByTreatmentYearRow{}
+	for rows.Next() {
+		var i SumForeignTaxByTreatmentYearRow
+		if err := rows.Scan(&i.Treatment, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listForeignTaxLinesByYearTreatment = `-- name: ListForeignTaxLinesByYearTreatment :many
+SELECT t.id, t.income_id, t.tax_type, t.amount_orig, t.currency, t.amount_nok,
+       i.date AS income_date, i.description AS income_description
+FROM income_foreign_taxes t
+JOIN income i ON i.id = t.income_id
+WHERE i.tax_year = ? AND t.treatment = ?
+ORDER BY i.date, t.id
+`
+
+type ListForeignTaxLinesByYearTreatmentParams struct {
+	TaxYear   int64  `json:"tax_year"`
+	Treatment string `json:"treatment"`
+}
+
+type ListForeignTaxLinesByYearTreatmentRow struct {
+	ID                int64   `json:"id"`
+	IncomeID          int64   `json:"income_id"`
+	TaxType           string  `json:"tax_type"`
+	AmountOrig        float64 `json:"amount_orig"`
+	Currency          string  `json:"currency"`
+	AmountNok         float64 `json:"amount_nok"`
+	IncomeDate        string  `json:"income_date"`
+	IncomeDescription string  `json:"income_description"`
+}
+
+func (q *Queries) ListForeignTaxLinesByYearTreatment(ctx context.Context, arg ListForeignTaxLinesByYearTreatmentParams) ([]ListForeignTaxLinesByYearTreatmentRow, error) {
+	rows, err := q.db.QueryContext(ctx, listForeignTaxLinesByYearTreatment, arg.TaxYear, arg.Treatment)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListForeignTaxLinesByYearTreatmentRow{}
+	for rows.Next() {
+		var i ListForeignTaxLinesByYearTreatmentRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.IncomeID,
+			&i.TaxType,
+			&i.AmountOrig,
+			&i.Currency,
+			&i.AmountNok,
+			&i.IncomeDate,
+			&i.IncomeDescription,
 		); err != nil {
 			return nil, err
 		}
@@ -132,9 +225,9 @@ func (q *Queries) CreateIncome(ctx context.Context, arg CreateIncomeParams) (Inc
 
 const createIncomeForeignTax = `-- name: CreateIncomeForeignTax :one
 INSERT INTO income_foreign_taxes (
-  income_id, tax_type, amount_orig, currency, amount_nok, creditable
+  income_id, tax_type, amount_orig, currency, amount_nok, treatment
 ) VALUES (?, ?, ?, ?, ?, ?)
-RETURNING id, income_id, tax_type, amount_orig, currency, amount_nok, creditable
+RETURNING id, income_id, tax_type, amount_orig, currency, amount_nok, treatment
 `
 
 type CreateIncomeForeignTaxParams struct {
@@ -143,7 +236,7 @@ type CreateIncomeForeignTaxParams struct {
 	AmountOrig float64 `json:"amount_orig"`
 	Currency   string  `json:"currency"`
 	AmountNok  float64 `json:"amount_nok"`
-	Creditable int64   `json:"creditable"`
+	Treatment  string  `json:"treatment"`
 }
 
 func (q *Queries) CreateIncomeForeignTax(ctx context.Context, arg CreateIncomeForeignTaxParams) (IncomeForeignTax, error) {
@@ -153,7 +246,7 @@ func (q *Queries) CreateIncomeForeignTax(ctx context.Context, arg CreateIncomeFo
 		arg.AmountOrig,
 		arg.Currency,
 		arg.AmountNok,
-		arg.Creditable,
+		arg.Treatment,
 	)
 	var i IncomeForeignTax
 	err := row.Scan(
@@ -163,7 +256,7 @@ func (q *Queries) CreateIncomeForeignTax(ctx context.Context, arg CreateIncomeFo
 		&i.AmountOrig,
 		&i.Currency,
 		&i.AmountNok,
-		&i.Creditable,
+		&i.Treatment,
 	)
 	return i, err
 }
@@ -288,7 +381,7 @@ func (q *Queries) ListAllIncome(ctx context.Context) ([]Income, error) {
 }
 
 const listAllIncomeForeignTaxes = `-- name: ListAllIncomeForeignTaxes :many
-SELECT id, income_id, tax_type, amount_orig, currency, amount_nok, creditable FROM income_foreign_taxes ORDER BY income_id, id
+SELECT id, income_id, tax_type, amount_orig, currency, amount_nok, treatment FROM income_foreign_taxes ORDER BY income_id, id
 `
 
 func (q *Queries) ListAllIncomeForeignTaxes(ctx context.Context) ([]IncomeForeignTax, error) {
@@ -307,7 +400,7 @@ func (q *Queries) ListAllIncomeForeignTaxes(ctx context.Context) ([]IncomeForeig
 			&i.AmountOrig,
 			&i.Currency,
 			&i.AmountNok,
-			&i.Creditable,
+			&i.Treatment,
 		); err != nil {
 			return nil, err
 		}
@@ -416,7 +509,7 @@ func (q *Queries) ListIncomeByYear(ctx context.Context, taxYear int64) ([]Income
 }
 
 const listIncomeForeignTaxes = `-- name: ListIncomeForeignTaxes :many
-SELECT id, income_id, tax_type, amount_orig, currency, amount_nok, creditable FROM income_foreign_taxes WHERE income_id = ? ORDER BY id
+SELECT id, income_id, tax_type, amount_orig, currency, amount_nok, treatment FROM income_foreign_taxes WHERE income_id = ? ORDER BY id
 `
 
 func (q *Queries) ListIncomeForeignTaxes(ctx context.Context, incomeID int64) ([]IncomeForeignTax, error) {
@@ -435,7 +528,7 @@ func (q *Queries) ListIncomeForeignTaxes(ctx context.Context, incomeID int64) ([
 			&i.AmountOrig,
 			&i.Currency,
 			&i.AmountNok,
-			&i.Creditable,
+			&i.Treatment,
 		); err != nil {
 			return nil, err
 		}

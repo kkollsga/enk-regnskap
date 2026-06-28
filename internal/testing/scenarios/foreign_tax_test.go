@@ -35,15 +35,17 @@ func TestNonCreditableTaxExcludedFromCredit(t *testing.T) {
 	if len(lines) != 2 {
 		t.Fatalf("forventet 2 skattelinjer, fikk %d", len(lines))
 	}
-	byType := map[string]int64{}
+	byType := map[string]string{}
 	for _, l := range lines {
-		byType[l.TaxType] = l.Creditable
+		byType[l.TaxType] = l.Treatment
 	}
-	if byType["IRRF"] != 1 {
-		t.Errorf("IRRF creditable = %d, forventet 1", byType["IRRF"])
+	// IRRF er krediterbar -> credit. COFINS er ikke krediterbar -> standard
+	// behandling er fradragsberettiget kostnad (deduct).
+	if byType["IRRF"] != core.TaxTreatmentCredit {
+		t.Errorf("IRRF treatment = %q, forventet credit", byType["IRRF"])
 	}
-	if byType["COFINS"] != 0 {
-		t.Errorf("COFINS creditable = %d, forventet 0", byType["COFINS"])
+	if byType["COFINS"] != core.TaxTreatmentDeduct {
+		t.Errorf("COFINS treatment = %q, forventet deduct", byType["COFINS"])
 	}
 
 	// Kreditfradraget skal kun inkludere IRRF: 1500 BRL * 2.00 = 3000 NOK.
@@ -57,6 +59,95 @@ func TestNonCreditableTaxExcludedFromCredit(t *testing.T) {
 	if credit[0].Credit.ForeignTaxNok != 3000 {
 		t.Errorf("kreditert utenlandsk skatt = %v, forventet 3000 (COFINS skal være ekskludert)",
 			credit[0].Credit.ForeignTaxNok)
+	}
+
+	// COFINS (500 BRL * 2.00 = 1000 NOK) skal telle som fradragsberettiget kostnad.
+	totals, err := h.App.ForeignTaxTotalsForYear(ctx, 2025)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if totals.Credit != 3000 {
+		t.Errorf("credit-total = %v, forventet 3000", totals.Credit)
+	}
+	if totals.Deduct != 1000 {
+		t.Errorf("deduct-total = %v, forventet 1000 (COFINS som kostnad)", totals.Deduct)
+	}
+}
+
+// TestDeductibleForeignTaxLinkedToExpenses verifiserer at en fradragsberettiget
+// skattelinje (deduct) dukker opp som koblet utgiftspost med peker til inntekten,
+// mens en kreditert linje (credit) ikke gjør det.
+func TestDeductibleForeignTaxLinkedToExpenses(t *testing.T) {
+	h := apptest.Start(t)
+	ctx := h.Context()
+	h.Mock.AddRate("BRL", "2025-03-10", 2.00)
+
+	res, err := h.App.AddIncome(ctx, core.ActorWeb, core.IncomeInput{
+		Date: "2025-03-10", Description: "Brasil", Currency: "BRL", CountryCode: "BR",
+		AmountOrig: 10000, Category: "tjenesteinntekt", TaxYear: 2025,
+		ForeignTaxPaid: core.ForeignTaxYes,
+		ForeignTaxes: []core.ForeignTaxLine{
+			{Type: "IRRF", AmountOrig: 1500, Currency: "BRL"},   // credit
+			{Type: "COFINS", AmountOrig: 500, Currency: "BRL"},  // deduct
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	linked, err := h.App.DeductibleForeignTaxLines(ctx, 2025)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(linked) != 1 {
+		t.Fatalf("forventet 1 koblet fradragslinje, fikk %d", len(linked))
+	}
+	if linked[0].TaxType != "COFINS" {
+		t.Errorf("koblet linje = %q, forventet COFINS (kun deduct)", linked[0].TaxType)
+	}
+	if linked[0].IncomeID != res.Income.ID {
+		t.Errorf("koblet til inntekt %d, forventet %d", linked[0].IncomeID, res.Income.ID)
+	}
+	if linked[0].AmountNok != 1000 {
+		t.Errorf("koblet beløp = %v, forventet 1000", linked[0].AmountNok)
+	}
+}
+
+// TestCSLLCreditableFrom2025 låser fast at CSLL (bidragsskatt på netto overskudd)
+// behandles som krediterbar inntektsskatt fra inntektsår 2025 (skatteavtalen
+// Norge-Brasil art. 2), men ikke for tidligere år.
+func TestCSLLCreditableFrom2025(t *testing.T) {
+	h := apptest.Start(t)
+	ctx := h.Context()
+	h.Mock.AddRate("BRL", "2025-06-01", 2.00)
+	h.Mock.AddRate("BRL", "2024-06-01", 2.00)
+
+	res25, err := h.App.AddIncome(ctx, core.ActorWeb, core.IncomeInput{
+		Date: "2025-06-01", Description: "BR CSLL 2025", Currency: "BRL", CountryCode: "BR",
+		AmountOrig: 10000, Category: "tjenesteinntekt", TaxYear: 2025,
+		ForeignTaxPaid: core.ForeignTaxYes,
+		ForeignTaxes:   []core.ForeignTaxLine{{Type: "CSLL", AmountOrig: 900, Currency: "BRL"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	l25, _ := h.App.IncomeForeignTaxes(ctx, res25.Income.ID)
+	if l25[0].Treatment != core.TaxTreatmentCredit {
+		t.Errorf("CSLL 2025 treatment = %q, forventet credit (skatteavtale art. 2)", l25[0].Treatment)
+	}
+
+	res24, err := h.App.AddIncome(ctx, core.ActorWeb, core.IncomeInput{
+		Date: "2024-06-01", Description: "BR CSLL 2024", Currency: "BRL", CountryCode: "BR",
+		AmountOrig: 10000, Category: "tjenesteinntekt", TaxYear: 2024,
+		ForeignTaxPaid: core.ForeignTaxYes,
+		ForeignTaxes:   []core.ForeignTaxLine{{Type: "CSLL", AmountOrig: 900, Currency: "BRL"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	l24, _ := h.App.IncomeForeignTaxes(ctx, res24.Income.ID)
+	if l24[0].Treatment != core.TaxTreatmentDeduct {
+		t.Errorf("CSLL 2024 treatment = %q, forventet deduct (ikke krediterbar før 2025)", l24[0].Treatment)
 	}
 }
 

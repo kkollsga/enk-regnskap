@@ -124,7 +124,7 @@ type IncomeForeignTax struct {
 	AmountOrig float64 `json:"amount_orig"`
 	Currency   string  `json:"currency"`
 	AmountNok  float64 `json:"amount_nok"`
-	Creditable int64   `json:"creditable"`
+	Treatment  string  `json:"treatment"`
 }
 
 type Receipt struct {
