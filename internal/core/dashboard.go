@@ -29,7 +29,7 @@ func (a *App) Dashboard(ctx context.Context, year int) (Dashboard, error) {
 		return Dashboard{}, fmt.Errorf("sum fradrag: %w", err)
 	}
 
-	incomeF := toFloat(income)
+	incomeF := tax.Round2(toFloat(income))
 	deductibleF := toFloat(deductible)
 	// Utenlandsk skatt behandlet som fradragsberettiget kostnad inngår i fradraget.
 	if ftt, err := a.ForeignTaxTotalsForYear(ctx, year); err == nil {
