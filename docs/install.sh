@@ -49,6 +49,15 @@ if [[ ! -w "$DEST" ]]; then
   mkdir -p "$DEST"
 fi
 
+# Lukk appen hvis den kjører, så vi kan oppdatere på plass.
+if pgrep -x EnkRegnskap >/dev/null 2>&1; then
+  say "Lukker kjørende EnkRegnskap ..."
+  osascript -e 'tell application "EnkRegnskap" to quit' >/dev/null 2>&1 || true
+  for _ in 1 2 3 4 5; do pgrep -x EnkRegnskap >/dev/null 2>&1 || break; sleep 1; done
+  pkill -x EnkRegnskap 2>/dev/null || true   # tving om den fortsatt henger
+  sleep 1
+fi
+
 say "Installerer til $DEST ..."
 rm -rf "$DEST/$APP"
 cp -R "$MOUNT/$APP" "$DEST/"
