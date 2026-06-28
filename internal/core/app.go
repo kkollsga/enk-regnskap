@@ -74,6 +74,8 @@ const (
 	ConfigOrgNr        = "org_nr"
 	ConfigActiveYear   = "active_tax_year"
 	ConfigOnboarded    = "onboarded"
+	ConfigLastCountry  = "last_country"  // sist brukte kildeland (forhåndsutfylling)
+	ConfigLastCurrency = "last_currency" // sist brukte valuta (forhåndsutfylling)
 )
 
 // GetConfig henter en konfigurasjonsverdi, eller fallback hvis den mangler.

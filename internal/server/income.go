@@ -169,7 +169,19 @@ func (s *Server) saveIncome(w http.ResponseWriter, r *http.Request, id int64) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	s.rememberCountryCurrency(r.Context(), res.Income.CountryCode, res.Income.Currency)
 	http.Redirect(w, r, "/income?saved=1", http.StatusSeeOther)
+}
+
+// rememberCountryCurrency lagrer sist brukte land/valuta for forhåndsutfylling
+// av neste post (deles mellom inntekt og utgift).
+func (s *Server) rememberCountryCurrency(ctx context.Context, country, currency string) {
+	if country != "" {
+		_ = s.app().SetConfig(ctx, core.ConfigLastCountry, country)
+	}
+	if currency != "" {
+		_ = s.app().SetConfig(ctx, core.ConfigLastCurrency, currency)
+	}
 }
 
 func (s *Server) newIncomeForm(r *http.Request) incomeFormData {
@@ -178,8 +190,8 @@ func (s *Server) newIncomeForm(r *http.Request) incomeFormData {
 	return incomeFormData{
 		Values: map[string]string{
 			"date":             entryDefaultDate(s.app().ActiveYear(r.Context())),
-			"currency":         "NOK",
-			"country_code":     "NO",
+			"currency":         s.app().GetConfig(r.Context(), core.ConfigLastCurrency, "NOK"),
+			"country_code":     s.app().GetConfig(r.Context(), core.ConfigLastCountry, "NO"),
 			"foreign_tax_paid": "0",
 		},
 		Errors:         map[string]string{},

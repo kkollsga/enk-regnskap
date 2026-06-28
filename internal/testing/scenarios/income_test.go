@@ -238,3 +238,22 @@ func TestIncomeRollback(t *testing.T) {
 		t.Errorf("etter rollback skulle inntekten være borte, fikk %d", len(rows))
 	}
 }
+
+// TestRemembersCountryCurrency sikrer at sist brukte land/valuta huskes og
+// forhåndsutfylles ved neste post.
+func TestRemembersCountryCurrency(t *testing.T) {
+	h := apptest.Start(t)
+	ctx := h.Context()
+	h.App.SetConfig(ctx, core.ConfigActiveYear, "2025")
+	h.Mock.AddRate("BRL", "2025-03-10", 2.00)
+	h.Browser().Get("/income/new").Form("/income").
+		Set("date", "2025-03-10").Set("description", "BR").Set("currency", "BRL").
+		Set("country_code", "BR").Set("amount_orig", "1000").
+		Set("category", "tjenesteinntekt").Set("foreign_tax_paid", "0").Submit()
+	if c := h.App.GetConfig(ctx, core.ConfigLastCountry, ""); c != "BR" {
+		t.Errorf("last_country = %q, forventet BR", c)
+	}
+	if c := h.App.GetConfig(ctx, core.ConfigLastCurrency, ""); c != "BRL" {
+		t.Errorf("last_currency = %q, forventet BRL", c)
+	}
+}

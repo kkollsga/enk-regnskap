@@ -171,6 +171,7 @@ func (s *Server) saveExpense(w http.ResponseWriter, r *http.Request, id int64) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	s.rememberCountryCurrency(r.Context(), exp.CountryCode, exp.Currency)
 	http.Redirect(w, r, "/expenses?saved=1", http.StatusSeeOther)
 }
 
@@ -202,8 +203,8 @@ func wrongYearMsg(year int) string {
 func (s *Server) newExpenseForm(r *http.Request, year int) expenseFormData {
 	values := map[string]string{
 		"date":         entryDefaultDate(year),
-		"currency":     "NOK",
-		"country_code": "NO",
+		"currency":     s.app().GetConfig(r.Context(), core.ConfigLastCurrency, "NOK"),
+		"country_code": s.app().GetConfig(r.Context(), core.ConfigLastCountry, "NO"),
 	}
 	if cat := r.URL.Query().Get("category"); cat != "" {
 		values["category"] = cat
