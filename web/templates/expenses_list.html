@@ -53,7 +53,7 @@
         <form method="POST" action="/expenses/{{$e.ID}}" enctype="multipart/form-data" data-attach-form novalidate>
           <div class="edit-grid">
             <label class="edit-field">Dato
-              <input type="date" name="date" value="{{$e.Date}}">
+              {{template "date_field" $e.Date}}
             </label>
             <label class="edit-field">Beskrivelse
               <input type="text" name="description" value="{{$e.Description}}" autocomplete="off">

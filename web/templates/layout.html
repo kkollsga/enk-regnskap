@@ -96,6 +96,13 @@
 </div>
 {{end}}
 
+{{define "date_field"}}
+<div class="date-combo">
+  <input type="text" name="date" class="date-text" value="{{.}}" placeholder="ÅÅÅÅ-MM-DD" inputmode="numeric" autocomplete="off">
+  <input type="date" class="date-pick" value="{{.}}" aria-label="Velg dato i kalender" tabindex="-1">
+</div>
+{{end}}
+
 {{define "tax_row"}}
 <div class="tax-row">
   <div class="combobox">

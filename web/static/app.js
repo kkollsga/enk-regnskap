@@ -173,6 +173,23 @@
     }
   });
 
+  // --- Datofelt: fri innskriving (tekst) synket med kalendervelger ---
+  document.addEventListener("change", function (e) {
+    var t = e.target;
+    if (!t.classList) return;
+    var combo = t.closest(".date-combo");
+    if (!combo) return;
+    if (t.classList.contains("date-pick") && t.value) {
+      // Kalendervalg -> tekstfelt (og varsle lyttere, f.eks. kursoppslag).
+      var text = combo.querySelector(".date-text");
+      if (text) { text.value = t.value; text.dispatchEvent(new Event("change", { bubbles: true })); }
+    } else if (t.classList.contains("date-text")) {
+      // Innskrevet ISO-dato -> kalendervelger, så hjulet viser samme dato.
+      var pick = combo.querySelector(".date-pick");
+      if (pick && /^\d{4}-\d{2}-\d{2}$/.test(t.value.trim())) pick.value = t.value.trim();
+    }
+  });
+
   // --- Skattetype-combobox + repeterbare skattelinjer ---
   // Forslagene ligger som JSON i #tax-data[data-suggestions] (per landkode).
   function taxSuggestions() {

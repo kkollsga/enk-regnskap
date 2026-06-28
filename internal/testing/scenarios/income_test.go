@@ -14,7 +14,7 @@ func TestIncomeFormHasRequiredFields(t *testing.T) {
 	h := apptest.Start(t)
 	doc := h.Browser().Get("/income/new")
 	apptest.AssertStatus(t, doc, 200)
-	for _, id := range []string{"#date", "#description", "#amount_orig", "#category", "#currency", "#country_code"} {
+	for _, id := range []string{".date-text", "#description", "#amount_orig", "#category", "#currency", "#country_code"} {
 		apptest.AssertHas(t, doc, id)
 	}
 }

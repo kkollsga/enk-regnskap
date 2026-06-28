@@ -7,8 +7,8 @@
 
 <form method="POST" action="{{$d.Action}}" id="entry-form" class="form" enctype="multipart/form-data" novalidate>
   <div class="field {{if index $d.Errors "date"}}has-error{{end}}">
-    <label for="date">{{.Tr "common_date"}}</label>
-    <input type="date" id="date" name="date" value="{{index $d.Values "date"}}">
+    <label>{{.Tr "common_date"}}</label>
+    {{template "date_field" (index $d.Values "date")}}
     {{with index $d.Errors "date"}}<div class="field-error">{{.}}</div>{{end}}
   </div>
 
@@ -103,7 +103,7 @@
 (function () {
   var currency = document.getElementById("currency");
   var amount = document.getElementById("amount_orig");
-  var date = document.getElementById("date");
+  var date = document.querySelector("#entry-form .date-text");
   var rateInfo = document.getElementById("rate-info");
   var country = document.getElementById("country_code");
   var ftBlock = document.getElementById("foreign-tax-block");
