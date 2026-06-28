@@ -3,131 +3,261 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Installer ENK Regnskap på Mac</title>
-  <meta name="description" content="Installer ENK Regnskap på macOS med én kommando.">
+  <title>ENK Regnskap – installer på Mac</title>
+  <meta name="description" content="Regnskap for enkeltpersonforetak, lokalt på din egen Mac. Installer med én kommando.">
+  <meta property="og:title" content="ENK Regnskap for Mac">
+  <meta property="og:description" content="Regnskap for enkeltpersonforetak – lokalt, gratis, uten abonnement. Installer med én kommando.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231d3557'/%3E%3Ctext x='32' y='42' font-family='Helvetica,Arial' font-size='26' font-weight='700' fill='white' text-anchor='middle'%3EENK%3C/text%3E%3C/svg%3E">
   <style>
-    :root {
-      --primary: #1d3557; --accent: #2a9d8f; --text: #1a1a1a; --muted: #6b7280;
-      --border: #e5e5ea; --sep: #f5f5f7; --radius: 10px;
+    :root{
+      --navy:#1d3557; --navy-2:#16293f; --ink:#0f1d31;
+      --accent:#3ddc97; --accent-2:#2bb583;
+      --text:#1a2230; --muted:#5b6573; --line:#e7eaf0;
+      --bg-soft:#f6f8fc; --card:#ffffff;
+      --radius:14px; --shadow:0 10px 30px rgba(16,29,49,.08);
+      --shadow-sm:0 2px 8px rgba(16,29,49,.06);
+      --maxw:960px;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; color: var(--text); background: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      line-height: 1.6;
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      color:var(--text); background:var(--card); line-height:1.65;
+      -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
     }
-    .wrap { max-width: 720px; margin: 0 auto; padding: 48px 22px 80px; }
-    header { text-align: center; margin-bottom: 36px; }
-    .logo {
-      display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
-      font-weight: 800; line-height: 1; color: var(--primary);
+    a{color:var(--navy);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .container{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+    /* ---------- top nav ---------- */
+    .nav{position:sticky;top:0;z-index:20;background:rgba(29,53,87,.92);
+      backdrop-filter:saturate(160%) blur(10px);border-bottom:1px solid rgba(255,255,255,.08)}
+    .nav .container{display:flex;align-items:center;justify-content:space-between;height:60px}
+    .brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700}
+    .brand .mark{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+      background:linear-gradient(135deg,#2a4a78,#16293f);color:#fff;font-size:12px;font-weight:800;letter-spacing:.5px;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+    .brand .name{font-size:15px;letter-spacing:.2px}
+    .brand .name small{display:block;font-size:10px;font-weight:600;letter-spacing:2.5px;color:#9db4d4;text-transform:uppercase;margin-top:-2px}
+    .nav-link{color:#cdd9ec;font-size:14px;font-weight:500}
+    .nav-link:hover{color:#fff;text-decoration:none}
+
+    /* ---------- hero ---------- */
+    .hero{position:relative;background:radial-gradient(1200px 500px at 50% -10%,#274a78 0%,var(--navy) 45%,var(--navy-2) 100%);
+      color:#fff;overflow:hidden;padding:72px 0 96px;text-align:center}
+    .hero::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:64px;
+      background:linear-gradient(to bottom,rgba(255,255,255,0),var(--card))}
+    .badge-pill{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;
+      color:#cfe9dd;background:rgba(61,220,151,.12);border:1px solid rgba(61,220,151,.3);
+      padding:6px 14px;border-radius:999px;margin-bottom:22px}
+    .badge-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(61,220,151,.25)}
+    .app-icon{width:84px;height:84px;border-radius:20px;margin:0 auto 24px;display:grid;place-items:center;
+      background:linear-gradient(160deg,#3a5d8f 0%,#1d3557 60%,#142a44 100%);
+      box-shadow:0 16px 40px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.18);position:relative}
+    .app-icon b{font-size:13px;font-weight:800;letter-spacing:3px;color:#fff;position:absolute;bottom:14px}
+    .app-icon svg{width:38px;height:38px;margin-bottom:14px;opacity:.95}
+    h1{font-size:clamp(30px,5vw,46px);line-height:1.1;letter-spacing:-.5px;font-weight:800}
+    .hero p.lede{font-size:clamp(16px,2.2vw,19px);color:#c6d4e8;max-width:560px;margin:16px auto 0}
+
+    /* ---------- terminal install card ---------- */
+    .install{max-width:680px;margin:34px auto 0;text-align:left}
+    .install-label{font-size:13px;color:#9db4d4;text-align:center;margin-bottom:12px;letter-spacing:.3px}
+    .terminal{border-radius:12px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);
+      border:1px solid rgba(255,255,255,.1);background:var(--ink)}
+    .term-bar{display:flex;align-items:center;gap:8px;padding:11px 14px;background:#1b2c44;border-bottom:1px solid rgba(255,255,255,.06)}
+    .term-bar .tl{width:12px;height:12px;border-radius:50%}
+    .tl.r{background:#ff5f57}.tl.y{background:#febc2e}.tl.g{background:#28c840}
+    .term-bar .term-title{margin-left:8px;font-size:12px;color:#7e93b3}
+    .term-body{display:flex;align-items:center;gap:12px;padding:18px 16px}
+    .term-body .pr{color:var(--accent);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;flex:none}
+    .term-body code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;color:#e8eef7;
+      scrollbar-width:thin}
+    .term-body code::-webkit-scrollbar{height:6px}
+    .term-body code::-webkit-scrollbar-thumb{background:#3a4a63;border-radius:3px}
+    .copy{flex:none;border:none;cursor:pointer;font-weight:700;font-size:13px;color:#0f1d31;
+      background:var(--accent);padding:9px 16px;border-radius:8px;transition:transform .1s,background .15s;white-space:nowrap}
+    .copy:hover{background:var(--accent-2)}
+    .copy:active{transform:scale(.96)}
+    .copy.done{background:#fff;color:#147a52}
+    .install-note{text-align:center;font-size:13px;color:#9db4d4;margin-top:14px}
+
+    /* ---------- sections ---------- */
+    section.block{padding:64px 0}
+    .eyebrow{text-transform:uppercase;letter-spacing:2px;font-size:12px;font-weight:700;color:var(--accent-2)}
+    h2{font-size:clamp(22px,3.4vw,30px);letter-spacing:-.3px;margin:8px 0 6px;font-weight:800}
+    .section-sub{color:var(--muted);max-width:560px}
+    .center{text-align:center;margin:0 auto}
+
+    /* features */
+    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+    .feature{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+      padding:26px 22px;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s}
+    .feature:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+    .feature .ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;margin-bottom:16px;
+      background:linear-gradient(160deg,#eaf2ff,#dde9fb);color:var(--navy)}
+    .feature .ico svg{width:24px;height:24px}
+    .feature h3{font-size:17px;margin-bottom:6px}
+    .feature p{color:var(--muted);font-size:14.5px}
+
+    /* steps */
+    .steps-wrap{background:var(--bg-soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:40px;counter-reset:step}
+    .step{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px 20px;box-shadow:var(--shadow-sm)}
+    .step::before{counter-increment:step;content:counter(step);position:absolute;top:-14px;left:20px;
+      width:30px;height:30px;border-radius:9px;background:var(--navy);color:#fff;font-weight:800;font-size:14px;
+      display:grid;place-items:center;box-shadow:var(--shadow-sm)}
+    .step h3{font-size:15px;margin:8px 0 5px}
+    .step p{font-size:13.5px;color:var(--muted)}
+    .step code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:#eef2f8;padding:1px 6px;border-radius:5px}
+
+    /* alt download */
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+      box-shadow:var(--shadow-sm);padding:28px;margin-top:28px}
+    .panel + .panel{margin-top:18px}
+    .panel h3{font-size:16px;margin-bottom:8px;display:flex;align-items:center;gap:9px}
+    .panel p{color:var(--muted);font-size:14.5px}
+    .btn{display:inline-flex;align-items:center;gap:8px;background:var(--navy);color:#fff;font-weight:600;font-size:14px;
+      padding:11px 18px;border-radius:10px;margin-top:14px;transition:background .15s}
+    .btn:hover{background:#16293f;text-decoration:none}
+    .kbd{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#0f1d31;color:#e8eef7;
+      padding:10px 14px;border-radius:8px;display:block;margin-top:12px;overflow-x:auto;white-space:nowrap}
+    .note-warn{border-left:3px solid var(--accent-2);background:#f2fbf7;padding:14px 16px;border-radius:8px;font-size:14px;color:#234}
+
+    /* footer */
+    footer{background:var(--navy-2);color:#aebfd6;padding:40px 0;font-size:14px}
+    footer .container{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+    footer a{color:#dce7f6}
+    footer .muted{color:#7e93b3;font-size:13px}
+
+    @media (max-width:760px){
+      .features{grid-template-columns:1fr}
+      .steps{grid-template-columns:1fr 1fr}
+      section.block{padding:48px 0}
     }
-    .logo .enk { font-size: 34px; letter-spacing: 1px; }
-    .logo .reg { font-size: 16px; color: var(--muted); font-weight: 600; letter-spacing: 3px; text-transform: uppercase; }
-    h1 { font-size: 26px; margin: 24px 0 6px; }
-    .sub { color: var(--muted); margin: 0; }
-    h2 { font-size: 18px; margin: 40px 0 12px; }
-    p { margin: 12px 0; }
-    .card {
-      border: 1px solid var(--border); border-radius: var(--radius);
-      box-shadow: 0 1px 3px rgba(0,0,0,.06); padding: 22px; margin: 24px 0;
+    @media (max-width:480px){
+      .steps{grid-template-columns:1fr}
+      .term-body{flex-wrap:wrap}
+      .copy{width:100%}
     }
-    .install-card { background: var(--primary); color: #fff; border: none; }
-    .install-card h2 { color: #fff; margin-top: 0; }
-    .cmd {
-      display: flex; align-items: stretch; gap: 0; margin-top: 14px;
-      border-radius: 8px; overflow: hidden; background: #0f1d31;
-    }
-    .cmd code {
-      flex: 1; padding: 14px 16px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 13.5px; color: #e6edf6; white-space: nowrap; overflow-x: auto;
-    }
-    .copy-btn {
-      flex: 0 0 auto; border: none; background: var(--accent); color: #fff;
-      padding: 0 18px; font-size: 14px; font-weight: 600; cursor: pointer;
-      transition: background .15s;
-    }
-    .copy-btn:hover { background: #248277; }
-    .copy-btn.done { background: #3a7d44; }
-    .hint { font-size: 13px; color: #b9c6d8; margin: 12px 0 0; }
-    ol { padding-left: 22px; } ol li { margin: 7px 0; }
-    code.inline {
-      background: var(--sep); border-radius: 5px; padding: 2px 6px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px;
-    }
-    .note { background: var(--sep); border-radius: var(--radius); padding: 14px 18px; font-size: 14px; }
-    a { color: var(--primary); }
-    footer { margin-top: 56px; text-align: center; color: var(--muted); font-size: 13px; }
-    .req { color: var(--muted); font-size: 14px; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <span class="logo"><span class="enk">ENK</span><span class="reg">Regnskap</span></span>
-      <h1>Installer på Mac</h1>
-      <p class="sub">Regnskap for enkeltpersonforetak – lokalt på din egen maskin.</p>
-    </header>
+  <nav class="nav">
+    <div class="container">
+      <span class="brand">
+        <span class="mark">ENK</span>
+        <span class="name">ENK Regnskap<small>for Mac</small></span>
+      </span>
+      <a class="nav-link" href="https://github.com/kkollsga/enk-regnskap" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
+  </nav>
 
-    <div class="card install-card">
-      <h2>Installer med én kommando</h2>
-      <p>Åpne <strong>Terminal</strong> og lim inn denne kommandoen:</p>
-      <div class="cmd">
-        <code id="cmd">curl -fsSL https://kkollsga.github.io/enk-regnskap/install.sh | bash</code>
-        <button class="copy-btn" id="copy" onclick="copyCmd()">Kopier</button>
+  <header class="hero">
+    <div class="container">
+      <span class="badge-pill"><span class="dot"></span>Gratis · åpen kildekode · macOS</span>
+      <div class="app-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z" opacity=".0"/><path d="M7 3h7l5 5v13H5V5"/><path d="M14 3v5h5"/><path d="M8.5 13h7M8.5 16.5h7M8.5 9.5h2"/></svg>
+        <b>ENK</b>
       </div>
-      <p class="hint">Laster ned siste versjon, installerer <code style="color:#e6edf6">EnkRegnskap.app</code> i Programmer og åpner den. Ingen passord nødvendig.</p>
+      <h1>Regnskap for enkeltpersonforetak,<br>rett på din egen Mac</h1>
+      <p class="lede">Inntekter, utgifter, vedlegg og foreløpig skatteberegning – lokalt og privat. Ingen konto, ingen abonnement.</p>
+
+      <div class="install">
+        <div class="install-label">Installer med én kommando i Terminal</div>
+        <div class="terminal">
+          <div class="term-bar"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="term-title">bash — ENK Regnskap</span></div>
+          <div class="term-body">
+            <span class="pr">$</span>
+            <code id="cmd">curl -fsSL https://kkollsga.github.io/enk-regnskap/install.sh | bash</code>
+            <button class="copy" id="copy" onclick="copyCmd()">Kopier</button>
+          </div>
+        </div>
+        <p class="install-note">Laster ned siste versjon, installerer i Programmer og åpner appen. Ingen passord nødvendig.</p>
+      </div>
     </div>
+  </header>
 
-    <h2>Hva gjør kommandoen?</h2>
-    <ol>
-      <li>Finner riktig versjon for maskinen din (Apple Silicon eller Intel).</li>
-      <li>Laster ned installasjonsfilen (DMG) fra GitHub.</li>
-      <li>Kopierer appen til <code class="inline">/Applications</code>.</li>
-      <li>Åpner ENK Regnskap. Du finner den siden i Launchpad og Programmer.</li>
-    </ol>
-    <p class="req">Krever macOS 11 eller nyere.</p>
-
-    <h2>Foretrekker du å klikke?</h2>
-    <p>
-      Last ned DMG-en manuelt fra
-      <a href="https://github.com/kkollsga/enk-regnskap/releases/latest" target="_blank" rel="noopener">siste release</a>
-      (velg <strong>arm64</strong> for Apple Silicon, <strong>intel</strong> for eldre Macer),
-      åpne den og dra <strong>EnkRegnskap</strong> til <strong>Programmer</strong>.
-    </p>
-    <div class="note">
-      <strong>Førstegangsåpning:</strong> ved manuell nedlasting er appen ikke
-      signert med Apple Developer-ID (beta). Høyreklikk appen → <strong>Åpne</strong>,
-      eller kjør
-      <code class="inline">xattr -dr com.apple.quarantine /Applications/EnkRegnskap.app</code>.
-      Terminal-kommandoen over slipper dette steget.
+  <section class="block">
+    <div class="container">
+      <div class="center" style="max-width:600px">
+        <span class="eyebrow">Hvorfor</span>
+        <h2>Laget for å være enkelt og trygt</h2>
+        <p class="section-sub center">Et lite, raskt program som kjører helt på din maskin – uten skytjenester.</p>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18M8 21h8"/></svg></span>
+          <h3>100 % lokalt</h3>
+          <p>Alle data lagres på din egen Mac under <code>~/ENK-Regnskap/</code>. Ingenting sendes til en sky.</p>
+        </div>
+        <div class="feature">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+          <h3>Ingen abonnement</h3>
+          <p>Gratis og åpen kildekode. Last ned, installer og bruk – uten kostnad eller registrering.</p>
+        </div>
+        <div class="feature">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l9-3 9 3-9 3-9-3z"/><path d="M3 6v6c0 2 4 4 9 4s9-2 9-4V6"/><path d="M12 13v8"/></svg></span>
+          <h3>Norske skatteregler</h3>
+          <p>Innebygde satser og fradragskategorier, valutakurser fra Norges Bank og foreløpig skatteberegning.</p>
+        </div>
+      </div>
     </div>
+  </section>
 
-    <h2>Personvern</h2>
-    <p>
-      Alle data lagres lokalt under <code class="inline">~/ENK-Regnskap/</code> på
-      din egen maskin. Ingen skytjeneste, ingen konto.
-    </p>
-
-    <footer>
-      <a href="https://github.com/kkollsga/enk-regnskap" target="_blank" rel="noopener">Kildekode på GitHub</a>
-    </footer>
+  <div class="steps-wrap">
+    <section class="block">
+      <div class="container">
+        <div class="center" style="max-width:600px">
+          <span class="eyebrow">Slik virker det</span>
+          <h2>Fra kommando til ferdig app</h2>
+          <p class="section-sub center">Kommandoen over gjør alt automatisk – dette skjer under panseret.</p>
+        </div>
+        <div class="steps">
+          <div class="step"><h3>Velger versjon</h3><p>Finner riktig bygg for Apple&nbsp;Silicon eller Intel.</p></div>
+          <div class="step"><h3>Laster ned</h3><p>Henter siste installasjonsfil (DMG) fra GitHub.</p></div>
+          <div class="step"><h3>Installerer</h3><p>Kopierer appen til <code>/Applications</code>.</p></div>
+          <div class="step"><h3>Åpner appen</h3><p>ENK Regnskap starter og er klar til bruk.</p></div>
+        </div>
+      </div>
+    </section>
   </div>
 
+  <section class="block">
+    <div class="container" style="max-width:720px">
+      <span class="eyebrow">Alternativer</span>
+      <h2>Foretrekker du å klikke?</h2>
+
+      <div class="panel">
+        <h3>📦 Last ned DMG manuelt</h3>
+        <p>Hent siste utgave, velg <strong>arm64</strong> for Apple Silicon (M-serien) eller <strong>intel</strong> for eldre Macer, åpne DMG-en og dra <strong>EnkRegnskap</strong> til <strong>Programmer</strong>.</p>
+        <a class="btn" href="https://github.com/kkollsga/enk-regnskap/releases/latest" target="_blank" rel="noopener">Gå til siste release ↗</a>
+      </div>
+
+      <div class="panel">
+        <h3>🔓 Førstegangsåpning ved manuell nedlasting</h3>
+        <p>Appen er foreløpig ikke signert med Apple Developer-ID (beta). Høyreklikk appen → <strong>Åpne</strong> første gang, eller fjern karanteneflagget:</p>
+        <code class="kbd">xattr -dr com.apple.quarantine /Applications/EnkRegnskap.app</code>
+        <p style="margin-top:12px"><span class="note-warn">Terminal-kommandoen øverst slipper dette steget – nedlasting via <code>curl</code> setter ikke karanteneflagget.</span></p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <span class="brand"><span class="mark">ENK</span><span class="name">ENK Regnskap</span></span>
+      <span class="muted">Krever macOS 11 eller nyere · Data lagres lokalt</span>
+      <a href="https://github.com/kkollsga/enk-regnskap" target="_blank" rel="noopener">Kildekode på GitHub ↗</a>
+    </div>
+  </footer>
+
   <script>
-    function copyCmd() {
-      var text = document.getElementById("cmd").textContent;
-      var btn = document.getElementById("copy");
-      function ok() { btn.textContent = "Kopiert ✓"; btn.classList.add("done"); setTimeout(function () { btn.textContent = "Kopier"; btn.classList.remove("done"); }, 2000); }
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(ok, fallback);
-      } else { fallback(); }
-      function fallback() {
-        var r = document.createRange(); r.selectNode(document.getElementById("cmd"));
-        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-        try { document.execCommand("copy"); ok(); } catch (e) {}
-        s.removeAllRanges();
-      }
+    function copyCmd(){
+      var text=document.getElementById("cmd").textContent.trim();
+      var btn=document.getElementById("copy");
+      function ok(){btn.textContent="Kopiert ✓";btn.classList.add("done");setTimeout(function(){btn.textContent="Kopier";btn.classList.remove("done");},2000);}
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok,fb);}else{fb();}
+      function fb(){var r=document.createRange();r.selectNode(document.getElementById("cmd"));var s=window.getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand("copy");ok();}catch(e){}s.removeAllRanges();}
     }
   </script>
 </body>
