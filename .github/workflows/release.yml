@@ -1,20 +1,76 @@
 name: Release
 
 # Bygger den native macOS-appen og publiserer DMG-installasjonsfiler på en
-# GitHub Release. Utløses når en versjonstag (vX.Y.Z) skyves.
+# GitHub Release.
+#
+# Utløses ved push til main (auto-release) eller ved push av en versjonstag.
+# Versjonering ved main-push: patch-bump som standard (vX.Y.Z -> vX.Y.Z+1).
+# Overstyr i commit-meldingen:
+#   [minor]        -> minor-bump (vX.Y+1.0)
+#   [major]        -> major-bump (vX+1.0.0)
+#   [skip release] -> ingen release
 on:
   push:
+    branches: [main]
     tags: ['v*']
 
 permissions:
   contents: write
 
 jobs:
+  version:
+    name: Finn versjon
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      release: ${{ steps.v.outputs.release }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # trenger alle tags for å finne forrige versjon
+      - id: v
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            # Manuell tag-push: bruk taggen direkte.
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          msg="$(git log -1 --pretty=%B)"
+          if echo "$msg" | grep -qiE '\[(skip release|no release)\]'; then
+            echo "Commit ber om å hoppe over release."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          latest="$(git tag --list 'v*' --sort=-v:refname | head -1)"
+          latest="${latest:-v0.0.0}"
+          base="${latest#v}"
+          IFS='.' read -r major minor patch <<< "$base"
+
+          if echo "$msg" | grep -qiE '\[major\]'; then
+            major=$((major + 1)); minor=0; patch=0
+          elif echo "$msg" | grep -qiE '\[minor\]'; then
+            minor=$((minor + 1)); patch=0
+          else
+            patch=$((patch + 1))
+          fi
+
+          tag="v${major}.${minor}.${patch}"
+          echo "Forrige: $latest -> ny: $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "release=true" >> "$GITHUB_OUTPUT"
+
   macos-app:
     name: macOS-app (${{ matrix.arch }})
+    needs: version
+    if: needs.version.outputs.release == 'true'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
+      max-parallel: 1   # unngå kappløp om å opprette samme tag/release
       matrix:
         include:
           - runner: macos-14   # Apple Silicon
@@ -30,20 +86,21 @@ jobs:
 
       - name: Bygg EnkRegnskap.app
         env:
-          VERSION: ${{ github.ref_name }}
+          VERSION: ${{ needs.version.outputs.tag }}
         run: make mac-app
 
       - name: Ad-hoc-signer appen
         run: codesign --force --deep --sign - dist/EnkRegnskap.app
 
       - name: Pakk DMG
-        run: bash assets/make-dmg.sh dist/EnkRegnskap.app "dist/EnkRegnskap-${{ github.ref_name }}-${{ matrix.arch }}.dmg"
+        run: bash assets/make-dmg.sh dist/EnkRegnskap.app "dist/EnkRegnskap-${{ needs.version.outputs.tag }}-${{ matrix.arch }}.dmg"
 
       - name: Publiser til release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/EnkRegnskap-${{ github.ref_name }}-${{ matrix.arch }}.dmg
-          name: ENK Regnskap ${{ github.ref_name }}
+          tag_name: ${{ needs.version.outputs.tag }}
+          files: dist/EnkRegnskap-${{ needs.version.outputs.tag }}-${{ matrix.arch }}.dmg
+          name: ENK Regnskap ${{ needs.version.outputs.tag }}
           body: |
             Native macOS-app for ENK-regnskap.
 

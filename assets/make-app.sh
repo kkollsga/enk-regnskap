@@ -13,7 +13,9 @@ VERSION="${VERSION:-1.0}"
 VERSION="${VERSION#v}"
 
 echo "Bygger desktop-binær (CGo + WebKit) ..."
-CGO_ENABLED=1 go build -o "/tmp/$BIN" ./cmd/desktop
+CGO_ENABLED=1 go build \
+  -ldflags "-X github.com/kkollsga/enk-regnskap/internal/core.Version=$VERSION" \
+  -o "/tmp/$BIN" ./cmd/desktop
 
 echo "Pakker $APP ..."
 rm -rf "$APP"

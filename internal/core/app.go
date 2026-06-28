@@ -16,8 +16,9 @@ import (
 	"github.com/kkollsga/enk-regnskap/internal/db"
 )
 
-// Version er appens versjonsnummer (vises diskret i toppbaren).
-const Version = "0.1.0"
+// Version er appens versjonsnummer (vises diskret i toppbaren). Settes ved
+// bygg via -ldflags "-X .../core.Version=X.Y.Z" (release-pipelinen); "dev" lokalt.
+var Version = "dev"
 
 // App samler delte avhengigheter for hele applikasjonen.
 type App struct {
