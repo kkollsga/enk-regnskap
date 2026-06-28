@@ -177,5 +177,9 @@ func SeedCountryData(conn *sql.DB) error {
 	if _, err := conn.Exec(seedCountrySQL); err != nil {
 		return fmt.Errorf("kjor seed_country_data.sql: %w", err)
 	}
+	// Landspesifikke skatteavtaler + skattetyper lastes fra JSON (agreements/).
+	if err := seedTaxAgreements(conn); err != nil {
+		return fmt.Errorf("last skatteavtaler: %w", err)
+	}
 	return nil
 }

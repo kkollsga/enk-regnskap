@@ -1,0 +1,123 @@
+{
+  "country_code": "BR",
+  "country_name": "Brasil",
+  "agreement": "Skatteavtale Norge–Brasil",
+  "rules": [
+    {
+      "effective_from": 2015,
+      "effective_to": 2024,
+      "has_tax_treaty": false,
+      "standard_withholding_pct": 15.0,
+      "notes": "Inntektsår 2024 og tidligere: ingen skatteavtale i kraft. Kreditfradrag for brasiliansk skatt etter intern norsk rett (sktl. § 16-20 til § 16-28). Maksimalt kreditfradrag beregnes per land (§ 16-21), overskytende fremføres i inntil 10 år (§ 16-22)."
+    },
+    {
+      "effective_from": 2025,
+      "effective_to": null,
+      "has_tax_treaty": true,
+      "treaty_in_force_date": "2024-12-30",
+      "treaty_method": "credit",
+      "treaty_reference": "Prop. 13 S (2022-2023)",
+      "treaty_source_url": "https://lovdata.no/dokument/TRAKTAT/traktat/2022-11-04-19",
+      "standard_withholding_pct": 15.0,
+      "notes": "Skatteavtale Norge-Brasil undertegnet 4. november 2022, i kraft 30. desember 2024, gjelder fra inntektsår 2025. Dobbeltbeskatning avhjelpes med kreditmetoden."
+    }
+  ],
+  "tax_types": [
+    {
+      "code": "IRRF",
+      "name": "Imposto de Renda Retido na Fonte",
+      "description": "Brasiliansk kildeskatt på inntekt. Trekkes ved kilden på tjenester og honorar. Dette er en inntektsskatt og gir kreditfradrag i Norge.",
+      "applies_to": "tjenester",
+      "creditable": true,
+      "treatment": "credit",
+      "basis": "brutto",
+      "typical_rate_pct": 15.0,
+      "effective_from": 2015,
+      "effective_to": null
+    },
+    {
+      "code": "IRPF",
+      "name": "Imposto de Renda Pessoa Física",
+      "description": "Brasiliansk inntektsskatt for personer (årlig ligning, bl.a. Carnê-Leão for selvstendige). Dette er en inntektsskatt og gir kreditfradrag i Norge.",
+      "applies_to": "inntekt",
+      "creditable": true,
+      "treatment": "credit",
+      "basis": "netto",
+      "typical_rate_pct": null,
+      "effective_from": 2015,
+      "effective_to": null
+    },
+    {
+      "code": "CSLL",
+      "name": "Contribuição Social sobre o Lucro Líquido",
+      "description": "Sosial bidragsskatt på netto overskudd (en inntektsskatt). Krediterbar etter intern norsk rett (sktl. § 16-20) t.o.m. 2024 – historisk omtvistet, vurder med rådgiver.",
+      "applies_to": "selskap",
+      "creditable": true,
+      "treatment": "credit",
+      "basis": "netto",
+      "typical_rate_pct": 9.0,
+      "effective_from": 2015,
+      "effective_to": 2024
+    },
+    {
+      "code": "CSLL",
+      "name": "Contribuição Social sobre o Lucro Líquido",
+      "description": "Sosial bidragsskatt på netto overskudd. Omfattet av skatteavtalen Norge-Brasil (art. 2) og gir kreditfradrag i Norge fra inntektsår 2025.",
+      "applies_to": "selskap",
+      "creditable": true,
+      "treatment": "credit",
+      "basis": "netto",
+      "typical_rate_pct": 9.0,
+      "effective_from": 2025,
+      "effective_to": null
+    },
+    {
+      "code": "ISS",
+      "name": "Imposto Sobre Serviços",
+      "description": "Kommunal tjenesteskatt på tjenesteomsetning (ikke en inntektsskatt). Gir ikke kreditfradrag, men er normalt en fradragsberettiget kostnad i Norge (sktl. § 6-15).",
+      "applies_to": "tjenester",
+      "creditable": false,
+      "treatment": "deduct",
+      "basis": "brutto",
+      "typical_rate_pct": 5.0,
+      "effective_from": 2015,
+      "effective_to": null
+    },
+    {
+      "code": "PIS",
+      "name": "Programa de Integração Social",
+      "description": "Bidragsskatt på omsetning (ikke en inntektsskatt). Gir ikke kreditfradrag, men er normalt en fradragsberettiget kostnad i Norge (sktl. § 6-15).",
+      "applies_to": "omsetning",
+      "creditable": false,
+      "treatment": "deduct",
+      "basis": "brutto",
+      "typical_rate_pct": 0.65,
+      "effective_from": 2015,
+      "effective_to": null
+    },
+    {
+      "code": "COFINS",
+      "name": "Contribuição para o Financiamento da Seguridade Social",
+      "description": "Bidragsskatt på omsetning til finansiering av sosial trygghet (ikke en inntektsskatt). Gir ikke kreditfradrag, men er normalt en fradragsberettiget kostnad i Norge (sktl. § 6-15).",
+      "applies_to": "omsetning",
+      "creditable": false,
+      "treatment": "deduct",
+      "basis": "brutto",
+      "typical_rate_pct": 3.0,
+      "effective_from": 2015,
+      "effective_to": null
+    },
+    {
+      "code": "INSS",
+      "name": "Instituto Nacional do Seguro Social",
+      "description": "Brasiliansk trygdeavgift (sosial sikkerhet), ikke en inntektsskatt. Gir ikke kreditfradrag, og fradragsrett som kostnad er tvilsom (ingen trygdeavtale Norge-Brasil). Standard: kun referanse – vurder med rådgiver.",
+      "applies_to": "personinntekt",
+      "creditable": false,
+      "treatment": "none",
+      "basis": "brutto",
+      "typical_rate_pct": null,
+      "effective_from": 2015,
+      "effective_to": null
+    }
+  ]
+}
