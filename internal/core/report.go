@@ -13,9 +13,9 @@ const CategoryForeignTaxDeductible = "_utenlandsk_skatt_fradrag"
 
 // CategorySum er en kategori med sumtotaler.
 type CategorySum struct {
-	Category   string
-	Total      float64
-	Deductible float64
+	Category   string  `json:"category"`
+	Total      float64 `json:"total"`
+	Deductible float64 `json:"deductible"`
 }
 
 // Report er all data som trengs for årsrapport, næringsspesifikasjon og

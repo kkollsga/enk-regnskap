@@ -105,13 +105,13 @@ func (r Rules) Trinnskatt(personinntekt float64) float64 {
 
 // TaxEstimate er et grovt estimat på skatt for et ENK.
 type TaxEstimate struct {
-	Year                    int
-	AlminneligInntekt       float64
-	Personinntekt           float64
-	AlminneligInntektsskatt float64
-	Trygdeavgift            float64
-	Trinnskatt              float64
-	SumSkatt                float64
+	Year                    int     `json:"year"`
+	AlminneligInntekt       float64 `json:"alminnelig_inntekt"`
+	Personinntekt           float64 `json:"personinntekt"`
+	AlminneligInntektsskatt float64 `json:"alminnelig_inntektsskatt"`
+	Trygdeavgift            float64 `json:"trygdeavgift"`
+	Trinnskatt              float64 `json:"trinnskatt"`
+	SumSkatt                float64 `json:"sum_skatt"`
 }
 
 // Estimate gir et forenklet skatteestimat. For et lite ENK uten lønn

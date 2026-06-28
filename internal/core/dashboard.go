@@ -9,13 +9,13 @@ import (
 
 // Dashboard er nøkkeltallene på forsiden for et inntektsår.
 type Dashboard struct {
-	Year             int
-	IncomeYTD        float64
-	DeductibleYTD    float64
-	Result           float64 // inntekt - fradragsberettigede utgifter
-	EstimatedTax     *tax.TaxEstimate
-	ForeignTaxCredit float64 // estimert kreditfradrag (§ 16-20 flg.)
-	NetTax           float64 // estimert skatt etter kreditfradrag
+	Year             int              `json:"year"`
+	IncomeYTD        float64          `json:"income_ytd"`
+	DeductibleYTD    float64          `json:"deductible_ytd"`
+	Result           float64          `json:"result"` // inntekt - fradragsberettigede utgifter
+	EstimatedTax     *tax.TaxEstimate `json:"estimated_tax"`
+	ForeignTaxCredit float64          `json:"foreign_tax_credit"` // estimert kreditfradrag (§ 16-20 flg.)
+	NetTax           float64          `json:"net_tax"`            // estimert skatt etter kreditfradrag
 }
 
 // Dashboard beregner nøkkeltall for et gitt inntektsår.
